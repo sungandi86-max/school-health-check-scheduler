@@ -25,13 +25,41 @@ function normalizeRoomText(value = '') {
   return value.replace(/\s/g, '').toUpperCase();
 }
 
+function isSecondFloorLectureRoomName(value = '') {
+  const normalized = normalizeRoomText(value);
+  return (
+    /^U-2-\d+/.test(normalized) ||
+    normalized.includes('2층종합강의실') ||
+    normalized.includes('종합강의실') ||
+    normalized.includes('2층종강') ||
+    normalized.includes('2층중강') ||
+    normalized.includes('종강1') ||
+    normalized.includes('종강2') ||
+    normalized.includes('중강1') ||
+    normalized.includes('중강2') ||
+    normalized.includes('중강기')
+  );
+}
+
+function isSecondFloorLectureRoomSource(roomMapping?: RoomMapping, restriction?: RestrictedVenueEntry) {
+  return (
+    isSecondFloorLectureRoomName(roomMapping?.actualRoom) ||
+    isSecondFloorLectureRoomName(roomMapping?.comciganRoom) ||
+    isSecondFloorLectureRoomName(restriction?.venueName) ||
+    roomMapping?.reason === SECOND_FLOOR_LECTURE_ROOM_NOTE ||
+    restriction?.reason === SECOND_FLOOR_LECTURE_ROOM_NOTE
+  );
+}
+
+function displaySecondFloorLectureRoomName(value?: string) {
+  return isSecondFloorLectureRoomName(value) ? '2층 종합강의실' : value;
+}
+
 function isSecondFloorLectureRoomJudgement(judgement?: PeriodJudgement) {
   if (!judgement) return false;
-  const actualRoom = normalizeRoomText(judgement.actualRoom);
-  const restrictedVenueName = normalizeRoomText(judgement.restrictedVenueName);
   return (
-    actualRoom === '2층종합강의실' ||
-    restrictedVenueName === '2층종합강의실' ||
+    isSecondFloorLectureRoomName(judgement.actualRoom) ||
+    isSecondFloorLectureRoomName(judgement.restrictedVenueName) ||
     judgement.roomMappingReason === SECOND_FLOOR_LECTURE_ROOM_NOTE ||
     judgement.restrictedVenueReason === SECOND_FLOOR_LECTURE_ROOM_NOTE ||
     judgement.reason.includes(SECOND_FLOOR_LECTURE_ROOM_NOTE)
@@ -247,19 +275,55 @@ export function judgePeriod(
       comciganRoom: roomMapping.comciganRoom,
     };
   }
-  if (settings.examType === 'urine' && roomMapping?.urineExamAvailability === '불가') {
-    const mixedReason = roomMapping.isMixedGrade ? '여러 학년 혼합 수업' : '';
+  if (settings.examType === 'urine' && roomMapping?.isMixedGrade) {
     return {
       locationId: location.id,
       period,
       subject,
       teacher,
       status: '불가',
-      reason: [roomMapping.actualRoom ? `실제 수업 교실: ${roomMapping.actualRoom}` : '', roomMapping.reason || mixedReason || '실제 수업 교실 제한']
+      reason: [roomMapping.actualRoom ? `실제 수업 교실: ${roomMapping.actualRoom}` : '', '여러 학년 혼합 수업'].filter(Boolean).join(' / '),
+      actualRoom: roomMapping.actualRoom,
+      roomMappingReason: roomMapping.mixedReason || '여러 학년 혼합 수업',
+      comciganRoom: roomMapping.comciganRoom,
+    };
+  }
+  if (!location.isVisitable) {
+    return { locationId: location.id, period, subject, status: '불가', reason: '실제 방문 가능 여부가 불가능' };
+  }
+  if (!location.includeInAuto) {
+    return { locationId: location.id, period, subject, status: '수동확인', reason: '자동배정 제외 장소' };
+  }
+  if (hasKeyword(subject, settings.blockedKeywords)) {
+    return { locationId: location.id, period, subject, status: '불가', reason: `검사 불가 키워드 포함: ${subject}` };
+  }
+  if (settings.examType === 'urine' && isSecondFloorLectureRoomSource(roomMapping, restriction)) {
+    return {
+      locationId: location.id,
+      period,
+      subject: restriction?.subject || subject,
+      teacher: restriction?.teacher || teacher,
+      status: '주의',
+      reason: SECOND_FLOOR_LECTURE_ROOM_NOTE,
+      actualRoom: displaySecondFloorLectureRoomName(roomMapping?.actualRoom),
+      roomMappingReason: roomMapping ? SECOND_FLOOR_LECTURE_ROOM_NOTE : undefined,
+      restrictedVenueName: restriction ? '2층 종합강의실' : undefined,
+      restrictedVenueReason: restriction ? SECOND_FLOOR_LECTURE_ROOM_NOTE : undefined,
+      comciganRoom: roomMapping?.comciganRoom,
+    };
+  }
+  if (settings.examType === 'urine' && roomMapping?.urineExamAvailability === '불가') {
+    return {
+      locationId: location.id,
+      period,
+      subject,
+      teacher,
+      status: '불가',
+      reason: [roomMapping.actualRoom ? `실제 수업 교실: ${roomMapping.actualRoom}` : '', roomMapping.reason || '실제 수업 교실 제한']
         .filter(Boolean)
         .join(' / '),
       actualRoom: roomMapping.actualRoom,
-      roomMappingReason: roomMapping.reason || mixedReason,
+      roomMappingReason: roomMapping.reason,
       comciganRoom: roomMapping.comciganRoom,
     };
   }
@@ -274,15 +338,6 @@ export function judgePeriod(
       restrictedVenueName: restriction.venueName,
       restrictedVenueReason: restriction.reason || '장소 제한',
     };
-  }
-  if (!location.isVisitable) {
-    return { locationId: location.id, period, subject, status: '불가', reason: '실제 방문 가능 여부가 불가능' };
-  }
-  if (!location.includeInAuto) {
-    return { locationId: location.id, period, subject, status: '수동확인', reason: '자동배정 제외 장소' };
-  }
-  if (hasKeyword(subject, settings.blockedKeywords)) {
-    return { locationId: location.id, period, subject, status: '불가', reason: `검사 불가 키워드 포함: ${subject}` };
   }
   if (settings.examType === 'urine' && roomMapping?.urineExamAvailability === '주의') {
     const mixedReason = roomMapping.isMixedClass ? '같은 학년 내 여러 학급 혼합 수업' : '';
