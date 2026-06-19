@@ -10,6 +10,7 @@ export interface RoomMappingImportResult {
 const TEACHER_LABEL = '교사';
 const ALLOCATION_LABEL = '배당표';
 const ACTUAL_ROOM_LABEL = '실수업';
+const MIXED_GRADE_NOTE = '혼합학년 수업 / 명렬표 확인 필요';
 
 export async function parseRoomMappingWorkbook(file: File, selectedGrade = ''): Promise<RoomMappingImportResult> {
   const buffer = await file.arrayBuffer();
@@ -271,7 +272,7 @@ function judgeMixed(involvedGrades: string[], involvedClasses: string[]) {
   const isMixedGrade = involvedGrades.length >= 2;
   const isMixedClass = involvedClasses.length >= 2;
   const reason = isMixedGrade
-    ? '여러 학년 혼합 수업'
+    ? MIXED_GRADE_NOTE
     : isMixedClass
       ? '같은 학년 내 여러 학급 혼합 수업'
       : '';
@@ -280,15 +281,15 @@ function judgeMixed(involvedGrades: string[], involvedClasses: string[]) {
 
 function chooseAvailability(roomAvailability: UrineExamAvailability, isMixedGrade: boolean, isMixedClass: boolean): UrineExamAvailability {
   if (roomAvailability === '불가') return '불가';
-  if (isMixedGrade) return '불가';
   if (roomAvailability === '주의') return '주의';
+  if (isMixedGrade) return '주의';
   if (isMixedClass) return '주의';
   return '가능';
 }
 
 function chooseReason(roomReason: string, availability: UrineExamAvailability, mixed: ReturnType<typeof judgeMixed>) {
   if (roomReason && availability === '불가') return roomReason;
-  if (mixed.isMixedGrade) return '여러 학년 혼합 수업';
+  if (mixed.isMixedGrade) return [roomReason, MIXED_GRADE_NOTE].filter(Boolean).join(' / ');
   if (roomReason) return roomReason;
   if (mixed.isMixedClass) return '같은 학년 내 여러 학급 혼합 수업';
   return '';

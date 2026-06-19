@@ -15,6 +15,7 @@ import type {
 import { parseSubjectCell } from './subjectParser';
 
 const SECOND_FLOOR_LECTURE_ROOM_NOTE = '2층 종합강의실 수업 / 화장실 이동 안내 필요';
+const MIXED_GRADE_NOTE = '혼합학년 수업 / 명렬표 확인 필요';
 
 function hasKeyword(subject: string, keywords: string[]) {
   const normalized = subject.replace(/\s/g, '').toLowerCase();
@@ -23,6 +24,10 @@ function hasKeyword(subject: string, keywords: string[]) {
 
 function normalizeRoomText(value = '') {
   return value.replace(/\s/g, '').toUpperCase();
+}
+
+function joinNotes(...notes: Array<string | undefined>) {
+  return [...new Set(notes.filter(Boolean))].join(' / ');
 }
 
 function isSecondFloorLectureRoomName(value = '') {
@@ -55,6 +60,10 @@ function displaySecondFloorLectureRoomName(value?: string) {
   return isSecondFloorLectureRoomName(value) ? '2층 종합강의실' : value;
 }
 
+function isMixedGradeJudgement(judgement?: PeriodJudgement) {
+  return Boolean(judgement?.reason.includes(MIXED_GRADE_NOTE) || judgement?.roomMappingReason?.includes(MIXED_GRADE_NOTE));
+}
+
 function isSecondFloorLectureRoomJudgement(judgement?: PeriodJudgement) {
   if (!judgement) return false;
   return (
@@ -67,16 +76,16 @@ function isSecondFloorLectureRoomJudgement(judgement?: PeriodJudgement) {
 }
 
 function createAssignmentNote(manual: ManualOverride | undefined, judgement: PeriodJudgement | undefined) {
-  const autoNote = isSecondFloorLectureRoomJudgement(judgement)
-    ? SECOND_FLOOR_LECTURE_ROOM_NOTE
-    : [
-        judgement?.actualRoom && judgement.roomMappingReason ? `${judgement.actualRoom} / ${judgement.roomMappingReason}` : '',
-        judgement?.restrictedVenueName && judgement.restrictedVenueReason ? `${judgement.restrictedVenueName} / ${judgement.restrictedVenueReason}` : '',
-      ]
-        .filter(Boolean)
-        .join(' / ');
+  const specialNotes = joinNotes(
+    isSecondFloorLectureRoomJudgement(judgement) ? SECOND_FLOOR_LECTURE_ROOM_NOTE : undefined,
+    isMixedGradeJudgement(judgement) ? MIXED_GRADE_NOTE : undefined,
+  );
+  const autoNote = specialNotes || joinNotes(
+    judgement?.actualRoom && judgement.roomMappingReason ? `${judgement.actualRoom} / ${judgement.roomMappingReason}` : undefined,
+    judgement?.restrictedVenueName && judgement.restrictedVenueReason ? `${judgement.restrictedVenueName} / ${judgement.restrictedVenueReason}` : undefined,
+  );
 
-  return [manual?.note ?? '', autoNote].filter(Boolean).join(' / ');
+  return joinNotes(manual?.note, autoNote);
 }
 
 function timeToMinutes(time: string) {
@@ -172,7 +181,7 @@ function isAssignableCallTime(time: string, settings: ExamSettings) {
 }
 
 function appendNote(assignment: ScheduleAssignment, note: string) {
-  assignment.note = [assignment.note, note].filter(Boolean).join(' / ');
+  assignment.note = joinNotes(assignment.note, note);
 }
 
 function sortDisplay(a: VisitLocation, b: VisitLocation) {
@@ -258,11 +267,12 @@ export function judgePeriod(
 ): PeriodJudgement {
   const subject = row?.periods[period - 1]?.trim() ?? '';
   const teacher = row?.teachers?.[period - 1]?.trim() ?? '';
+  const isMixedGrade = Boolean(roomMapping?.isMixedGrade);
 
   if (!location) {
     return { locationId: row?.locationId ?? '', period, subject, status: '수동확인', reason: '방문 장소 목록에 없는 시간표 행' };
   }
-  if (settings.examType === 'tb' && roomMapping?.isMixedGrade) {
+  if (settings.examType === 'tb' && isMixedGrade) {
     return {
       locationId: location.id,
       period,
@@ -270,22 +280,9 @@ export function judgePeriod(
       teacher,
       status: '수동확인',
       reason: '여러 학년 혼합 수업으로 호출 단위 확인 필요',
-      actualRoom: roomMapping.actualRoom,
-      roomMappingReason: roomMapping.mixedReason || '여러 학년 혼합 수업',
-      comciganRoom: roomMapping.comciganRoom,
-    };
-  }
-  if (settings.examType === 'urine' && roomMapping?.isMixedGrade) {
-    return {
-      locationId: location.id,
-      period,
-      subject,
-      teacher,
-      status: '불가',
-      reason: [roomMapping.actualRoom ? `실제 수업 교실: ${roomMapping.actualRoom}` : '', '여러 학년 혼합 수업'].filter(Boolean).join(' / '),
-      actualRoom: roomMapping.actualRoom,
-      roomMappingReason: roomMapping.mixedReason || '여러 학년 혼합 수업',
-      comciganRoom: roomMapping.comciganRoom,
+      actualRoom: roomMapping?.actualRoom,
+      roomMappingReason: roomMapping?.mixedReason || '여러 학년 혼합 수업',
+      comciganRoom: roomMapping?.comciganRoom,
     };
   }
   if (!location.isVisitable) {
@@ -298,17 +295,57 @@ export function judgePeriod(
     return { locationId: location.id, period, subject, status: '불가', reason: `검사 불가 키워드 포함: ${subject}` };
   }
   if (settings.examType === 'urine' && isSecondFloorLectureRoomSource(roomMapping, restriction)) {
+    const reason = joinNotes(SECOND_FLOOR_LECTURE_ROOM_NOTE, isMixedGrade ? MIXED_GRADE_NOTE : undefined);
     return {
       locationId: location.id,
       period,
       subject: restriction?.subject || subject,
       teacher: restriction?.teacher || teacher,
       status: '주의',
-      reason: SECOND_FLOOR_LECTURE_ROOM_NOTE,
+      reason,
       actualRoom: displaySecondFloorLectureRoomName(roomMapping?.actualRoom),
-      roomMappingReason: roomMapping ? SECOND_FLOOR_LECTURE_ROOM_NOTE : undefined,
+      roomMappingReason: roomMapping ? reason : undefined,
       restrictedVenueName: restriction ? '2층 종합강의실' : undefined,
-      restrictedVenueReason: restriction ? SECOND_FLOOR_LECTURE_ROOM_NOTE : undefined,
+      restrictedVenueReason: restriction ? reason : undefined,
+      comciganRoom: roomMapping?.comciganRoom,
+    };
+  }
+  if (settings.examType === 'urine' && isMixedGrade) {
+    if (settings.urineMixedGradeHandling === 'exclude') {
+      return {
+        locationId: location.id,
+        period,
+        subject,
+        teacher,
+        status: '불가',
+        reason: MIXED_GRADE_NOTE,
+        actualRoom: roomMapping?.actualRoom,
+        roomMappingReason: MIXED_GRADE_NOTE,
+        comciganRoom: roomMapping?.comciganRoom,
+      };
+    }
+    if (settings.urineMixedGradeHandling === 'manual-confirm') {
+      return {
+        locationId: location.id,
+        period,
+        subject,
+        teacher,
+        status: '수동확인',
+        reason: MIXED_GRADE_NOTE,
+        actualRoom: roomMapping?.actualRoom,
+        roomMappingReason: MIXED_GRADE_NOTE,
+        comciganRoom: roomMapping?.comciganRoom,
+      };
+    }
+    return {
+      locationId: location.id,
+      period,
+      subject,
+      teacher,
+      status: '주의',
+      reason: MIXED_GRADE_NOTE,
+      actualRoom: roomMapping?.actualRoom,
+      roomMappingReason: MIXED_GRADE_NOTE,
       comciganRoom: roomMapping?.comciganRoom,
     };
   }

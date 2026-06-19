@@ -4,6 +4,7 @@ export type DivisionHandling = '자동제외' | '장소반영';
 export type ExamType = 'urine' | 'tb';
 export type DayScheduleKind = 'excluded' | 'period';
 export type UrineParallelMode = 'sequential' | 'grade' | 'team';
+export type UrineMixedGradeHandling = 'allow-caution' | 'manual-confirm' | 'exclude';
 export type VenueRestrictionMode = '가능' | '주의' | '불가';
 export type VenueRestrictionWeekday = 'auto' | '월' | '화' | '수' | '목' | '금';
 export type UrineExamAvailability = VenueRestrictionMode;
@@ -36,6 +37,7 @@ export interface ExamSettings {
   teamCount: number;
   urineSimultaneous: boolean;
   urineParallelMode: UrineParallelMode;
+  urineMixedGradeHandling: UrineMixedGradeHandling;
   teamsByGrade: Record<string, number>;
   gradeStartTimes: Record<string, string>;
   travelMinutes: number;

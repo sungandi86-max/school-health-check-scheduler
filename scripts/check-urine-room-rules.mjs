@@ -6,9 +6,15 @@ const files = {
   restrictedVenueParser: readFileSync('src/lib/restrictedVenueParser.ts', 'utf8'),
   storage: readFileSync('src/lib/storage.ts', 'utf8'),
   csv: readFileSync('src/lib/csv.ts', 'utf8'),
+  types: readFileSync('src/types.ts', 'utf8'),
 };
 
-const REQUIRED_NOTE = '2층 종합강의실 수업 / 화장실 이동 안내 필요';
+const SECOND_FLOOR_NOTE = '2층 종합강의실 수업 / 화장실 이동 안내 필요';
+const MIXED_GRADE_NOTE = '혼합학년 수업 / 명렬표 확인 필요';
+const blockedKeywordIndex = files.scheduler.indexOf('hasKeyword(subject, settings.blockedKeywords)');
+const secondFloorIndex = files.scheduler.indexOf('isSecondFloorLectureRoomSource(roomMapping, restriction)');
+const mixedGradeIndex = files.scheduler.indexOf("settings.examType === 'urine' && isMixedGrade");
+const roomMappingBlockedIndex = files.scheduler.indexOf("roomMapping?.urineExamAvailability === '불가'");
 
 const checks = [
   {
@@ -17,29 +23,53 @@ const checks = [
     pass: files.scheduler.includes("item.status === '가능' || item.status === '주의'"),
   },
   {
+    name: '불가 키워드가 혼합학년보다 우선',
+    file: 'scheduler',
+    pass: blockedKeywordIndex >= 0 && mixedGradeIndex >= 0 && blockedKeywordIndex < mixedGradeIndex,
+  },
+  {
     name: '2층 종합강의실은 불가 판정 전에 주의로 강제 포함',
     file: 'scheduler',
     pass:
-      files.scheduler.includes('isSecondFloorLectureRoomSource(roomMapping, restriction)') &&
-      files.scheduler.indexOf('isSecondFloorLectureRoomSource(roomMapping, restriction)') < files.scheduler.indexOf("roomMapping?.urineExamAvailability === '불가'") &&
-      files.scheduler.indexOf('isSecondFloorLectureRoomSource(roomMapping, restriction)') < files.scheduler.indexOf("restriction?.mode === '불가'"),
+      secondFloorIndex >= 0 &&
+      roomMappingBlockedIndex >= 0 &&
+      secondFloorIndex < roomMappingBlockedIndex &&
+      files.scheduler.includes(SECOND_FLOOR_NOTE),
   },
   {
-    name: '2층 종합강의실보다 불가 키워드와 혼합학년이 우선',
+    name: '혼합학년 소변검사는 기본 주의 처리',
     file: 'scheduler',
     pass:
-      files.scheduler.indexOf('roomMapping?.isMixedGrade') < files.scheduler.indexOf('isSecondFloorLectureRoomSource(roomMapping, restriction)') &&
-      files.scheduler.indexOf('hasKeyword(subject, settings.blockedKeywords)') < files.scheduler.indexOf('isSecondFloorLectureRoomSource(roomMapping, restriction)'),
+      mixedGradeIndex >= 0 &&
+      mixedGradeIndex < roomMappingBlockedIndex &&
+      files.scheduler.includes("settings.urineMixedGradeHandling === 'exclude'") &&
+      files.scheduler.includes("settings.urineMixedGradeHandling === 'manual-confirm'") &&
+      files.scheduler.includes("status: '주의'") &&
+      files.scheduler.includes(MIXED_GRADE_NOTE),
   },
   {
-    name: '2층 종합강의실 배정 기본 비고 정규화',
-    file: 'scheduler',
-    pass: files.scheduler.includes('SECOND_FLOOR_LECTURE_ROOM_NOTE') && files.scheduler.includes('createAssignmentNote'),
+    name: '혼합학년 처리 설정 타입과 기본값 존재',
+    file: 'types/storage',
+    pass:
+      files.types.includes("export type UrineMixedGradeHandling = 'allow-caution' | 'manual-confirm' | 'exclude'") &&
+      files.storage.includes('urineMixedGradeHandling') &&
+      files.storage.includes('allow-caution'),
   },
   {
-    name: '2층 종합강의실 출력 비고 정규화',
+    name: '2층 종합강의실과 혼합학년 출력 비고 정규화',
     file: 'csv',
-    pass: files.csv.includes('SECOND_FLOOR_LECTURE_ROOM_NOTE') && files.csv.includes('displayNote(item)'),
+    pass:
+      files.csv.includes('SECOND_FLOOR_LECTURE_ROOM_NOTE') &&
+      files.csv.includes('MIXED_GRADE_NOTE') &&
+      files.csv.includes('isMixedGradeAssignment'),
+  },
+  {
+    name: '분반자료 혼합학년은 주의 처리',
+    file: 'roomMappingParser',
+    pass:
+      files.roomMappingParser.includes('const MIXED_GRADE_NOTE') &&
+      files.roomMappingParser.includes("if (isMixedGrade) return '주의'") &&
+      files.roomMappingParser.includes(MIXED_GRADE_NOTE),
   },
   {
     name: '분반자료 2층 종합강의실은 주의 처리',
@@ -53,7 +83,7 @@ const checks = [
     file: 'restrictedVenueParser',
     pass:
       files.restrictedVenueParser.includes("if (isComprehensiveLectureRoom(name)) return '주의'") &&
-      files.restrictedVenueParser.includes(REQUIRED_NOTE),
+      files.restrictedVenueParser.includes(SECOND_FLOOR_NOTE),
   },
   {
     name: '저장 데이터의 과거 2층 종합강의실 값 보정',
@@ -61,7 +91,7 @@ const checks = [
     pass:
       files.storage.includes("name: '2층 종합강의실'") &&
       files.storage.includes("mode: '주의'") &&
-      files.storage.includes(REQUIRED_NOTE),
+      files.storage.includes(SECOND_FLOOR_NOTE),
   },
   {
     name: 'U-2 계열 장소 정규화 포함',
