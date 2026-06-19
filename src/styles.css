@@ -624,6 +624,189 @@ td select {
   font-size: 14px;
 }
 
+.urine-notice-page,
+.urine-ultra-page {
+  background: #ffffff;
+}
+
+.urine-notice-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.urine-notice-sheet {
+  width: min(100%, 560px);
+  margin: 0 auto;
+  border: 1px solid #b7d7d2;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.urine-notice-sheet.ultra {
+  width: min(100%, 460px);
+}
+
+.urine-notice-sheet h3 {
+  margin: 0 0 8px;
+  text-align: center;
+  color: #15364d;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.urine-notice-section + .urine-notice-section {
+  margin-top: 12px;
+}
+
+.urine-notice-section h4 {
+  margin: 0 0 5px;
+  border-radius: 6px;
+  background: #e0f7f3;
+  color: #15364d;
+  padding: 6px 8px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.urine-notice-table {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.urine-notice-table th,
+.urine-notice-table td {
+  border: 1px solid #9fb8b4;
+  text-align: center;
+  vertical-align: middle;
+  padding: 5px 5px;
+  font-size: 13px;
+  line-height: 1.18;
+}
+
+.urine-notice-table th {
+  background: #f7eadc;
+  color: #15364d;
+  font-weight: 800;
+}
+
+.urine-notice-table th:first-child,
+.urine-notice-table td:first-child {
+  width: 43%;
+  white-space: nowrap;
+}
+
+.urine-notice-table th:nth-child(2),
+.urine-notice-table td:nth-child(2) {
+  width: 22%;
+}
+
+.urine-notice-table th:nth-child(3),
+.urine-notice-table td:nth-child(3) {
+  width: 35%;
+}
+
+.urine-notice-table.ultra th:first-child,
+.urine-notice-table.ultra td:first-child {
+  width: 46%;
+}
+
+.urine-notice-page,
+.urine-ultra-page {
+  background: #ffffff;
+  padding: 14px;
+}
+
+.urine-notice-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.urine-notice-header h2 {
+  margin-bottom: 4px;
+}
+
+.urine-notice-sheet {
+  width: min(100%, 520px);
+  margin: 0 auto;
+  border: 1px solid #9fb8b4;
+  background: #ffffff;
+  padding: 10px;
+}
+
+.urine-notice-sheet.ultra {
+  width: min(100%, 430px);
+}
+
+.urine-notice-sheet h3 {
+  margin: 0 0 8px;
+  text-align: center;
+  color: #15364d;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.urine-notice-section + .urine-notice-section {
+  margin-top: 10px;
+}
+
+.urine-notice-section h4 {
+  margin: 0;
+  border: 1px solid #9fb8b4;
+  border-bottom: 0;
+  background: #e0f7f3;
+  color: #15364d;
+  padding: 5px 6px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.urine-notice-table {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.urine-notice-table th,
+.urine-notice-table td {
+  border: 1px solid #9fb8b4;
+  padding: 5px 6px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 13px;
+  line-height: 1.18;
+}
+
+.urine-notice-table th {
+  background: #f7eadc;
+  color: #15364d;
+  font-weight: 800;
+}
+
+.urine-notice-table th:first-child,
+.urine-notice-table td:first-child {
+  width: 42%;
+}
+
+.urine-notice-table th:nth-child(2),
+.urine-notice-table td:nth-child(2) {
+  width: 22%;
+  font-weight: 800;
+}
+
+.urine-notice-table.ultra th:first-child,
+.urine-notice-table.ultra td:first-child {
+  width: 46%;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -900,6 +1083,16 @@ td select {
     margin: 8mm;
   }
 
+  @page urineNoticePortrait {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  @page urineTwoColumnLandscape {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
   body {
     min-width: 0;
     background: #ffffff;
@@ -930,7 +1123,13 @@ td select {
     display: none !important;
   }
 
+  body.print-urine-notice-only .print-area > :not(.urine-notice-page),
+  body.print-urine-ultra-only .print-area > :not(.urine-ultra-page) {
+    display: none !important;
+  }
+
   .two-column-print-page {
+    page: urineTwoColumnLandscape;
     width: 281mm;
     min-height: auto;
     padding: 0;
@@ -965,6 +1164,49 @@ td select {
   .two-column-table .grade-title-row th {
     font-size: 12.5px;
     padding: 4px 3px;
+  }
+
+  body.print-urine-notice-only,
+  body.print-urine-ultra-only {
+    background: #ffffff;
+  }
+
+  body.print-urine-notice-only .urine-notice-page,
+  body.print-urine-ultra-only .urine-ultra-page {
+    page: urineNoticePortrait;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  body.print-urine-notice-only .urine-notice-sheet {
+    width: 118mm;
+  }
+
+  body.print-urine-ultra-only .urine-notice-sheet {
+    width: 92mm;
+  }
+
+  .urine-notice-header {
+    margin-bottom: 2mm;
+  }
+
+  .urine-notice-sheet h3 {
+    margin-bottom: 2mm;
+    font-size: 15px;
+  }
+
+  .urine-notice-section + .urine-notice-section {
+    margin-top: 3mm;
+  }
+
+  .urine-notice-section h4,
+  .urine-notice-table th,
+  .urine-notice-table td {
+    padding: 3px 4px;
+    font-size: 10.5px;
+    line-height: 1.12;
   }
 
   table {

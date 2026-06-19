@@ -1103,8 +1103,14 @@ function ResultsPanel({
   const teacherDescription =
     '담임 및 교과교사에게 공유할 안내용 표입니다. 검사 또는 검진 시간에 학생들이 질서 있게 참여할 수 있도록 협조 요청 문구가 포함됩니다.';
   const twoColumnDescription =
-    '2학년과 3학년 소변검사 라인을 좌우로 나누어 한눈에 볼 수 있는 인쇄용 표입니다. 교무실 공유, 검사팀 전달, 인쇄물 배부용으로 사용하기 좋습니다.';
+    '2학년과 3학년 소변검사 라인을 좌우로 나누어 한눈에 볼 수 있는 표입니다. 검사팀 및 내부 검토용으로 적합합니다.';
+  const noticeDescription =
+    '메신저 공지, 교직원 안내, 화면 캡처 공유용으로 적합합니다.';
+  const ultraCompactDescription =
+    '교과교사 정보를 제외하고 시간대별 교실만 빠르게 공유하는 초압축 공지표입니다.';
   const scrollToTwoColumn = () => document.getElementById('urine-two-column-print')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const scrollToNotice = () => document.getElementById('urine-notice-print')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const scrollToUltraCompact = () => document.getElementById('urine-ultra-compact-print')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   return (
     <section className="stack print-area">
@@ -1148,6 +1154,8 @@ function ResultsPanel({
                 </button>
               ))}
               <button onClick={scrollToTwoColumn}><FileText size={17} /> 2단표 보기</button>
+              <button onClick={scrollToNotice}><FileText size={17} /> 공지용 세로형 보기</button>
+              <button onClick={scrollToUltraCompact}><FileText size={17} /> 초압축 공지표 보기</button>
             </>
           ) : (
             <>
@@ -1180,6 +1188,8 @@ function ResultsPanel({
         tables.tbGrades.map((table) => <ResultTable key={table.name} title={table.name.replaceAll('_', ' ')} description={teamDescription} headers={table.headers} rows={table.rows} compact />)}
       <ResultTable title="C. 교사용 안내표" description={teacherDescription} headers={tables.teacher.headers} rows={tables.teacher.rows} />
       {isUrine && <UrineTwoColumnPrintTable table={tables.urineTwoColumn} description={twoColumnDescription} />}
+      {isUrine && <UrineNoticeVerticalTable table={tables.urineTwoColumn} description={noticeDescription} />}
+      {isUrine && <UrineUltraCompactNoticeTable table={tables.urineTwoColumn} description={ultraCompactDescription} />}
       <div className="card table-wrap">
         <h2>{isUrine ? 'E. 수동 확인 필요 목록' : 'D. 수동 확인 필요 목록'}</h2>
         <table>
@@ -1320,6 +1330,124 @@ function UrineTwoColumnPrintTable({ table, description }: { table: ReturnType<ty
       </div>
     </div>
   );
+}
+
+function UrineNoticeVerticalTable({ table, description }: { table: ReturnType<typeof createUrineTwoColumnTable>; description: string }) {
+  const grade2Rows = table.rows.map((row) => row.slice(0, 3)).filter((row) => row.some(Boolean));
+  const grade3Rows = table.rows.map((row) => row.slice(3, 6)).filter((row) => row.some(Boolean));
+  const printNoticeOnly = () => {
+    document.body.classList.add('print-urine-notice-only');
+    window.setTimeout(() => window.print(), 0);
+    window.setTimeout(() => document.body.classList.remove('print-urine-notice-only'), 1000);
+  };
+
+  return (
+    <div id="urine-notice-print" className="card urine-notice-page">
+      <div className="urine-notice-header">
+        <div>
+          <h2>E. 공지용 세로형 표</h2>
+          <p className="table-description">{description}</p>
+        </div>
+        <div className="actions no-print">
+          <button onClick={printNoticeOnly}><Printer size={17} /> 세로형 표 인쇄</button>
+          <button onClick={() => exportNoticeRowsToCsv('소변검사_공지용_세로형표', grade2Rows, grade3Rows)}><Download size={17} /> 세로형 CSV</button>
+        </div>
+      </div>
+      <div className="urine-notice-sheet">
+        <h3>2·3학년 소변검사 시간표</h3>
+        <UrineNoticeSection title="2학년 소변검사" rows={grade2Rows} />
+        <UrineNoticeSection title="3학년 소변검사" rows={grade3Rows} />
+      </div>
+    </div>
+  );
+}
+
+function UrineNoticeSection({ title, rows }: { title: string; rows: string[][] }) {
+  return (
+    <section className="urine-notice-section">
+      <h4>{title}</h4>
+      <table className="urine-notice-table">
+        <thead>
+          <tr>
+            <th>검사 시간</th>
+            <th>교실</th>
+            <th>교과교사</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length ? rows.map((row, index) => (
+            <tr key={`${title}-${index}`}>
+              <td>{row[0]}</td>
+              <td>{row[1]}</td>
+              <td>{row[2]}</td>
+            </tr>
+          )) : (
+            <tr><td colSpan={3} className="empty">배정 결과가 없습니다.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function UrineUltraCompactNoticeTable({ table, description }: { table: ReturnType<typeof createUrineTwoColumnTable>; description: string }) {
+  const rows = table.rows
+    .map((row) => [row[0] || row[3] || '', row[1] || '', row[4] || ''])
+    .filter((row) => row.some(Boolean));
+  const printUltraCompactOnly = () => {
+    document.body.classList.add('print-urine-ultra-only');
+    window.setTimeout(() => window.print(), 0);
+    window.setTimeout(() => document.body.classList.remove('print-urine-ultra-only'), 1000);
+  };
+
+  return (
+    <div id="urine-ultra-compact-print" className="card urine-ultra-page">
+      <div className="urine-notice-header">
+        <div>
+          <h2>F. 초압축 공지표</h2>
+          <p className="table-description">{description}</p>
+        </div>
+        <div className="actions no-print">
+          <button onClick={printUltraCompactOnly}><Printer size={17} /> 초압축표 인쇄</button>
+          <button onClick={() => exportTableToCsv({ name: '소변검사_초압축_공지표', headers: ['검사 시간', '2학년 교실', '3학년 교실'], rows })}><Download size={17} /> 초압축 CSV</button>
+        </div>
+      </div>
+      <div className="urine-notice-sheet ultra">
+        <h3>2·3학년 소변검사 시간표</h3>
+        <table className="urine-notice-table ultra">
+          <thead>
+            <tr>
+              <th>검사 시간</th>
+              <th>2학년 교실</th>
+              <th>3학년 교실</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length ? rows.map((row, index) => (
+              <tr key={index}>
+                <td>{row[0]}</td>
+                <td>{row[1]}</td>
+                <td>{row[2]}</td>
+              </tr>
+            )) : (
+              <tr><td colSpan={3} className="empty">배정 결과가 없습니다.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function exportNoticeRowsToCsv(name: string, grade2Rows: string[][], grade3Rows: string[][]) {
+  exportTableToCsv({
+    name,
+    headers: ['학년', '검사 시간', '교실', '교과교사'],
+    rows: [
+      ...grade2Rows.map((row) => ['2학년', ...row]),
+      ...grade3Rows.map((row) => ['3학년', ...row]),
+    ],
+  });
 }
 
 function ResultTable({
