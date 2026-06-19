@@ -14,9 +14,41 @@ import type {
 } from '../types';
 import { parseSubjectCell } from './subjectParser';
 
+const SECOND_FLOOR_LECTURE_ROOM_NOTE = '2층 종합강의실 수업 / 화장실 이동 안내 필요';
+
 function hasKeyword(subject: string, keywords: string[]) {
   const normalized = subject.replace(/\s/g, '').toLowerCase();
   return keywords.some((keyword) => keyword.trim() && normalized.includes(keyword.replace(/\s/g, '').toLowerCase()));
+}
+
+function normalizeRoomText(value = '') {
+  return value.replace(/\s/g, '').toUpperCase();
+}
+
+function isSecondFloorLectureRoomJudgement(judgement?: PeriodJudgement) {
+  if (!judgement) return false;
+  const actualRoom = normalizeRoomText(judgement.actualRoom);
+  const restrictedVenueName = normalizeRoomText(judgement.restrictedVenueName);
+  return (
+    actualRoom === '2층종합강의실' ||
+    restrictedVenueName === '2층종합강의실' ||
+    judgement.roomMappingReason === SECOND_FLOOR_LECTURE_ROOM_NOTE ||
+    judgement.restrictedVenueReason === SECOND_FLOOR_LECTURE_ROOM_NOTE ||
+    judgement.reason.includes(SECOND_FLOOR_LECTURE_ROOM_NOTE)
+  );
+}
+
+function createAssignmentNote(manual: ManualOverride | undefined, judgement: PeriodJudgement | undefined) {
+  const autoNote = isSecondFloorLectureRoomJudgement(judgement)
+    ? SECOND_FLOOR_LECTURE_ROOM_NOTE
+    : [
+        judgement?.actualRoom && judgement.roomMappingReason ? `${judgement.actualRoom} / ${judgement.roomMappingReason}` : '',
+        judgement?.restrictedVenueName && judgement.restrictedVenueReason ? `${judgement.restrictedVenueName} / ${judgement.restrictedVenueReason}` : '',
+      ]
+        .filter(Boolean)
+        .join(' / ');
+
+  return [manual?.note ?? '', autoNote].filter(Boolean).join(' / ');
 }
 
 function timeToMinutes(time: string) {
@@ -328,13 +360,7 @@ function buildAssignment(
   const periodIndex = period ? period - 1 : -1;
   const rawText = periodIndex >= 0 ? row?.rawTexts?.[periodIndex] ?? '' : '';
   const parsedRaw = parseSubjectCell(rawText);
-  const note = [
-    manual?.note ?? '',
-    judgement?.actualRoom && judgement.roomMappingReason ? `${judgement.actualRoom} / ${judgement.roomMappingReason}` : '',
-    judgement?.restrictedVenueName && judgement.restrictedVenueReason ? `${judgement.restrictedVenueName} / ${judgement.restrictedVenueReason}` : '',
-  ]
-    .filter(Boolean)
-    .join(' / ');
+  const note = createAssignmentNote(manual, judgement);
   return {
     id: location.id,
     order,
