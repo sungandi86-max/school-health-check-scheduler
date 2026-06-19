@@ -50,7 +50,7 @@ function displayNote(item: ScheduleAssignment) {
     isSecondFloorLectureRoomAssignment(item) ? SECOND_FLOOR_LECTURE_ROOM_NOTE : undefined,
     isMixedGradeAssignment(item) ? MIXED_GRADE_NOTE : undefined,
   );
-  return joinNotes(item.note, specialNote);
+  return item.note || specialNote;
 }
 
 export function downloadText(filename: string, content: string, type = 'text/plain;charset=utf-8') {
