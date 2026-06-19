@@ -70,25 +70,53 @@ function parseVenueMeta(sheetName: string, rows: unknown[][]): RestrictedVenue |
   const match = title.match(/(\d+)\((.+?)\)/);
   if (!match) return null;
   const id = match[1];
-  const name = match[2].replace(/\s/g, '');
-  const floor = name.match(/(\d+층)/)?.[1] ?? '';
-  const mode = defaultModeForVenue(name);
-  const isSecondFloor = name.includes('2층');
+  const rawName = match[2].replace(/\s/g, '');
+  const name = displayVenueName(rawName);
+  const floor = rawName.match(/(\d+층)/)?.[1] ?? (rawName.toUpperCase().startsWith('U-2-') ? '2층' : '');
+  const mode = defaultModeForVenue(rawName);
+  const isSecondFloor = rawName.includes('2층') || rawName.toUpperCase().startsWith('U-2-');
   return {
     id,
     name,
     floor,
-    hasStudentRestroom: !isSecondFloor,
+    hasStudentRestroom: isComprehensiveLectureRoom(rawName) || !isSecondFloor,
     mode,
-    note: isSecondFloor ? '2층 학생 화장실 없음' : mode === '주의' ? '고층 이동 동선 확인 필요' : '',
+    note: isComprehensiveLectureRoom(rawName)
+      ? '2층 종합강의실 수업 / 화장실 이동 안내 필요'
+      : isSecondFloor
+        ? '2층 학생 화장실 없음'
+        : mode === '주의'
+          ? '고층 이동 동선 확인 필요'
+          : '',
   };
 }
 
 function defaultModeForVenue(name: string): VenueRestrictionMode {
+  if (isComprehensiveLectureRoom(name)) return '주의';
   if (name.includes('2층')) return '불가';
   if (['컴퓨터실', '체육관', '운동장'].some((keyword) => name.includes(keyword))) return '불가';
   if (name.includes('5층')) return '주의';
   return '가능';
+}
+
+function isComprehensiveLectureRoom(name: string) {
+  const normalized = name.replace(/\s/g, '').toUpperCase();
+  return (
+    /^U-2-\d+/.test(normalized) ||
+    normalized.includes('2층종합강의실') ||
+    normalized.includes('종합강의실') ||
+    normalized.includes('2층종강') ||
+    normalized.includes('2층중강') ||
+    normalized.includes('종강1') ||
+    normalized.includes('종강2') ||
+    normalized.includes('중강1') ||
+    normalized.includes('중강2') ||
+    normalized.includes('중강기')
+  );
+}
+
+function displayVenueName(name: string) {
+  return isComprehensiveLectureRoom(name) ? '2층 종합강의실' : name;
 }
 
 function parseWeekday(value: string): Weekday | null {

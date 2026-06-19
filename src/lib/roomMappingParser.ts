@@ -39,13 +39,14 @@ export async function parseRoomMappingWorkbook(file: File, selectedGrade = ''): 
 
       for (let column = labelColumn + 1; column < Math.max(headerRow.length, actualRow.length); column += 1) {
         const divisionName = text(headerRow[column]);
-        const actualRoom = text(actualRow[column]);
+        const rawActualRoom = text(actualRow[column]);
+        const actualRoom = displayRoomName(rawActualRoom);
         if (!divisionName || !actualRoom) continue;
 
         const subjectName = normalizeSubjectName(divisionName);
         const comciganRoom = allocationRow ? text(allocationRow[column]) : '';
         const teacher = teacherRow ? text(teacherRow[column]) : '';
-        const rawText = [sheetName, divisionName, subjectName, teacher, comciganRoom, actualRoom].filter(Boolean).join(' / ');
+        const rawText = [sheetName, divisionName, subjectName, teacher, comciganRoom, rawActualRoom].filter(Boolean).join(' / ');
         const involvedClasses = collectInvolvedClasses({
           rows,
           headerRowIndex,
@@ -68,8 +69,8 @@ export async function parseRoomMappingWorkbook(file: File, selectedGrade = ''): 
           divisionName,
           comciganRoom,
           actualRoom,
-          floor: detectFloor(actualRoom),
-          restroomAccessible: availability !== '불가' && !isRestroomBlockedRoom(actualRoom),
+          floor: detectFloor(rawActualRoom || actualRoom),
+          restroomAccessible: availability !== '불가' && !isRestroomBlockedRoom(rawActualRoom || actualRoom),
           urineExamAvailability: availability,
           reason,
           sourceFile: file.name,
@@ -111,7 +112,8 @@ function parseGenericMappingRows(rows: unknown[][], sheetName: string, fileName:
   };
 
   return rows.slice(headerIndex + 1).flatMap((row, offset) => {
-    const actualRoom = text(row[columns.actualRoom]);
+    const rawActualRoom = text(row[columns.actualRoom]);
+    const actualRoom = displayRoomName(rawActualRoom);
     if (!actualRoom) return [];
     const rawText = row.map(text).filter(Boolean).join(' / ');
     const subjectName = text(row[columns.subject]);
@@ -130,8 +132,8 @@ function parseGenericMappingRows(rows: unknown[][], sheetName: string, fileName:
       divisionName,
       comciganRoom: text(row[columns.comciganRoom]),
       actualRoom,
-      floor: text(row[columns.floor]) || detectFloor(actualRoom),
-      restroomAccessible: availability !== '불가' && !isRestroomBlockedRoom(actualRoom),
+      floor: text(row[columns.floor]) || detectFloor(rawActualRoom || actualRoom),
+      restroomAccessible: availability !== '불가' && !isRestroomBlockedRoom(rawActualRoom || actualRoom),
       urineExamAvailability: availability,
       reason,
       sourceFile: fileName,
@@ -294,6 +296,9 @@ function chooseReason(roomReason: string, availability: UrineExamAvailability, m
 
 function judgeRoom(room: string): { availability: UrineExamAvailability; reason: string } {
   const normalized = room.replace(/\s/g, '');
+  if (isComprehensiveLectureRoom(room)) {
+    return { availability: '주의', reason: '2층 종합강의실 수업 / 화장실 이동 안내 필요' };
+  }
   if (isRestroomBlockedRoom(room)) return { availability: '불가', reason: '학생 화장실 접근 어려움' };
   if (['컴퓨터실', '체육관', '운동장'].some((keyword) => normalized.includes(keyword))) {
     return { availability: '불가', reason: '소변검사 진행이 어려운 장소' };
@@ -304,7 +309,28 @@ function judgeRoom(room: string): { availability: UrineExamAvailability; reason:
 
 function isRestroomBlockedRoom(room: string) {
   const normalized = room.replace(/\s/g, '');
+  if (isComprehensiveLectureRoom(room)) return false;
   return normalized.includes('2층') || ['2층종강', '종강1', '종강2'].some((keyword) => normalized.includes(keyword));
+}
+
+function isComprehensiveLectureRoom(room: string) {
+  const normalized = room.replace(/\s/g, '').toUpperCase();
+  return (
+    /^U-2-\d+/.test(normalized) ||
+    normalized.includes('2층종합강의실') ||
+    normalized.includes('종합강의실') ||
+    normalized.includes('2층종강') ||
+    normalized.includes('2층중강') ||
+    normalized.includes('종강1') ||
+    normalized.includes('종강2') ||
+    normalized.includes('중강1') ||
+    normalized.includes('중강2') ||
+    normalized.includes('중강기')
+  );
+}
+
+function displayRoomName(room: string) {
+  return isComprehensiveLectureRoom(room) ? '2층 종합강의실' : room;
 }
 
 function detectGrade(value: string) {

@@ -23,10 +23,10 @@ export function loadAppData(): AppData {
           examType: normalizeExamType(template.examType),
           data: {
             ...template.data,
-            restrictedVenues: Array.isArray(template.data?.restrictedVenues) ? template.data.restrictedVenues : [],
-            restrictedVenueEntries: Array.isArray(template.data?.restrictedVenueEntries) ? template.data.restrictedVenueEntries : [],
+            restrictedVenues: normalizeRestrictedVenues(Array.isArray(template.data?.restrictedVenues) ? template.data.restrictedVenues : []),
+            restrictedVenueEntries: normalizeRestrictedVenueEntries(Array.isArray(template.data?.restrictedVenueEntries) ? template.data.restrictedVenueEntries : []),
             restrictedVenueWeekday: normalizeRestrictedVenueWeekday(template.data?.restrictedVenueWeekday),
-            roomMappings: Array.isArray(template.data?.roomMappings) ? template.data.roomMappings : [],
+            roomMappings: normalizeRoomMappings(Array.isArray(template.data?.roomMappings) ? template.data.roomMappings : []),
             roomMappingSettings: template.data?.roomMappingSettings ?? { enabled: true },
             uploadedMappingFileNames: Array.isArray(template.data?.uploadedMappingFileNames) ? template.data.uploadedMappingFileNames : [],
             settings: {
@@ -59,10 +59,10 @@ export function loadAppData(): AppData {
       judgements: Array.isArray(parsed.judgements) ? parsed.judgements : [],
       assignments: Array.isArray(parsed.assignments) ? parsed.assignments : [],
       manualOverrides: Array.isArray(parsed.manualOverrides) ? parsed.manualOverrides : [],
-      restrictedVenues: Array.isArray(parsed.restrictedVenues) ? parsed.restrictedVenues : [],
-      restrictedVenueEntries: Array.isArray(parsed.restrictedVenueEntries) ? parsed.restrictedVenueEntries : [],
+      restrictedVenues: normalizeRestrictedVenues(Array.isArray(parsed.restrictedVenues) ? parsed.restrictedVenues : []),
+      restrictedVenueEntries: normalizeRestrictedVenueEntries(Array.isArray(parsed.restrictedVenueEntries) ? parsed.restrictedVenueEntries : []),
       restrictedVenueWeekday: normalizeRestrictedVenueWeekday(parsed.restrictedVenueWeekday),
-      roomMappings: Array.isArray(parsed.roomMappings) ? parsed.roomMappings : [],
+      roomMappings: normalizeRoomMappings(Array.isArray(parsed.roomMappings) ? parsed.roomMappings : []),
       roomMappingSettings: parsed.roomMappingSettings ?? { enabled: true },
       uploadedMappingFileNames: Array.isArray(parsed.uploadedMappingFileNames) ? parsed.uploadedMappingFileNames : [],
       templates,
@@ -83,6 +83,60 @@ function normalizeRestrictedVenueWeekday(value: unknown): AppData['restrictedVen
 
 function normalizeExamType(value: unknown): ExamType {
   return value === 'tb' || value === '결핵검진' ? 'tb' : 'urine';
+}
+
+function normalizeRoomMappings(mappings: AppData['roomMappings']): AppData['roomMappings'] {
+  return mappings.map((mapping) => {
+    if (!isComprehensiveLectureRoom(mapping.actualRoom)) return mapping;
+    return {
+      ...mapping,
+      actualRoom: '2층 종합강의실',
+      restroomAccessible: true,
+      urineExamAvailability: mapping.isMixedGrade ? '불가' : '주의',
+      reason: mapping.isMixedGrade ? mapping.reason : '2층 종합강의실 수업 / 화장실 이동 안내 필요',
+    };
+  });
+}
+
+function normalizeRestrictedVenues(venues: AppData['restrictedVenues']): AppData['restrictedVenues'] {
+  return venues.map((venue) => {
+    if (!isComprehensiveLectureRoom(venue.name)) return venue;
+    return {
+      ...venue,
+      name: '2층 종합강의실',
+      hasStudentRestroom: true,
+      mode: '주의',
+      note: '2층 종합강의실 수업 / 화장실 이동 안내 필요',
+    };
+  });
+}
+
+function normalizeRestrictedVenueEntries(entries: AppData['restrictedVenueEntries']): AppData['restrictedVenueEntries'] {
+  return entries.map((entry) => {
+    if (!isComprehensiveLectureRoom(entry.venueName)) return entry;
+    return {
+      ...entry,
+      venueName: '2층 종합강의실',
+      mode: '주의',
+      reason: '2층 종합강의실 수업 / 화장실 이동 안내 필요',
+    };
+  });
+}
+
+function isComprehensiveLectureRoom(value = '') {
+  const normalized = value.replace(/\s/g, '').toUpperCase();
+  return (
+    /^U-2-\d+/.test(normalized) ||
+    normalized.includes('2층종합강의실') ||
+    normalized.includes('종합강의실') ||
+    normalized.includes('2층종강') ||
+    normalized.includes('2층중강') ||
+    normalized.includes('종강1') ||
+    normalized.includes('종강2') ||
+    normalized.includes('중강1') ||
+    normalized.includes('중강2') ||
+    normalized.includes('중강기')
+  );
 }
 
 function normalizeSettings(settings: AppData['settings'], fallback: AppData['settings']) {

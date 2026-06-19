@@ -268,9 +268,6 @@ export function judgePeriod(
       comciganRoom: roomMapping.comciganRoom,
     };
   }
-  if (hasKeyword(subject, settings.cautionKeywords)) {
-    return { locationId: location.id, period, subject, status: '주의', reason: `주의 키워드 포함: ${subject}` };
-  }
   if (settings.examType === 'urine' && restriction?.mode === '주의') {
     return {
       locationId: location.id,
@@ -282,6 +279,9 @@ export function judgePeriod(
       restrictedVenueName: restriction.venueName,
       restrictedVenueReason: restriction.reason || '장소 확인 필요',
     };
+  }
+  if (hasKeyword(subject, settings.cautionKeywords)) {
+    return { locationId: location.id, period, subject, status: '주의', reason: `주의 키워드 포함: ${subject}` };
   }
   return { locationId: location.id, period, subject, status: '가능', reason: subject ? '일반 교실 수업' : '과목명 비어 있음' };
 }
@@ -328,6 +328,13 @@ function buildAssignment(
   const periodIndex = period ? period - 1 : -1;
   const rawText = periodIndex >= 0 ? row?.rawTexts?.[periodIndex] ?? '' : '';
   const parsedRaw = parseSubjectCell(rawText);
+  const note = [
+    manual?.note ?? '',
+    judgement?.actualRoom && judgement.roomMappingReason ? `${judgement.actualRoom} / ${judgement.roomMappingReason}` : '',
+    judgement?.restrictedVenueName && judgement.restrictedVenueReason ? `${judgement.restrictedVenueName} / ${judgement.restrictedVenueReason}` : '',
+  ]
+    .filter(Boolean)
+    .join(' / ');
   return {
     id: location.id,
     order,
@@ -344,7 +351,7 @@ function buildAssignment(
     isManual: Boolean(manual?.scheduledTime || manual?.period || manual?.excluded || manual?.locked || manual?.note),
     locked: Boolean(manual?.locked),
     excluded: Boolean(manual?.excluded),
-    note: manual?.note ?? '',
+    note,
     restrictedVenueName: judgement?.restrictedVenueName,
     restrictedVenueReason: judgement?.restrictedVenueReason,
     actualRoom: judgement?.actualRoom,
