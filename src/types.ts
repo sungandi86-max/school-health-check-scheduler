@@ -1,0 +1,154 @@
+export type JudgementStatus = '가능' | '주의' | '불가' | '수동확인';
+export type LocationCategory = '일반교실' | '특별실' | '선택과목 장소' | '체육시설' | '수동확인';
+export type DivisionHandling = '자동제외' | '장소반영';
+export type ExamType = 'urine' | 'tb';
+export type DayScheduleKind = 'excluded' | 'period';
+
+export interface DayScheduleItem {
+  id: string;
+  label: string;
+  kind: DayScheduleKind;
+  period?: number;
+  startTime: string;
+  endTime: string;
+  assignable: boolean;
+}
+
+export interface ExamSettings {
+  examType: ExamType;
+  examDate: string;
+  targetGrades: string[];
+  startTime: string;
+  endTime: string;
+  availablePeriods: number[];
+  durationMinutes: number;
+  teamCount: number;
+  travelMinutes: number;
+  examVenue: string;
+  maxUnitsPerCall: number;
+  allowWaiting: boolean;
+  includeBreaks: boolean;
+  allowCrossPeriod: boolean;
+  excludedTimes: string;
+  blockedKeywords: string[];
+  cautionKeywords: string[];
+  daySchedule: DayScheduleItem[];
+}
+
+export interface VisitLocation {
+  id: string;
+  displayName: string;
+  grade: string;
+  category: LocationCategory;
+  isVisitable: boolean;
+  includeInAuto: boolean;
+  notes: string;
+}
+
+export interface TimetableRow {
+  locationId: string;
+  displayName: string;
+  periods: string[];
+  notes: string;
+}
+
+export interface SubjectDivision {
+  name: string;
+  grade: string;
+  actualLocationId: string;
+  handling: DivisionHandling;
+  notes: string;
+}
+
+export interface PeriodJudgement {
+  locationId: string;
+  period: number;
+  subject: string;
+  status: JudgementStatus;
+  reason: string;
+}
+
+export interface ScheduleAssignment {
+  id: string;
+  order: number | null;
+  scheduledTime: string;
+  callTime?: string;
+  examTime?: string;
+  examVenue?: string;
+  locationId: string;
+  locationName: string;
+  grade: string;
+  period: number | null;
+  subject: string;
+  judgement: JudgementStatus;
+  isManual: boolean;
+  locked: boolean;
+  excluded: boolean;
+  note: string;
+  failedReason?: string;
+}
+
+export interface ManualOverride {
+  locationId: string;
+  scheduledTime?: string;
+  period?: number | null;
+  excluded?: boolean;
+  locked?: boolean;
+  note?: string;
+}
+
+export interface ExportTable {
+  name: string;
+  headers: string[];
+  rows: string[][];
+}
+
+export interface SchoolDefaults {
+  daySchedule: DayScheduleItem[];
+}
+
+export interface KeywordSets {
+  urine: {
+    blockedKeywords: string[];
+    cautionKeywords: string[];
+  };
+  tuberculosis: {
+    blockedKeywords: string[];
+    cautionKeywords: string[];
+  };
+}
+
+export interface TemplateData {
+  settings: ExamSettings;
+  locations: VisitLocation[];
+  timetables: TimetableRow[];
+  divisions: SubjectDivision[];
+  judgements: PeriodJudgement[];
+  assignments: ScheduleAssignment[];
+  manualOverrides: ManualOverride[];
+}
+
+export interface ExamTemplate {
+  id: string;
+  name: string;
+  year: string;
+  examType: ExamType;
+  createdAt: string;
+  updatedAt: string;
+  data: TemplateData;
+}
+
+export interface AppData {
+  settings: ExamSettings;
+  locations: VisitLocation[];
+  timetables: TimetableRow[];
+  divisions: SubjectDivision[];
+  judgements: PeriodJudgement[];
+  assignments: ScheduleAssignment[];
+  manualOverrides: ManualOverride[];
+  templates: ExamTemplate[];
+  activeTemplateId: string;
+  schoolDefaults: SchoolDefaults;
+  keywordSets: KeywordSets;
+  hasSelectedExamType: boolean;
+}
