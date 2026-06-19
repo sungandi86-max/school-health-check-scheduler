@@ -3,6 +3,7 @@ import { createDefaultData } from './defaultData';
 
 const STORAGE_KEY = 'urine-exam-room-scheduler:v1';
 const REQUIRED_BLOCKED_KEYWORDS = ['스생'];
+const MIXED_GRADE_NOTE = '혼합학년 수업 / 명렬표 확인 필요';
 
 export function loadAppData(): AppData {
   if (typeof localStorage === 'undefined') return createDefaultData();
@@ -87,15 +88,29 @@ function normalizeExamType(value: unknown): ExamType {
 
 function normalizeRoomMappings(mappings: AppData['roomMappings']): AppData['roomMappings'] {
   return mappings.map((mapping) => {
-    if (!isComprehensiveLectureRoom(mapping.actualRoom)) return mapping;
-    return {
-      ...mapping,
-      actualRoom: '2층 종합강의실',
-      restroomAccessible: true,
-      urineExamAvailability: mapping.isMixedGrade ? '불가' : '주의',
-      reason: mapping.isMixedGrade ? mapping.reason : '2층 종합강의실 수업 / 화장실 이동 안내 필요',
-    };
+    if (isComprehensiveLectureRoom(mapping.actualRoom)) {
+      return {
+        ...mapping,
+        actualRoom: '2층 종합강의실',
+        restroomAccessible: true,
+        urineExamAvailability: '주의',
+        reason: mapping.isMixedGrade ? mixedRoomReason('2층 종합강의실 수업 / 화장실 이동 안내 필요') : '2층 종합강의실 수업 / 화장실 이동 안내 필요',
+      };
+    }
+    if (mapping.isMixedGrade && mapping.urineExamAvailability === '불가') {
+      return {
+        ...mapping,
+        restroomAccessible: true,
+        urineExamAvailability: '주의',
+        reason: mapping.reason && mapping.reason !== '여러 학년 혼합 수업' ? mixedRoomReason(mapping.reason) : MIXED_GRADE_NOTE,
+      };
+    }
+    return mapping;
   });
+}
+
+function mixedRoomReason(reason: string) {
+  return [reason, MIXED_GRADE_NOTE].filter(Boolean).join(' / ');
 }
 
 function normalizeRestrictedVenues(venues: AppData['restrictedVenues']): AppData['restrictedVenues'] {
@@ -142,6 +157,9 @@ function isComprehensiveLectureRoom(value = '') {
 function normalizeSettings(settings: AppData['settings'], fallback: AppData['settings']) {
   settings.urineSimultaneous = typeof settings.urineSimultaneous === 'boolean' ? settings.urineSimultaneous : fallback.urineSimultaneous;
   settings.urineParallelMode = settings.urineParallelMode ?? fallback.urineParallelMode;
+  settings.urineMixedGradeHandling = ['allow-caution', 'manual-confirm', 'exclude'].includes(String(settings.urineMixedGradeHandling))
+    ? settings.urineMixedGradeHandling
+    : fallback.urineMixedGradeHandling;
   settings.teamsByGrade = settings.teamsByGrade ?? fallback.teamsByGrade;
   settings.gradeStartTimes = settings.gradeStartTimes ?? fallback.gradeStartTimes;
   settings.useGradeTimeBlocks = typeof settings.useGradeTimeBlocks === 'boolean' ? settings.useGradeTimeBlocks : fallback.useGradeTimeBlocks;
