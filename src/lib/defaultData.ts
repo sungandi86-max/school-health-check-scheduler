@@ -98,10 +98,19 @@ const settings: ExamSettings = {
   availablePeriods: [1, 2, 3, 4, 5, 6, 7],
   durationMinutes: 7,
   teamCount: 1,
+  urineSimultaneous: true,
+  urineParallelMode: 'grade',
+  teamsByGrade: { '2': 1, '3': 1 },
+  gradeStartTimes: { '2': '08:10', '3': '08:10' },
   travelMinutes: 5,
   examVenue: '검진 장소',
   maxUnitsPerCall: 1,
   allowWaiting: false,
+  useGradeTimeBlocks: true,
+  gradeTimeBlocks: [
+    { grade: '2', label: '2학년 오전', startTime: '08:10', endTime: '11:00' },
+    { grade: '3', label: '3학년 오후', startTime: '12:10', endTime: '16:00' },
+  ],
   includeBreaks: true,
   allowCrossPeriod: false,
   excludedTimes: '',
@@ -241,6 +250,11 @@ export function createDefaultData(): AppData {
       travelMinutes: 5,
       teamCount: 1,
       maxUnitsPerCall: 1,
+      useGradeTimeBlocks: true,
+      gradeTimeBlocks: [
+        { grade: '2', label: '2학년 오전', startTime: '08:10', endTime: '11:00' },
+        { grade: '3', label: '3학년 오후', startTime: '12:10', endTime: '16:00' },
+      ],
     },
   };
 

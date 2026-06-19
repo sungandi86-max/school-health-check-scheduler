@@ -14,6 +14,7 @@ export function loadAppData(): AppData {
 
     const settings = { ...fallback.settings, ...parsed.settings };
     settings.examType = normalizeExamType(settings.examType);
+    normalizeSettings(settings, fallback.settings);
     const templates = Array.isArray(parsed.templates)
       ? parsed.templates.map((template) => ({
           ...template,
@@ -21,6 +22,7 @@ export function loadAppData(): AppData {
           data: {
             ...template.data,
             settings: {
+              ...fallback.settings,
               ...template.data?.settings,
               examType: normalizeExamType(template.data?.settings?.examType ?? template.examType),
             },
@@ -36,6 +38,7 @@ export function loadAppData(): AppData {
     if (tbTemplate && tbTemplate.data.settings.examDate === urineDate) {
       tbTemplate.data.settings.examDate = '2026-06-25';
     }
+    templates.forEach((template) => normalizeSettings(template.data.settings, fallback.settings));
 
     return {
       settings,
@@ -58,6 +61,15 @@ export function loadAppData(): AppData {
 
 function normalizeExamType(value: unknown): ExamType {
   return value === 'tb' || value === '결핵검진' ? 'tb' : 'urine';
+}
+
+function normalizeSettings(settings: AppData['settings'], fallback: AppData['settings']) {
+  settings.urineSimultaneous = typeof settings.urineSimultaneous === 'boolean' ? settings.urineSimultaneous : fallback.urineSimultaneous;
+  settings.urineParallelMode = settings.urineParallelMode ?? fallback.urineParallelMode;
+  settings.teamsByGrade = settings.teamsByGrade ?? fallback.teamsByGrade;
+  settings.gradeStartTimes = settings.gradeStartTimes ?? fallback.gradeStartTimes;
+  settings.useGradeTimeBlocks = typeof settings.useGradeTimeBlocks === 'boolean' ? settings.useGradeTimeBlocks : fallback.useGradeTimeBlocks;
+  settings.gradeTimeBlocks = Array.isArray(settings.gradeTimeBlocks) ? settings.gradeTimeBlocks : fallback.gradeTimeBlocks;
 }
 
 export function saveAppData(data: AppData) {

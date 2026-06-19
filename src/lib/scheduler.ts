@@ -28,10 +28,13 @@ function minutesToTime(total: number) {
 
 type Slot = { time: string; period: number; isBreak?: boolean };
 
-function getAssignableSlots(settings: ExamSettings) {
-  const globalStart = timeToMinutes(settings.startTime);
-  const globalEnd = timeToMinutes(settings.endTime);
-  const lines = Math.max(1, settings.examType === 'tb' ? settings.teamCount || 1 : settings.teamCount || 1);
+function getAssignableSlots(
+  settings: ExamSettings,
+  options: { startTime?: string; endTime?: string; lineCount?: number } = {},
+) {
+  const globalStart = Math.max(timeToMinutes(settings.startTime), timeToMinutes(options.startTime ?? settings.startTime));
+  const globalEnd = Math.min(timeToMinutes(settings.endTime), timeToMinutes(options.endTime ?? settings.endTime));
+  const lines = Math.max(1, options.lineCount ?? settings.teamCount ?? 1);
   const slots: Slot[] = [];
 
   for (const item of settings.daySchedule) {
@@ -144,12 +147,22 @@ function getManual(controls: ManualOverride[], locationId: string) {
   return controls.find((item) => item.locationId === locationId);
 }
 
-function buildAssignment(location: VisitLocation, row: TimetableRow | undefined, judgement: PeriodJudgement | undefined, order: number | null, time: string, manual?: ManualOverride): ScheduleAssignment {
+function buildAssignment(
+  location: VisitLocation,
+  row: TimetableRow | undefined,
+  judgement: PeriodJudgement | undefined,
+  order: number | null,
+  time: string,
+  manual?: ManualOverride,
+  meta: { lineName?: string; timeBlockLabel?: string } = {},
+): ScheduleAssignment {
   const period = manual?.period ?? judgement?.period ?? null;
   return {
     id: location.id,
     order,
     scheduledTime: manual?.scheduledTime || time,
+    lineName: meta.lineName,
+    timeBlockLabel: meta.timeBlockLabel,
     locationId: location.id,
     locationName: location.displayName,
     grade: location.grade,
@@ -204,10 +217,7 @@ export function makeSchedule(data: AppData): { judgements: PeriodJudgement[]; as
   const { settings, locations, timetables, manualOverrides } = data;
   const judgements = createJudgements(settings, locations, timetables);
   const timetableMap = new Map(timetables.map((row) => [row.locationId, row]));
-  const slots = getAssignableSlots(settings);
-  const usedSlots = new Set<number>();
   const assignments: ScheduleAssignment[] = [];
-  const usedLocationIds = new Set<string>();
 
   const candidates = locations
     .filter((location) => location.includeInAuto && location.isVisitable)
@@ -220,60 +230,126 @@ export function makeSchedule(data: AppData): { judgements: PeriodJudgement[]; as
     })
     .sort((a, b) => a.valid.length - b.valid.length || sortDisplay(a.location, b.location));
 
-  for (const { location, valid } of candidates.filter((item) => getManual(manualOverrides, item.location.id)?.locked)) {
-    const manual = getManual(manualOverrides, location.id);
-    const row = timetableMap.get(location.id);
-
-    if (manual?.excluded) {
-      const assignment = buildAssignment(location, row, undefined, null, '', manual);
-      assignment.failedReason = '사용자가 검사 제외 처리';
-      assignments.push(assignment);
-      usedLocationIds.add(location.id);
-      continue;
+  if (settings.examType === 'urine' && settings.urineSimultaneous && settings.urineParallelMode === 'grade') {
+    for (const grade of getGrades(candidates)) {
+      assignments.push(
+        ...scheduleCandidateGroup({
+          candidates: candidates.filter((item) => item.location.grade === grade),
+          settings,
+          timetableMap,
+          manualOverrides,
+          slotOptions: {
+            startTime: settings.gradeStartTimes[grade] ?? settings.startTime,
+            endTime: settings.endTime,
+            lineCount: settings.teamsByGrade[grade] ?? 1,
+          },
+          lineName: `${grade}학년 라인`,
+        }),
+      );
     }
-
-    const judgement = valid.find((item) => item.period === manual?.period) ?? valid[0];
-    const slotIndex = slots.findIndex((slot, index) => !usedSlots.has(index) && (!manual?.period || slot.period === manual.period));
-    const slot = slotIndex >= 0 ? slots[slotIndex] : undefined;
-    const scheduled = manual?.scheduledTime || slot?.time || '';
-    const assignment = buildAssignment(location, row, judgement, null, scheduled, manual);
-
-    if (!judgement) {
-      assignment.failedReason = '검사 가능한 교시가 없음';
-    } else if (!slot && !manual?.scheduledTime) {
-      assignment.failedReason = '교시 종료 시간 안에 배정 가능한 시간 없음';
-    } else {
-      assignment.order = assignments.filter((item) => item.order).length + 1;
-      if (slotIndex >= 0) usedSlots.add(slotIndex);
+  } else if (settings.examType === 'tb' && settings.useGradeTimeBlocks) {
+    for (const grade of getGrades(candidates)) {
+      const block = settings.gradeTimeBlocks.find((item) => item.grade === grade);
+      assignments.push(
+        ...scheduleCandidateGroup({
+          candidates: candidates.filter((item) => item.location.grade === grade),
+          settings,
+          timetableMap,
+          manualOverrides,
+          slotOptions: {
+            startTime: block?.startTime ?? settings.startTime,
+            endTime: block?.endTime ?? settings.endTime,
+            lineCount: settings.teamCount,
+          },
+          lineName: `${grade}학년`,
+          timeBlockLabel: block ? `${block.label} ${block.startTime}~${block.endTime}` : `${grade}학년`,
+        }),
+      );
     }
-    if (slot?.isBreak) appendNote(assignment, '쉬는 시간 포함');
-    enrichExamTimes(assignment, settings);
-    assignments.push(assignment);
-    usedLocationIds.add(location.id);
+  } else {
+    assignments.push(
+      ...scheduleCandidateGroup({
+        candidates,
+        settings,
+        timetableMap,
+        manualOverrides,
+        slotOptions: { lineCount: settings.teamCount },
+        lineName: settings.examType === 'urine' ? '통합 라인' : '통합 검진',
+      }),
+    );
   }
 
+  const sortedAssignments = assignments.sort((a, b) => {
+      if (a.order) return -1;
+      if (b.order) return 1;
+      const timeCompare = timeToMinutes(a.scheduledTime || '23:59') - timeToMinutes(b.scheduledTime || '23:59');
+      if (timeCompare) return timeCompare;
+      const lineCompare = (a.lineName ?? '').localeCompare(b.lineName ?? '', 'ko', { numeric: true });
+      if (lineCompare) return lineCompare;
+      return a.locationName.localeCompare(b.locationName, 'ko', { numeric: true });
+    });
+  let nextOrder = 1;
+  sortedAssignments.forEach((assignment) => {
+    if (assignment.order) assignment.order = nextOrder++;
+  });
+
+  return {
+    judgements,
+    assignments: sortedAssignments,
+  };
+}
+
+function getGrades(candidates: { location: VisitLocation; valid: PeriodJudgement[] }[]) {
+  return [...new Set(candidates.map((item) => item.location.grade).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+}
+
+function scheduleCandidateGroup({
+  candidates,
+  settings,
+  timetableMap,
+  manualOverrides,
+  slotOptions,
+  lineName,
+  timeBlockLabel,
+}: {
+  candidates: { location: VisitLocation; valid: PeriodJudgement[] }[];
+  settings: ExamSettings;
+  timetableMap: Map<string, TimetableRow>;
+  manualOverrides: ManualOverride[];
+  slotOptions: { startTime?: string; endTime?: string; lineCount?: number };
+  lineName: string;
+  timeBlockLabel?: string;
+}) {
+  const slots = getAssignableSlots(settings, slotOptions);
+  const usedSlots = new Set<number>();
+  const assignments: ScheduleAssignment[] = [];
+
   for (const { location, valid } of candidates) {
-    if (usedLocationIds.has(location.id)) continue;
     const manual = getManual(manualOverrides, location.id);
     const row = timetableMap.get(location.id);
 
     if (manual?.excluded) {
-      const assignment = buildAssignment(location, row, undefined, null, '', manual);
+      const assignment = buildAssignment(location, row, undefined, null, '', manual, { lineName, timeBlockLabel });
       assignment.failedReason = '사용자가 검사 제외 처리';
       assignments.push(assignment);
       continue;
     }
 
     const preferred = manual?.period ? valid.find((item) => item.period === manual.period) : undefined;
-    const slotIndex = slots.findIndex((slot, index) => !usedSlots.has(index) && valid.some((item) => item.period === slot.period) && (!manual?.period || slot.period === manual.period));
+    const slotIndex = slots.findIndex(
+      (slot, index) => !usedSlots.has(index) && valid.some((item) => item.period === slot.period) && (!manual?.period || slot.period === manual.period),
+    );
     const slot = slotIndex >= 0 ? slots[slotIndex] : undefined;
     const judgement = preferred ?? valid.find((item) => item.period === slot?.period) ?? valid[0];
-    const assignment = buildAssignment(location, row, judgement, null, manual?.scheduledTime || slot?.time || '', manual);
+    const assignment = buildAssignment(location, row, judgement, null, manual?.scheduledTime || slot?.time || '', manual, {
+      lineName,
+      timeBlockLabel,
+    });
 
     if (!judgement) {
       assignment.failedReason = '검사 가능한 교시가 없음';
     } else if (!slot && !manual?.scheduledTime) {
-      assignment.failedReason = '교시 종료 시간 또는 검사 종료 시간 안에 배정 불가';
+      assignment.failedReason = settings.examType === 'tb' ? '학년별 검진 가능 시간 구간 안에 배정 불가' : '해당 학년 라인 시간 안에 배정 불가';
     } else {
       assignment.order = assignments.filter((item) => item.order).length + 1;
       if (slotIndex >= 0) usedSlots.add(slotIndex);
@@ -283,15 +359,7 @@ export function makeSchedule(data: AppData): { judgements: PeriodJudgement[]; as
     assignments.push(assignment);
   }
 
-  return {
-    judgements,
-    assignments: assignments.sort((a, b) => {
-      if (a.order && b.order) return a.order - b.order;
-      if (a.order) return -1;
-      if (b.order) return 1;
-      return a.locationName.localeCompare(b.locationName, 'ko', { numeric: true });
-    }),
-  };
+  return assignments;
 }
 
 function enrichExamTimes(assignment: ScheduleAssignment, settings: ExamSettings) {

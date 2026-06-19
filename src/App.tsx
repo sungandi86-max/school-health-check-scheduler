@@ -23,7 +23,15 @@ import {
   URINE_CAUTION_KEYWORDS,
 } from './lib/defaultData';
 import { clearAppData, loadAppData, saveAppData } from './lib/storage';
-import { createFullTable, createLabTable, createTeacherTable, downloadJsonBackup, exportTableToCsv } from './lib/csv';
+import {
+  createFullTable,
+  createLabTable,
+  createTbGradeTables,
+  createTeacherTable,
+  createUrineLineTables,
+  downloadJsonBackup,
+  exportTableToCsv,
+} from './lib/csv';
 import { makeSchedule, createManualConfirmRows } from './lib/scheduler';
 import { parseTimetablePaste } from './lib/paste';
 import {
@@ -33,6 +41,8 @@ import {
   downloadCommonTemplateXlsx,
   parseWorkbookFile,
 } from './lib/commonTemplate';
+import { AppFooter } from './components/common/AppFooter';
+import { OtterMascot } from './components/common/OtterMascot';
 
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 const CATEGORIES: LocationCategory[] = ['일반교실', '특별실', '선택과목 장소', '체육시설', '수동확인'];
@@ -57,8 +67,12 @@ export function App() {
   const dashboard = useMemo(() => {
     const totalCandidates = data.locations.filter((item) => item.isVisitable && item.includeInAuto).length;
     const lineCount = Math.max(1, data.settings.teamCount || 1);
-    const estimatedMinutes = Math.ceil((totalCandidates * data.settings.durationMinutes) / lineCount);
     const vendorMinutes = minutesBetween(data.settings.startTime, data.settings.endTime);
+    const gradeStats = createGradeStats(data);
+    const estimatedMinutes =
+      data.settings.examType === 'urine' && data.settings.urineSimultaneous && data.settings.urineParallelMode === 'grade'
+        ? Math.max(0, ...gradeStats.map((stat) => stat.estimatedMinutes))
+        : Math.ceil((totalCandidates * data.settings.durationMinutes) / lineCount);
     return {
       totalCandidates,
       done: data.assignments.filter((item) => item.order).length,
@@ -67,6 +81,7 @@ export function App() {
       estimatedMinutes,
       vendorMinutes,
       fitsVendorTime: estimatedMinutes <= vendorMinutes,
+      gradeStats,
     };
   }, [data, manualRows.length]);
 
@@ -195,6 +210,8 @@ export function App() {
   const tables = {
     full: createFullTable(data.assignments, data.settings),
     lab: createLabTable(data.assignments),
+    urineLines: createUrineLineTables(data.assignments),
+    tbGrades: createTbGradeTables(data.assignments, data.settings),
     teacher: createTeacherTable(data.assignments, data.settings),
   };
 
@@ -206,7 +223,7 @@ export function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">U</div>
+          <OtterMascot variant="sm" decorative />
           <div>
             <strong>검진·검사 자동배정</strong>
             <span>{mode.shortLabel}</span>
@@ -232,6 +249,10 @@ export function App() {
         </button>
         <button className="full" onClick={confirmReselectType}>검사 유형 다시 선택</button>
         <button className="full" onClick={startNewSchedule}>새 시간표 만들기</button>
+        <div className="sidebar-mascot">
+          <OtterMascot variant="md" decorative />
+          <span>쑤캥T 보건실 도구모음</span>
+        </div>
       </aside>
 
       <main>
@@ -292,6 +313,7 @@ export function App() {
           />
         )}
 
+        <AppFooter />
         <input ref={fileRef} type="file" accept="application/json" hidden onChange={(event) => importBackup(event.target.files?.[0])} />
       </main>
       {showTypeConfirm && (
@@ -327,7 +349,16 @@ function Dashboard({
   validationMessages,
 }: {
   data: AppData;
-  dashboard: { totalCandidates: number; done: number; manual: number; blocked: number; estimatedMinutes: number; vendorMinutes: number; fitsVendorTime: boolean };
+  dashboard: {
+    totalCandidates: number;
+    done: number;
+    manual: number;
+    blocked: number;
+    estimatedMinutes: number;
+    vendorMinutes: number;
+    fitsVendorTime: boolean;
+    gradeStats: ReturnType<typeof createGradeStats>;
+  };
   runSchedule: () => void;
   exportFull: () => void;
   print: () => void;
@@ -345,7 +376,10 @@ function Dashboard({
   const selectedTemplateId = visibleTemplates.some((template) => template.id === data.activeTemplateId) ? data.activeTemplateId : visibleTemplates[0]?.id ?? '';
   return (
     <section className="stack">
-      <div className="notice">{guideText}</div>
+      <div className="notice notice-with-mascot">
+        <OtterMascot variant="sm" decorative />
+        <span>{guideText}</span>
+      </div>
       <div className="card template-bar">
         <Field label="연도별 검사 템플릿">
           <select value={selectedTemplateId} onChange={(event) => loadTemplate(event.target.value)}>
@@ -363,16 +397,33 @@ function Dashboard({
         <Metric label={mode.dateLabel} value={data.settings.examDate || '-'} />
         <Metric label={mode.gradeLabel} value={data.settings.targetGrades.join(', ') || '-'} />
         <Metric label={mode.totalLabel} value={dashboard.totalCandidates} />
+        {dashboard.gradeStats.map((stat) => (
+          <Metric key={`${stat.grade}-count`} label={`${stat.grade}학년 ${data.settings.examType === 'tb' ? '호출 단위 수' : '방문 장소 수'}`} value={stat.count} />
+        ))}
         <Metric label="자동 배정 완료 수" value={dashboard.done} />
+        {data.settings.examType === 'tb' &&
+          dashboard.gradeStats.map((stat) => <Metric key={`${stat.grade}-done`} label={`${stat.grade}학년 배정 완료 수`} value={stat.done} />)}
         <Metric label="수동 확인 필요 수" value={dashboard.manual} />
         <Metric label={mode.blockedLabel} value={dashboard.blocked} />
         <Metric label="업체 검사 가능 시간" value={`${data.settings.startTime}~${data.settings.endTime}`} />
         <Metric label="단위당 소요시간" value={`${data.settings.durationMinutes}분`} />
         <Metric label="예상 총 소요시간" value={`${dashboard.estimatedMinutes}분`} />
+        {dashboard.gradeStats.map((stat) => (
+          <Metric key={`${stat.grade}-minutes`} label={`${stat.grade}학년 예상 소요시간`} value={`${stat.estimatedMinutes}분`} />
+        ))}
         <Metric label="업체 시간 내 배정 가능 여부" value={dashboard.fitsVendorTime ? '가능' : '주의'} />
+        {data.settings.examType === 'tb' &&
+          dashboard.gradeStats.map((stat) => <Metric key={`${stat.grade}-fits`} label={`${stat.grade}학년 시간 구간 내 배정`} value={stat.fits ? '가능' : '주의'} />)}
       </div>
       {!dashboard.fitsVendorTime && (
         <div className="warning-banner">업체 검사 가능 시간 안에 모든 단위를 배정하기 어려울 수 있습니다. 소요시간, 검사팀 수, 검사 가능 교시를 조정해 주세요.</div>
+      )}
+      {dashboard.gradeStats.some((stat) => !stat.fits) && (
+        <div className="warning-banner">
+          {data.settings.examType === 'tb'
+            ? '해당 학년의 검진 가능 시간 안에 모든 호출 단위를 배정하기 어려울 수 있습니다. 학년별 시간 구간, 호출단위당 소요시간, 검진 라인 수를 조정해 주세요.'
+            : '해당 학년 라인의 검사 가능 시간 안에 모든 방문 장소를 배정하기 어려울 수 있습니다. 학년별 시작 시간, 장소당 소요시간, 검사팀 수, 검사 가능 교시를 조정해 주세요.'}
+        </div>
       )}
       {validationMessages.length > 0 && (
         <div className="warning-list">
@@ -416,25 +467,32 @@ function Metric({ label, value }: { label: string; value: string | number }) {
 function ExamTypeSelect({ onSelect }: { onSelect: (examType: ExamType) => void }) {
   return (
     <main className="type-select-screen">
-      <section className="type-hero">
-        <p className="eyebrow">학교 보건 업무 도구</p>
-        <h1>검진·검사 시간표 자동배정 도우미</h1>
-        <p>만들 시간표 유형을 선택해 주세요.</p>
-      </section>
-      <section className="type-card-grid">
-        <div className="type-card">
-          <span className="mode-pill">방문형 검사</span>
-          <h2>소변검사 시간표 만들기</h2>
-          <p>검사팀이 실제 방문 가능한 교실·장소를 기준으로 순서를 배정합니다.</p>
-          <button className="primary" onClick={() => onSelect('urine')}>소변검사 시작</button>
-        </div>
-        <div className="type-card">
-          <span className="mode-pill">호출형 검진</span>
-          <h2>결핵검진 시간표 만들기</h2>
-          <p>학생들이 검진 장소로 이동해야 하므로 호출 가능한 학급·수업단위를 기준으로 순서를 배정합니다.</p>
-          <button className="primary" onClick={() => onSelect('tb')}>결핵검진 시작</button>
-        </div>
-      </section>
+      <div className="type-select-content">
+        <section className="type-hero">
+          <div>
+            <p className="eyebrow">학교 보건 업무 도구</p>
+            <h1>검진·검사 시간표 자동배정 도우미</h1>
+            <p>소변검사와 결핵검진 시간표를 학교 일과표, 업체 검사 가능 시간, 수업 시간표를 기준으로 자동 배정합니다.</p>
+            <strong className="brand-line">쑤캥T 보건실 도구모음</strong>
+          </div>
+          <OtterMascot variant="lg" className="type-hero-mascot" />
+        </section>
+        <section className="type-card-grid">
+          <div className="type-card">
+            <span className="mode-pill">방문형 검사</span>
+            <h2>소변검사 시간표 만들기</h2>
+            <p>검사팀이 실제 방문 가능한 교실·장소를 기준으로 순서를 배정합니다.</p>
+            <button className="primary" onClick={() => onSelect('urine')}>소변검사 시작</button>
+          </div>
+          <div className="type-card">
+            <span className="mode-pill">호출형 검진</span>
+            <h2>결핵검진 시간표 만들기</h2>
+            <p>학생들이 검진 장소로 이동해야 하므로 호출 가능한 학급·수업단위를 기준으로 순서를 배정합니다.</p>
+            <button className="primary" onClick={() => onSelect('tb')}>결핵검진 시작</button>
+          </div>
+        </section>
+      </div>
+      <AppFooter />
     </main>
   );
 }
@@ -455,6 +513,13 @@ function SettingsPanel({
     update(
       'daySchedule',
       settings.daySchedule.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)),
+    );
+  const updateTeamsByGrade = (grade: string, value: number) => update('teamsByGrade', { ...settings.teamsByGrade, [grade]: value });
+  const updateGradeStartTime = (grade: string, value: string) => update('gradeStartTimes', { ...settings.gradeStartTimes, [grade]: value });
+  const updateGradeTimeBlock = (grade: string, patch: Partial<(typeof settings.gradeTimeBlocks)[number]>) =>
+    update(
+      'gradeTimeBlocks',
+      settings.gradeTimeBlocks.map((block) => (block.grade === grade ? { ...block, ...patch } : block)),
     );
   const saveSchoolDefaults = () =>
     setData((prev) => ({ ...prev, schoolDefaults: { daySchedule: structuredClone(settings.daySchedule) } }));
@@ -497,6 +562,30 @@ function SettingsPanel({
         <Field label={settings.examType === 'tb' ? '검진 라인 수' : '검사팀 수'}>
           <input type="number" min={1} value={settings.teamCount} onChange={(event) => update('teamCount', Number(event.target.value))} />
         </Field>
+        {settings.examType === 'urine' && (
+          <>
+            <Field label="동시 진행 여부">
+              <label className="toggle">
+                <input type="checkbox" checked={settings.urineSimultaneous} onChange={(event) => update('urineSimultaneous', event.target.checked)} /> 사용
+              </label>
+            </Field>
+            <Field label="병렬 배정 방식">
+              <select value={settings.urineParallelMode} onChange={(event) => update('urineParallelMode', event.target.value as ExamSettings['urineParallelMode'])}>
+                <option value="sequential">전체 순차 배정</option>
+                <option value="grade">학년별 동시 배정</option>
+                <option value="team">검사팀 수 기준 병렬 배정</option>
+              </select>
+            </Field>
+            {['2', '3'].map((grade) => (
+              <Field key={`urine-grade-${grade}`} label={`${grade}학년 검사팀 수 / 시작 시간`}>
+                <div className="inline-fields">
+                  <input type="number" min={1} value={settings.teamsByGrade[grade] ?? 1} onChange={(event) => updateTeamsByGrade(grade, Number(event.target.value))} />
+                  <input type="time" value={settings.gradeStartTimes[grade] ?? settings.startTime} onChange={(event) => updateGradeStartTime(grade, event.target.value)} />
+                </div>
+              </Field>
+            ))}
+          </>
+        )}
         {settings.examType === 'tb' && (
           <>
             <Field label="한 번에 호출할 최대 단위 수">
@@ -514,6 +603,20 @@ function SettingsPanel({
                 <input type="checkbox" checked={settings.allowWaiting} onChange={(event) => update('allowWaiting', event.target.checked)} /> 허용
               </label>
             </Field>
+            <Field label="학년별 시간 구간 사용">
+              <label className="toggle">
+                <input type="checkbox" checked={settings.useGradeTimeBlocks} onChange={(event) => update('useGradeTimeBlocks', event.target.checked)} /> 사용
+              </label>
+            </Field>
+            {settings.gradeTimeBlocks.map((block) => (
+              <Field key={`tb-block-${block.grade}`} label={`${block.grade}학년 검진 가능 시간`}>
+                <div className="inline-fields wide">
+                  <input value={block.label} onChange={(event) => updateGradeTimeBlock(block.grade, { label: event.target.value })} />
+                  <input type="time" value={block.startTime} onChange={(event) => updateGradeTimeBlock(block.grade, { startTime: event.target.value })} />
+                  <input type="time" value={block.endTime} onChange={(event) => updateGradeTimeBlock(block.grade, { endTime: event.target.value })} />
+                </div>
+              </Field>
+            ))}
           </>
         )}
         <Field label="쉬는 시간 포함">
@@ -695,10 +798,13 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
     <section className="stack">
       <div className="card stack">
         <h2>교실/장소별 시간표 입력</h2>
-        <div className="notice">
+        <div className="notice notice-with-mascot">
+          <OtterMascot variant="sm" decorative />
+          <span>
           컴시간알리미를 사용하지 않는 학교는 공통 시간표 서식을 다운로드한 뒤 학급별 시간표를 입력해 업로드해 주세요.
           {'\n'}학생 이름, 학번, 검사 결과, 질병명 등 개인정보는 입력하지 않습니다.
           {'\n'}검사단위와 교시별 수업명만 입력하면 자동으로 검진·검사 시간표를 배정할 수 있습니다.
+          </span>
         </div>
         <div className="actions">
           <button onClick={() => comciganFileRef.current?.click()}><FileInput size={17} /> 컴시간알리미 엑셀 업로드</button>
@@ -851,7 +957,13 @@ function ResultsPanel({
   data: AppData;
   setData: React.Dispatch<React.SetStateAction<AppData>>;
   manualRows: ReturnType<typeof createManualConfirmRows>;
-  tables: { full: ReturnType<typeof createFullTable>; lab: ReturnType<typeof createLabTable>; teacher: ReturnType<typeof createTeacherTable> };
+  tables: {
+    full: ReturnType<typeof createFullTable>;
+    lab: ReturnType<typeof createLabTable>;
+    urineLines: ReturnType<typeof createUrineLineTables>;
+    tbGrades: ReturnType<typeof createTbGradeTables>;
+    teacher: ReturnType<typeof createTeacherTable>;
+  };
   guideText: string;
   copyGuide: () => void;
   copyTeacher: () => void;
@@ -870,6 +982,14 @@ function ResultsPanel({
       <div className="card actions no-print">
         <button onClick={() => exportTableToCsv(tables.full)}><Download size={17} /> 전체 자동 배정표 CSV</button>
         {data.settings.examType === 'urine' && <button onClick={() => exportTableToCsv(tables.lab)}><Download size={17} /> 임상병리사용 CSV</button>}
+        {data.settings.examType === 'urine' &&
+          tables.urineLines.map((table) => (
+            <button key={table.name} onClick={() => exportTableToCsv(table)}><Download size={17} /> {table.name.replaceAll('_', ' ')} CSV</button>
+          ))}
+        {data.settings.examType === 'tb' &&
+          tables.tbGrades.map((table) => (
+            <button key={table.name} onClick={() => exportTableToCsv(table)}><Download size={17} /> {table.name.replaceAll('_', ' ')} CSV</button>
+          ))}
         <button onClick={() => exportTableToCsv(tables.teacher)}><Download size={17} /> 교사용 안내표 CSV</button>
         <button onClick={copyGuide}><ClipboardCopy size={17} /> 안내 문구 복사</button>
         <button onClick={copyTeacher}><ClipboardCopy size={17} /> 교사용 안내 복사</button>
@@ -878,6 +998,10 @@ function ResultsPanel({
       <ResultTable title="A. 전체 자동 배정표" headers={tables.full.headers} rows={tables.full.rows} />
       <ManualAdjustments assignments={data.assignments} setOverride={setOverride} />
       {data.settings.examType === 'urine' && <ResultTable title="B. 임상병리사용 간단표" headers={tables.lab.headers} rows={tables.lab.rows} compact />}
+      {data.settings.examType === 'urine' &&
+        tables.urineLines.map((table) => <ResultTable key={table.name} title={table.name.replaceAll('_', ' ')} headers={table.headers} rows={table.rows} compact />)}
+      {data.settings.examType === 'tb' &&
+        tables.tbGrades.map((table) => <ResultTable key={table.name} title={table.name.replaceAll('_', ' ')} headers={table.headers} rows={table.rows} compact />)}
       <ResultTable title={data.settings.examType === 'tb' ? 'B. 교사용 안내표' : 'C. 교사용 안내표'} headers={tables.teacher.headers} rows={tables.teacher.rows} />
       <div className="card table-wrap">
         <h2>D. 수동 확인 필요 목록</h2>
@@ -1081,4 +1205,28 @@ function validateBeforeSchedule(data: AppData) {
   }
 
   return messages;
+}
+
+function createGradeStats(data: AppData) {
+  const grades = ['2', '3'];
+  return grades.map((grade) => {
+    const count = data.locations.filter((item) => item.grade === grade && item.isVisitable && item.includeInAuto).length;
+    const done = data.assignments.filter((item) => item.grade === grade && item.order).length;
+    const lines = Math.max(1, data.settings.examType === 'urine' ? data.settings.teamsByGrade[grade] ?? 1 : data.settings.teamCount || 1);
+    const estimatedMinutes = Math.ceil((count * data.settings.durationMinutes) / lines);
+    const block = data.settings.gradeTimeBlocks.find((item) => item.grade === grade);
+    const availableMinutes =
+      data.settings.examType === 'tb' && data.settings.useGradeTimeBlocks && block
+        ? minutesBetween(block.startTime, block.endTime)
+        : minutesBetween(data.settings.gradeStartTimes[grade] ?? data.settings.startTime, data.settings.endTime);
+
+    return {
+      grade,
+      count,
+      done,
+      estimatedMinutes,
+      availableMinutes,
+      fits: estimatedMinutes <= availableMinutes,
+    };
+  });
 }
