@@ -2,6 +2,8 @@ import type { AppData, ExamSettings, ExportTable, ScheduleAssignment } from '../
 
 const SECOND_FLOOR_LECTURE_ROOM_NOTE = '2층 종합강의실 수업 / 화장실 이동 안내 필요';
 const MIXED_GRADE_NOTE = '혼합학년 수업 / 명렬표 확인 필요';
+const VISIT_LOCATION_GUIDE = '교실/장소는 검사팀이 실제 방문할 수업 장소 기준으로 표시됩니다. 원래 학급 교실과 다를 수 있으며, 학생의 실제 반은 명렬표로 확인해 주세요.';
+const NOTICE_LOCATION_GUIDE = '일부 이동수업·선택과목 수업은 원래 학급 교실이 아닌 실제 수업 장소 기준으로 표시됩니다.';
 
 function escapeCsv(value: string | number | null | undefined) {
   const text = String(value ?? '');
@@ -16,12 +18,22 @@ function joinNotes(...notes: Array<string | undefined>) {
   return [...new Set(notes.filter(Boolean))].join(' / ');
 }
 
+function visitLocation(item: ScheduleAssignment) {
+  return item.displayVisitLocation || item.actualRoomName || item.actualRoom || item.locationName || item.unitName;
+}
+
+function unitName(item: ScheduleAssignment) {
+  return item.unitName || item.homeRoomName?.replace(/교실$/, '') || item.locationName.replace(/교실$/, '');
+}
+
 function isSecondFloorLectureRoomAssignment(item: ScheduleAssignment) {
-  const actualRoom = normalizeRoomText(item.actualRoom);
+  const actualRoom = normalizeRoomText(item.actualRoomName || item.actualRoom);
   const restrictedVenueName = normalizeRoomText(item.restrictedVenueName);
+  const displayVisitLocation = normalizeRoomText(item.displayVisitLocation);
   return (
     actualRoom === '2층종합강의실' ||
     restrictedVenueName === '2층종합강의실' ||
+    displayVisitLocation === '2층종합강의실' ||
     item.roomMappingReason === SECOND_FLOOR_LECTURE_ROOM_NOTE ||
     item.restrictedVenueReason === SECOND_FLOOR_LECTURE_ROOM_NOTE ||
     item.note.includes(SECOND_FLOOR_LECTURE_ROOM_NOTE)
@@ -38,7 +50,7 @@ function displayNote(item: ScheduleAssignment) {
     isSecondFloorLectureRoomAssignment(item) ? SECOND_FLOOR_LECTURE_ROOM_NOTE : undefined,
     isMixedGradeAssignment(item) ? MIXED_GRADE_NOTE : undefined,
   );
-  return specialNote || item.note;
+  return item.note || specialNote;
 }
 
 export function downloadText(filename: string, content: string, type = 'text/plain;charset=utf-8') {
@@ -84,19 +96,22 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
 
   return {
     name: '소변검사_자동배정표',
-    headers: ['순서', '검사 라인', '학년', '검사 시간', '교실/장소', '교시', '수업명', '판정', '수동수정 여부', '컴시간 표시 교실', '실제 수업 교실', '실제교실 사유', '제한 장소', '제한 사유', '비고'],
+    headers: ['순서', '검사 라인', '학년', '검사 시간', '교실/장소', '기준 학급', '원래 학급 교실', '교시', '수업명', '교과교사', '판정', '수동수정 여부', '컴시간 표시 교실', '실제 수업 교실', '실제교실 사유', '제한 장소', '제한 사유', '비고'],
     rows: assignments.map((item) => [
       item.order?.toString() ?? '',
       item.lineName ?? '',
       item.grade,
       item.scheduledTime,
-      item.locationName,
+      visitLocation(item),
+      unitName(item),
+      item.homeRoomName || item.locationName,
       item.period ? `${item.period}교시` : '',
       item.subject,
+      item.teacher ?? '',
       item.judgement,
       item.isManual ? '수동수정' : '',
       item.comciganRoom ?? '',
-      item.actualRoom ?? '',
+      item.actualRoomName || item.actualRoom || '',
       item.roomMappingReason ?? '',
       item.restrictedVenueName ?? '',
       item.restrictedVenueReason ?? '',
@@ -108,11 +123,11 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
 export function createLabTable(assignments: ScheduleAssignment[]): ExportTable {
   return {
     name: '임상병리사용_간단표',
-    headers: ['순서', '검사 라인', '검사 시간', '교실/장소', '수업명', '비고'],
+    headers: ['순서', '검사 시간', '기준 학급', '실제 방문 장소', '수업명', '교과교사', '비고'],
     rows: assignments
       .filter((item) => item.order)
       .sort(sortByDisplayTime)
-      .map((item) => [String(item.order), item.lineName ?? '', item.scheduledTime, item.locationName, item.subject, displayNote(item)]),
+      .map((item) => [String(item.order), item.scheduledTime, unitName(item), visitLocation(item), item.subject, item.teacher ?? '', displayNote(item)]),
   };
 }
 
@@ -120,11 +135,11 @@ export function createUrineLineTables(assignments: ScheduleAssignment[]): Export
   const lineNames = [...new Set(assignments.filter((item) => item.order).map((item) => item.lineName || '통합 라인'))];
   return lineNames.map((lineName) => ({
     name: `소변검사_${lineName}_간단표`,
-    headers: ['순서', '검사 시간', '교실/장소', '수업명', '비고'],
+    headers: ['순서', '검사 시간', '기준 학급', '실제 방문 장소', '수업명', '교과교사', '비고'],
     rows: assignments
       .filter((item) => item.order && (item.lineName || '통합 라인') === lineName)
       .sort(sortByDisplayTime)
-      .map((item) => [String(item.order), item.scheduledTime, item.locationName, item.subject, displayNote(item)]),
+      .map((item) => [String(item.order), item.scheduledTime, unitName(item), visitLocation(item), item.subject, item.teacher ?? '', displayNote(item)]),
   }));
 }
 
@@ -166,7 +181,7 @@ export function createUrineTwoColumnTable(assignments: ScheduleAssignment[], set
 
   return {
     name: '소변검사_학년별_2단표',
-    headers: ['2학년 검진 시간', '2학년 교실', '2학년 교과교사', '3학년 검진 시간', '3학년 교실', '3학년 교과교사'],
+    headers: ['2학년 검진 시간', '2학년 교실/장소', '2학년 교과교사', '3학년 검진 시간', '3학년 교실/장소', '3학년 교과교사'],
     rows: Array.from({ length: maxRows }, (_, index) => [
       grade2[index]?.time ?? '',
       grade2[index]?.room ?? '',
@@ -181,10 +196,10 @@ export function createUrineTwoColumnTable(assignments: ScheduleAssignment[], set
 function getUrineGradeRows(assignments: ScheduleAssignment[], settings: ExamSettings, grade: string) {
   return assignments
     .filter((item) => item.order && item.grade === grade)
-    .sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || '') || a.locationName.localeCompare(b.locationName, 'ko', { numeric: true }))
+    .sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || '') || visitLocation(a).localeCompare(visitLocation(b), 'ko', { numeric: true }))
     .map((item) => ({
       time: item.scheduledTime ? `${item.scheduledTime}~${addMinutes(item.scheduledTime, settings.durationMinutes)}` : '',
-      room: item.locationName.replace(/교실$/, ''),
+      room: visitLocation(item),
       teacher: item.teacher ?? '',
     }));
 }
@@ -200,7 +215,7 @@ function sortByDisplayTime(a: ScheduleAssignment, b: ScheduleAssignment) {
   if (timeCompare) return timeCompare;
   const lineCompare = lineRank(a.lineName) - lineRank(b.lineName);
   if (lineCompare) return lineCompare;
-  return a.locationName.localeCompare(b.locationName, 'ko', { numeric: true });
+  return visitLocation(a).localeCompare(visitLocation(b), 'ko', { numeric: true });
 }
 
 function lineRank(lineName?: string) {
@@ -234,11 +249,19 @@ export function createTeacherTable(assignments: ScheduleAssignment[], settings?:
     rows: assignments
       .filter((item) => item.order)
       .map((item) => [
-        item.locationName,
+        visitLocation(item),
         item.scheduledTime,
         item.period ? `${item.period}교시` : '',
-        '해당 시간 소변검사팀이 방문할 예정입니다. 수업 중 학생들이 질서 있게 검사에 참여할 수 있도록 협조 부탁드립니다.',
+        `해당 시간 소변검사팀이 방문할 예정입니다. 수업 중 학생들이 질서 있게 검사에 참여할 수 있도록 협조 부탁드립니다. ${NOTICE_LOCATION_GUIDE}`,
       ]),
+  };
+}
+
+export function createUrineVisitLocationGuideTable(): ExportTable {
+  return {
+    name: '소변검사_장소표시_안내문',
+    headers: ['안내'],
+    rows: [[VISIT_LOCATION_GUIDE], [NOTICE_LOCATION_GUIDE]],
   };
 }
 

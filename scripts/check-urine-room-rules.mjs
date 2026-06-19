@@ -56,6 +56,34 @@ const checks = [
       files.storage.includes('allow-caution'),
   },
   {
+    name: '배정 객체에 기준 학급과 실제 방문 장소 필드 존재',
+    file: 'types/scheduler',
+    pass:
+      files.types.includes('unitName: string') &&
+      files.types.includes('homeRoomName: string') &&
+      files.types.includes('actualRoomName?: string') &&
+      files.types.includes('displayVisitLocation: string') &&
+      files.scheduler.includes('const actualRoomName = getActualRoomName(judgement)') &&
+      files.scheduler.includes('const displayVisitLocation = getDisplayVisitLocation(location, judgement)') &&
+      files.scheduler.includes('기준 학급 ${unitName}'),
+  },
+  {
+    name: '소변검사 출력은 실제 방문 장소를 우선 사용',
+    file: 'csv',
+    pass:
+      files.csv.includes('function visitLocation') &&
+      files.csv.includes('item.displayVisitLocation || item.actualRoomName') &&
+      files.csv.includes("'교실/장소'") &&
+      files.csv.includes("'실제 방문 장소'") &&
+      files.csv.includes("'기준 학급'") &&
+      files.csv.includes('visitLocation(item)'),
+  },
+  {
+    name: '공지용 2단표 헤더는 교실/장소로 표시',
+    file: 'csv',
+    pass: files.csv.includes("'2학년 교실/장소'") && files.csv.includes("'3학년 교실/장소'"),
+  },
+  {
     name: '2층 종합강의실과 혼합학년 출력 비고 정규화',
     file: 'csv',
     pass:

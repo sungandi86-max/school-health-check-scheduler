@@ -106,6 +106,10 @@ export interface ScheduleAssignment {
   timeBlockLabel?: string;
   locationId: string;
   locationName: string;
+  unitName: string;
+  homeRoomName: string;
+  actualRoomName?: string;
+  displayVisitLocation: string;
   grade: string;
   period: number | null;
   subject: string;

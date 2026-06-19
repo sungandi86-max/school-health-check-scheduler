@@ -60,6 +60,22 @@ function displaySecondFloorLectureRoomName(value?: string) {
   return isSecondFloorLectureRoomName(value) ? '2층 종합강의실' : value;
 }
 
+function normalizeVisitRoomName(value?: string) {
+  return displaySecondFloorLectureRoomName(value)?.trim() ?? '';
+}
+
+function getUnitName(location: VisitLocation) {
+  return location.displayName.replace(/교실$/, '');
+}
+
+function getActualRoomName(judgement?: PeriodJudgement) {
+  return normalizeVisitRoomName(judgement?.actualRoom || judgement?.restrictedVenueName) || undefined;
+}
+
+function getDisplayVisitLocation(location: VisitLocation, judgement?: PeriodJudgement) {
+  return getActualRoomName(judgement) || location.displayName || getUnitName(location);
+}
+
 function isMixedGradeJudgement(judgement?: PeriodJudgement) {
   return Boolean(judgement?.reason.includes(MIXED_GRADE_NOTE) || judgement?.roomMappingReason?.includes(MIXED_GRADE_NOTE));
 }
@@ -81,8 +97,8 @@ function createAssignmentNote(manual: ManualOverride | undefined, judgement: Per
     isMixedGradeJudgement(judgement) ? MIXED_GRADE_NOTE : undefined,
   );
   const autoNote = specialNotes || joinNotes(
-    judgement?.actualRoom && judgement.roomMappingReason ? `${judgement.actualRoom} / ${judgement.roomMappingReason}` : undefined,
-    judgement?.restrictedVenueName && judgement.restrictedVenueReason ? `${judgement.restrictedVenueName} / ${judgement.restrictedVenueReason}` : undefined,
+    judgement?.actualRoom && judgement.roomMappingReason ? `${normalizeVisitRoomName(judgement.actualRoom)} / ${judgement.roomMappingReason}` : undefined,
+    judgement?.restrictedVenueName && judgement.restrictedVenueReason ? `${normalizeVisitRoomName(judgement.restrictedVenueName)} / ${judgement.restrictedVenueReason}` : undefined,
   );
 
   return joinNotes(manual?.note, autoNote);
@@ -452,7 +468,12 @@ function buildAssignment(
   const periodIndex = period ? period - 1 : -1;
   const rawText = periodIndex >= 0 ? row?.rawTexts?.[periodIndex] ?? '' : '';
   const parsedRaw = parseSubjectCell(rawText);
-  const note = createAssignmentNote(manual, judgement);
+  const unitName = getUnitName(location);
+  const homeRoomName = location.displayName;
+  const actualRoomName = getActualRoomName(judgement);
+  const displayVisitLocation = getDisplayVisitLocation(location, judgement);
+  const homeRoomNote = actualRoomName && actualRoomName !== homeRoomName ? `기준 학급 ${unitName}` : undefined;
+  const note = joinNotes(createAssignmentNote(manual, judgement), homeRoomNote);
   return {
     id: location.id,
     order,
@@ -461,6 +482,10 @@ function buildAssignment(
     timeBlockLabel: meta.timeBlockLabel,
     locationId: location.id,
     locationName: location.displayName,
+    unitName,
+    homeRoomName,
+    actualRoomName,
+    displayVisitLocation,
     grade: location.grade,
     period,
     subject: period ? row?.periods[period - 1] ?? parsedRaw.subject ?? judgement?.subject ?? '' : judgement?.subject ?? '',
@@ -472,7 +497,7 @@ function buildAssignment(
     note,
     restrictedVenueName: judgement?.restrictedVenueName,
     restrictedVenueReason: judgement?.restrictedVenueReason,
-    actualRoom: judgement?.actualRoom,
+    actualRoom: actualRoomName ?? judgement?.actualRoom,
     roomMappingReason: judgement?.roomMappingReason,
     comciganRoom: judgement?.comciganRoom,
   };
@@ -493,11 +518,11 @@ export function createManualConfirmRows(divisions: SubjectDivision[], assignment
   const failedRows = assignments
     .filter((item) => item.failedReason)
     .map((item) => ({
-      name: item.locationName,
+      name: item.unitName || item.locationName,
       type: item.excluded ? '검사 제외' : '배정 실패',
       reason: item.failedReason ?? '',
       required: '다른 교시 또는 현장 수동 확인 필요',
-      actualLocation: item.locationId,
+      actualLocation: item.displayVisitLocation || item.locationId,
       note: item.note,
     }));
 
@@ -514,9 +539,9 @@ export function createManualConfirmRows(divisions: SubjectDivision[], assignment
         item.subject,
         item.teacher ? `교사: ${item.teacher}` : '',
         item.comciganRoom ? `컴시간 표시 교실: ${item.comciganRoom}` : '',
-        item.actualRoom ? `실제 수업 교실: ${item.actualRoom}` : '',
+        item.actualRoom ? `실제 수업 교실: ${normalizeVisitRoomName(item.actualRoom)}` : '',
         item.roomMappingReason ? `실제교실 사유: ${item.roomMappingReason}` : '',
-        item.restrictedVenueName ? `제한 장소: ${item.restrictedVenueName}` : '',
+        item.restrictedVenueName ? `제한 장소: ${normalizeVisitRoomName(item.restrictedVenueName)}` : '',
         item.restrictedVenueReason ? `제한 사유: ${item.restrictedVenueReason}` : '',
       ]
         .filter(Boolean)
@@ -609,7 +634,7 @@ export function makeSchedule(data: AppData): { judgements: PeriodJudgement[]; as
     if (timeCompare) return timeCompare;
     const lineCompare = lineRank(a.lineName) - lineRank(b.lineName);
     if (lineCompare) return lineCompare;
-    return a.locationName.localeCompare(b.locationName, 'ko', { numeric: true });
+    return a.displayVisitLocation.localeCompare(b.displayVisitLocation, 'ko', { numeric: true });
   });
   let nextOrder = 1;
   sortedAssignments.forEach((assignment) => {
