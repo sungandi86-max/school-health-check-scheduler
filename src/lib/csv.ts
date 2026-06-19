@@ -1,8 +1,32 @@
 import type { AppData, ExamSettings, ExportTable, ScheduleAssignment } from '../types';
 
+const SECOND_FLOOR_LECTURE_ROOM_NOTE = '2층 종합강의실 수업 / 화장실 이동 안내 필요';
+
 function escapeCsv(value: string | number | null | undefined) {
   const text = String(value ?? '');
   return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+function normalizeRoomText(value = '') {
+  return value.replace(/\s/g, '').toUpperCase();
+}
+
+function isSecondFloorLectureRoomAssignment(item: ScheduleAssignment) {
+  const actualRoom = normalizeRoomText(item.actualRoom);
+  const restrictedVenueName = normalizeRoomText(item.restrictedVenueName);
+  return (
+    actualRoom === '2층종합강의실' ||
+    restrictedVenueName === '2층종합강의실' ||
+    item.roomMappingReason === SECOND_FLOOR_LECTURE_ROOM_NOTE ||
+    item.restrictedVenueReason === SECOND_FLOOR_LECTURE_ROOM_NOTE ||
+    item.note.includes(SECOND_FLOOR_LECTURE_ROOM_NOTE)
+  );
+}
+
+function displayNote(item: ScheduleAssignment) {
+  if (item.failedReason) return item.failedReason;
+  if (isSecondFloorLectureRoomAssignment(item)) return SECOND_FLOOR_LECTURE_ROOM_NOTE;
+  return item.note;
 }
 
 export function downloadText(filename: string, content: string, type = 'text/plain;charset=utf-8') {
@@ -41,7 +65,7 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
         item.comciganRoom ?? '',
         item.actualRoom ?? '',
         item.roomMappingReason ?? '',
-        item.failedReason || item.note,
+        displayNote(item),
       ]),
     };
   }
@@ -64,7 +88,7 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
       item.roomMappingReason ?? '',
       item.restrictedVenueName ?? '',
       item.restrictedVenueReason ?? '',
-      item.failedReason || item.note,
+      displayNote(item),
     ]),
   };
 }
@@ -76,7 +100,7 @@ export function createLabTable(assignments: ScheduleAssignment[]): ExportTable {
     rows: assignments
       .filter((item) => item.order)
       .sort(sortByDisplayTime)
-      .map((item) => [String(item.order), item.lineName ?? '', item.scheduledTime, item.locationName, item.subject, item.note]),
+      .map((item) => [String(item.order), item.lineName ?? '', item.scheduledTime, item.locationName, item.subject, displayNote(item)]),
   };
 }
 
@@ -88,7 +112,7 @@ export function createUrineLineTables(assignments: ScheduleAssignment[]): Export
     rows: assignments
       .filter((item) => item.order && (item.lineName || '통합 라인') === lineName)
       .sort(sortByDisplayTime)
-      .map((item) => [String(item.order), item.scheduledTime, item.locationName, item.subject, item.note]),
+      .map((item) => [String(item.order), item.scheduledTime, item.locationName, item.subject, displayNote(item)]),
   }));
 }
 
@@ -106,7 +130,7 @@ export function createTbTeamTable(assignments: ScheduleAssignment[], settings?: 
         item.examTime ?? item.scheduledTime,
         item.locationName,
         item.examVenue || settings?.examVenue || '',
-        item.note,
+        displayNote(item),
       ]),
   };
 }
@@ -119,7 +143,7 @@ export function createTbGradeTables(assignments: ScheduleAssignment[], settings?
     rows: assignments
       .filter((item) => item.order && item.grade === grade)
       .sort(sortByDisplayTime)
-      .map((item) => [String(item.order), item.callTime ?? '', item.examTime ?? item.scheduledTime, item.locationName, item.examVenue || settings?.examVenue || '', item.note]),
+      .map((item) => [String(item.order), item.callTime ?? '', item.examTime ?? item.scheduledTime, item.locationName, item.examVenue || settings?.examVenue || '', displayNote(item)]),
   }));
 }
 
