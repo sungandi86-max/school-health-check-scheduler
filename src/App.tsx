@@ -43,6 +43,7 @@ import {
   downloadCommonTemplateXlsx,
   parseWorkbookFile,
 } from './lib/commonTemplate';
+import { parseSubjectCell } from './lib/subjectParser';
 import { AppFooter } from './components/common/AppFooter';
 import { OtterMascot } from './components/common/OtterMascot';
 
@@ -935,14 +936,23 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
                   </td>
                   {PERIODS.map((period) => (
                     <td key={period}>
-                      <input
-                        value={row.periods[period - 1] ?? ''}
-                        onChange={(event) => {
-                          const periods = [...row.periods];
-                          periods[period - 1] = event.target.value;
-                          updatePreview(index, { periods });
-                        }}
-                      />
+                      <div className="period-cell-editor">
+                        <input
+                          value={row.periods[period - 1] ?? ''}
+                          title={row.rawTexts?.[period - 1] ?? row.periods[period - 1] ?? ''}
+                          onChange={(event) => {
+                            const parsed = parseSubjectCell(event.target.value);
+                            const periods = [...row.periods];
+                            const teachers = [...(row.teachers ?? Array.from({ length: 7 }, () => ''))];
+                            const rawTexts = [...(row.rawTexts ?? row.periods)];
+                            periods[period - 1] = parsed.subject;
+                            teachers[period - 1] = parsed.teacher;
+                            rawTexts[period - 1] = parsed.rawText;
+                            updatePreview(index, { periods, teachers, rawTexts });
+                          }}
+                        />
+                        {row.teachers?.[period - 1] && <span className="teacher-hint">교사: {row.teachers[period - 1]}</span>}
+                      </div>
                     </td>
                   ))}
                   <td><input value={row.notes} onChange={(event) => updatePreview(index, { notes: event.target.value })} /></td>
@@ -966,14 +976,23 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
                 <td><input value={item.displayName} onChange={(event) => update(index, { displayName: event.target.value })} /></td>
                 {PERIODS.map((period) => (
                   <td key={period}>
-                    <input
-                      value={item.periods[period - 1] ?? ''}
-                      onChange={(event) => {
-                        const periods = [...item.periods];
-                        periods[period - 1] = event.target.value;
-                        update(index, { periods });
-                      }}
-                    />
+                    <div className="period-cell-editor">
+                      <input
+                        value={item.periods[period - 1] ?? ''}
+                        title={item.rawTexts?.[period - 1] ?? item.periods[period - 1] ?? ''}
+                        onChange={(event) => {
+                          const parsed = parseSubjectCell(event.target.value);
+                          const periods = [...item.periods];
+                          const teachers = [...(item.teachers ?? Array.from({ length: 7 }, () => ''))];
+                          const rawTexts = [...(item.rawTexts ?? item.periods)];
+                          periods[period - 1] = parsed.subject;
+                          teachers[period - 1] = parsed.teacher;
+                          rawTexts[period - 1] = parsed.rawText;
+                          update(index, { periods, teachers, rawTexts });
+                        }}
+                      />
+                      {item.teachers?.[period - 1] && <span className="teacher-hint">교사: {item.teachers[period - 1]}</span>}
+                    </div>
                   </td>
                 ))}
                 <td><input value={item.notes} onChange={(event) => update(index, { notes: event.target.value })} /></td>

@@ -504,6 +504,18 @@ td select {
   min-width: 96px;
 }
 
+.period-cell-editor {
+  display: grid;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.teacher-hint {
+  color: #587084;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
 .compact table {
   min-width: 720px;
   font-size: 15px;

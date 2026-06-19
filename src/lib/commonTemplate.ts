@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { ExamSettings, LocationCategory, SubjectDivision, TimetableRow, VisitLocation } from '../types';
 import { downloadText } from './csv';
+import { parseSubjectCells } from './subjectParser';
 
 export interface CommonImportRow {
   unit: string;
@@ -73,15 +74,17 @@ function parseCommonWorkbook(workbook: XLSX.WorkBook): ImportPreview {
       if (line.some(Boolean)) warnings.push(`${index + headerIndex + 2}행: 검사단위가 비어 있어 건너뜀`);
       return [];
     }
+    const periodCells = Array.from({ length: 7 }, (_, period) => String(line[indexOf(`${period + 1}교시`)] ?? '').trim());
+    const parsedPeriods = parseSubjectCells(periodCells);
     return [{
       unit,
       grade: String(line[indexOf('학년')] ?? '').trim(),
       category: String(line[indexOf('구분')] ?? '일반학급').trim() || '일반학급',
       actualLocation: String(line[indexOf('실제장소')] ?? '').trim(),
       autoInclude: String(line[indexOf('자동배정')] ?? '포함').trim() || '포함',
-      periods: Array.from({ length: 7 }, (_, period) => String(line[indexOf(`${period + 1}교시`)] ?? '').trim()),
-      teachers: Array.from({ length: 7 }, () => ''),
-      rawTexts: Array.from({ length: 7 }, (_, period) => String(line[indexOf(`${period + 1}교시`)] ?? '').trim()),
+      periods: parsedPeriods.periods,
+      teachers: parsedPeriods.teachers,
+      rawTexts: parsedPeriods.rawTexts,
       notes: String(line[indexOf('비고')] ?? '').trim(),
     }];
   });
@@ -101,15 +104,16 @@ function parseComciganWorkbook(workbook: XLSX.WorkBook): ImportPreview {
     const [grade, klass] = name.split('-');
     const isDivision = klass === '13';
     const rawPeriods = Array.from({ length: 7 }, (_, index) => String(raw[r + 1]?.[index + 1] ?? '').trim());
+    const parsedPeriods = parseSubjectCells(rawPeriods);
     rows.push({
       unit: name,
       grade,
       category: isDivision ? '선택분반' : '일반학급',
       actualLocation: isDivision ? '' : `${name}교실`,
       autoInclude: isDivision ? '제외' : '포함',
-      periods: rawPeriods.map((value) => value.split('\n')[0]?.trim() ?? ''),
-      teachers: rawPeriods.map((value) => value.split('\n')[1]?.trim() ?? ''),
-      rawTexts: rawPeriods,
+      periods: parsedPeriods.periods,
+      teachers: parsedPeriods.teachers,
+      rawTexts: parsedPeriods.rawTexts,
       notes: isDivision ? '컴시간알리미 선택과목 분반, 실제 장소 확인 필요' : '컴시간알리미 엑셀 업로드',
     });
   }
