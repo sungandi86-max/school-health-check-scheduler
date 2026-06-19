@@ -17,6 +17,21 @@ const checks = [
     pass: files.scheduler.includes("item.status === '가능' || item.status === '주의'"),
   },
   {
+    name: '2층 종합강의실은 불가 판정 전에 주의로 강제 포함',
+    file: 'scheduler',
+    pass:
+      files.scheduler.includes('isSecondFloorLectureRoomSource(roomMapping, restriction)') &&
+      files.scheduler.indexOf('isSecondFloorLectureRoomSource(roomMapping, restriction)') < files.scheduler.indexOf("roomMapping?.urineExamAvailability === '불가'") &&
+      files.scheduler.indexOf('isSecondFloorLectureRoomSource(roomMapping, restriction)') < files.scheduler.indexOf("restriction?.mode === '불가'"),
+  },
+  {
+    name: '2층 종합강의실보다 불가 키워드와 혼합학년이 우선',
+    file: 'scheduler',
+    pass:
+      files.scheduler.indexOf('roomMapping?.isMixedGrade') < files.scheduler.indexOf('isSecondFloorLectureRoomSource(roomMapping, restriction)') &&
+      files.scheduler.indexOf('hasKeyword(subject, settings.blockedKeywords)') < files.scheduler.indexOf('isSecondFloorLectureRoomSource(roomMapping, restriction)'),
+  },
+  {
     name: '2층 종합강의실 배정 기본 비고 정규화',
     file: 'scheduler',
     pass: files.scheduler.includes('SECOND_FLOOR_LECTURE_ROOM_NOTE') && files.scheduler.includes('createAssignmentNote'),
@@ -50,8 +65,10 @@ const checks = [
   },
   {
     name: 'U-2 계열 장소 정규화 포함',
-    file: 'roomMappingParser',
-    pass: files.roomMappingParser.includes('/^U-2-\\d+/.test(normalized)'),
+    file: 'scheduler/roomMappingParser',
+    pass:
+      files.scheduler.includes('/^U-2-\\d+/.test(normalized)') &&
+      files.roomMappingParser.includes('/^U-2-\\d+/.test(normalized)'),
   },
 ];
 
