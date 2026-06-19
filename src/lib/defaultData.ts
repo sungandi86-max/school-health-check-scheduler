@@ -244,6 +244,9 @@ export function createDefaultData(): AppData {
     restrictedVenues: [],
     restrictedVenueEntries: [],
     restrictedVenueWeekday: 'auto' as const,
+    roomMappings: [],
+    roomMappingSettings: { enabled: true },
+    uploadedMappingFileNames: [],
   };
   const tbBase = {
     ...structuredClone(base),

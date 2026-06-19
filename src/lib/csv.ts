@@ -25,7 +25,7 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
   if (settings?.examType === 'tb') {
     return {
       name: '결핵검진_자동배정표',
-      headers: ['순서', '학년', '시간 구간', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '교시', '수업명', '판정', '수동수정 여부', '비고'],
+      headers: ['순서', '학년', '시간 구간', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '교시', '수업명', '판정', '수동수정 여부', '컴시간 표시 교실', '실제 수업 교실', '실제교실 사유', '비고'],
       rows: assignments.map((item) => [
         item.order?.toString() ?? '',
         item.grade,
@@ -38,6 +38,9 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
         item.subject,
         item.judgement,
         item.isManual ? '수동수정' : '',
+        item.comciganRoom ?? '',
+        item.actualRoom ?? '',
+        item.roomMappingReason ?? '',
         item.failedReason || item.note,
       ]),
     };
@@ -45,7 +48,7 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
 
   return {
     name: '소변검사_자동배정표',
-    headers: ['순서', '검사 라인', '학년', '검사 시간', '교실/장소', '교시', '수업명', '판정', '수동수정 여부', '제한 장소', '제한 사유', '비고'],
+    headers: ['순서', '검사 라인', '학년', '검사 시간', '교실/장소', '교시', '수업명', '판정', '수동수정 여부', '컴시간 표시 교실', '실제 수업 교실', '실제교실 사유', '제한 장소', '제한 사유', '비고'],
     rows: assignments.map((item) => [
       item.order?.toString() ?? '',
       item.lineName ?? '',
@@ -56,6 +59,9 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
       item.subject,
       item.judgement,
       item.isManual ? '수동수정' : '',
+      item.comciganRoom ?? '',
+      item.actualRoom ?? '',
+      item.roomMappingReason ?? '',
       item.restrictedVenueName ?? '',
       item.restrictedVenueReason ?? '',
       item.failedReason || item.note,

@@ -6,6 +6,7 @@ export type DayScheduleKind = 'excluded' | 'period';
 export type UrineParallelMode = 'sequential' | 'grade' | 'team';
 export type VenueRestrictionMode = '가능' | '주의' | '불가';
 export type VenueRestrictionWeekday = 'auto' | '월' | '화' | '수' | '목' | '금';
+export type UrineExamAvailability = VenueRestrictionMode;
 
 export interface GradeTimeBlock {
   grade: string;
@@ -87,6 +88,9 @@ export interface PeriodJudgement {
   teacher?: string;
   restrictedVenueName?: string;
   restrictedVenueReason?: string;
+  actualRoom?: string;
+  roomMappingReason?: string;
+  comciganRoom?: string;
 }
 
 export interface ScheduleAssignment {
@@ -112,6 +116,9 @@ export interface ScheduleAssignment {
   failedReason?: string;
   restrictedVenueName?: string;
   restrictedVenueReason?: string;
+  actualRoom?: string;
+  roomMappingReason?: string;
+  comciganRoom?: string;
 }
 
 export interface RestrictedVenue {
@@ -136,6 +143,31 @@ export interface RestrictedVenueEntry {
   rawText: string;
   mode: VenueRestrictionMode;
   reason: string;
+}
+
+export interface RoomMapping {
+  id: string;
+  grade: string;
+  subjectName?: string;
+  divisionName?: string;
+  comciganRoom?: string;
+  actualRoom: string;
+  floor?: string;
+  restroomAccessible: boolean;
+  urineExamAvailability: UrineExamAvailability;
+  reason?: string;
+  sourceFile?: string;
+  rawText?: string;
+  teacher?: string;
+  involvedGrades?: string[];
+  involvedClasses?: string[];
+  isMixedGrade?: boolean;
+  isMixedClass?: boolean;
+  mixedReason?: string;
+}
+
+export interface RoomMappingSettings {
+  enabled: boolean;
 }
 
 export interface ManualOverride {
@@ -179,6 +211,9 @@ export interface TemplateData {
   restrictedVenues: RestrictedVenue[];
   restrictedVenueEntries: RestrictedVenueEntry[];
   restrictedVenueWeekday: VenueRestrictionWeekday;
+  roomMappings: RoomMapping[];
+  roomMappingSettings: RoomMappingSettings;
+  uploadedMappingFileNames: string[];
 }
 
 export interface ExamTemplate {
@@ -202,6 +237,9 @@ export interface AppData {
   restrictedVenues: RestrictedVenue[];
   restrictedVenueEntries: RestrictedVenueEntry[];
   restrictedVenueWeekday: VenueRestrictionWeekday;
+  roomMappings: RoomMapping[];
+  roomMappingSettings: RoomMappingSettings;
+  uploadedMappingFileNames: string[];
   templates: ExamTemplate[];
   activeTemplateId: string;
   schoolDefaults: SchoolDefaults;

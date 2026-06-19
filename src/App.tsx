@@ -10,6 +10,7 @@ import type {
   LocationCategory,
   ManualOverride,
   RestrictedVenue,
+  RoomMapping,
   SubjectDivision,
   TimetableRow,
   VenueRestrictionMode,
@@ -48,6 +49,7 @@ import {
 } from './lib/commonTemplate';
 import { parseSubjectCell } from './lib/subjectParser';
 import { parseRestrictedVenueWorkbook } from './lib/restrictedVenueParser';
+import { parseRoomMappingWorkbook } from './lib/roomMappingParser';
 import { AppFooter } from './components/common/AppFooter';
 import { OtterMascot } from './components/common/OtterMascot';
 
@@ -1064,7 +1066,7 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
           </tbody>
         </table>
       </div>
-      {data.settings.examType === 'urine' && (
+      {(data.settings.examType === 'urine' || data.settings.examType === 'tb') && (
         <div className="card stack">
           <div className="section-title">
             <div>
@@ -1166,36 +1168,182 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
 }
 
 function DivisionsPanel({ data, setData }: { data: AppData; setData: React.Dispatch<React.SetStateAction<AppData>> }) {
+  const roomMappingFileRef = useRef<HTMLInputElement>(null);
+  const [mappingWarnings, setMappingWarnings] = useState<string[]>([]);
   const update = (index: number, patch: Partial<SubjectDivision>) =>
     setData((prev) => ({ ...prev, divisions: prev.divisions.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)), needsReschedule: true }));
+  const updateRoomMapping = (index: number, patch: Partial<RoomMapping>) =>
+    setData((prev) => ({
+      ...prev,
+      roomMappings: prev.roomMappings.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)),
+      needsReschedule: true,
+    }));
+  const uploadRoomMappingFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const imported = await Promise.all(Array.from(files).map((file) => parseRoomMappingWorkbook(file)));
+    const fileNames = imported.map((item) => item.fileName);
+    const mappings = imported.flatMap((item) => item.mappings);
+    setMappingWarnings(imported.flatMap((item) => item.warnings));
+    setData((prev) => ({
+      ...prev,
+      roomMappings: [...prev.roomMappings.filter((item) => !item.sourceFile || !fileNames.includes(item.sourceFile)), ...mappings],
+      uploadedMappingFileNames: [...new Set([...prev.uploadedMappingFileNames.filter((name) => !fileNames.includes(name)), ...fileNames])],
+      roomMappingSettings: { ...prev.roomMappingSettings, enabled: true },
+      needsReschedule: true,
+    }));
+  };
+  const clearRoomMappings = () =>
+    setData((prev) => ({ ...prev, roomMappings: [], uploadedMappingFileNames: [], roomMappingSettings: { enabled: true }, needsReschedule: true }));
 
   return (
-    <section className="card stack">
-      <TableTitle title="선택과목 분반 참고 목록" action={() => setData((prev) => ({ ...prev, divisions: [...prev.divisions, emptyDivision()], needsReschedule: true }))} />
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              {['분반명', '학년', '실제 장소', '자동배정 처리', '비고'].map((header) => <th key={header}>{header}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {data.divisions.map((item, index) => (
-              <tr key={`${item.name}-${index}`}>
-                <td><input value={item.name} onChange={(event) => update(index, { name: event.target.value })} /></td>
-                <td><input value={item.grade} onChange={(event) => update(index, { grade: event.target.value })} /></td>
-                <td><input value={item.actualLocationId} onChange={(event) => update(index, { actualLocationId: event.target.value, handling: event.target.value ? '장소반영' : '자동제외' })} /></td>
-                <td>
-                  <select value={item.handling} onChange={(event) => update(index, { handling: event.target.value as DivisionHandling })}>
-                    {DIVISION_HANDLINGS.map((value) => <option key={value}>{value}</option>)}
-                  </select>
-                </td>
-                <td><input value={item.notes} onChange={(event) => update(index, { notes: event.target.value })} /></td>
+    <section className="stack">
+      <div className="card stack">
+        <TableTitle title="선택과목 분반 참고 목록" action={() => setData((prev) => ({ ...prev, divisions: [...prev.divisions, emptyDivision()], needsReschedule: true }))} />
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                {['분반명', '학년', '실제 장소', '자동배정 처리', '비고'].map((header) => <th key={header}>{header}</th>)}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {data.divisions.map((item, index) => (
+                <tr key={`${item.name}-${index}`}>
+                  <td><input value={item.name} onChange={(event) => update(index, { name: event.target.value })} /></td>
+                  <td><input value={item.grade} onChange={(event) => update(index, { grade: event.target.value })} /></td>
+                  <td><input value={item.actualLocationId} onChange={(event) => update(index, { actualLocationId: event.target.value, handling: event.target.value ? '장소반영' : '자동제외' })} /></td>
+                  <td>
+                    <select value={item.handling} onChange={(event) => update(index, { handling: event.target.value as DivisionHandling })}>
+                      {DIVISION_HANDLINGS.map((value) => <option key={value}>{value}</option>)}
+                    </select>
+                  </td>
+                  <td><input value={item.notes} onChange={(event) => update(index, { notes: event.target.value })} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
+      {data.settings.examType === 'urine' && (
+        <div className="card stack">
+          <div className="section-title">
+            <div>
+              <h2>분반자료 업로드 · 실제 수업 교실 매핑</h2>
+              <p className="table-description">
+                이동수업이나 선택과목 수업은 컴시간알리미상 표시 교실과 실제 수업 교실이 다를 수 있습니다.
+                분반자료를 업로드하면 실제 수업 교실과 혼합학년 여부를 기준으로 자동배정 가능 여부를 더 정확하게 판정합니다.
+                소변검사에서는 여러 학년이 섞인 수업을 자동배정에서 제외하고, 결핵검진에서는 수동확인 목록에 표시합니다.
+                같은 학년 안에서 여러 학급이 섞인 수업은 소변검사에서 주의로 표시됩니다.
+              </p>
+            </div>
+            <div className="actions">
+              <button onClick={() => roomMappingFileRef.current?.click()}><FileInput size={17} /> 분반자료 업로드</button>
+              <button onClick={clearRoomMappings}><RotateCcw size={17} /> 분반자료 초기화</button>
+            </div>
+          </div>
+          <input
+            ref={roomMappingFileRef}
+            type="file"
+            accept=".xlsx,.xls"
+            multiple
+            hidden
+            onChange={(event) => uploadRoomMappingFiles(event.target.files)}
+          />
+          <div className="form-grid compact-form-grid">
+            <Field label="실제 수업 교실 매핑 사용">
+              <select
+                value={data.roomMappingSettings.enabled ? '사용' : '미사용'}
+                onChange={(event) =>
+                  setData((prev) => ({
+                    ...prev,
+                    roomMappingSettings: { enabled: event.target.value === '사용' },
+                    needsReschedule: true,
+                  }))
+                }
+              >
+                <option>사용</option>
+                <option>미사용</option>
+              </select>
+            </Field>
+            <Metric label="업로드 파일 수" value={data.uploadedMappingFileNames.length} />
+            <Metric label="매핑 행 수" value={data.roomMappings.length} />
+          </div>
+          {data.uploadedMappingFileNames.length > 0 && (
+            <p className="table-description">업로드 파일: {data.uploadedMappingFileNames.join(', ')}</p>
+          )}
+          {mappingWarnings.length > 0 && (
+            <div className="warning-list">
+              <strong>분반자료 업로드 경고</strong>
+              {mappingWarnings.map((warning, index) => <p key={index}>{warning}</p>)}
+            </div>
+          )}
+          {data.roomMappings.length > 0 && (
+            <div className="table-wrap compact">
+              <table>
+                <thead>
+                  <tr>
+                    {['학년', '과목명', '분반명', '컴시간 표시 교실', '실제 수업 교실', '층', '학생 화장실 접근', '포함 학년', '포함 학급', '혼합 여부', '소변검사 판정', '사유'].map((header) => <th key={header}>{header}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.roomMappings.map((item, index) => (
+                    <tr key={item.id}>
+                      <td><input value={item.grade} onChange={(event) => updateRoomMapping(index, { grade: event.target.value })} /></td>
+                      <td><input value={item.subjectName ?? ''} onChange={(event) => updateRoomMapping(index, { subjectName: event.target.value })} /></td>
+                      <td><input value={item.divisionName ?? ''} onChange={(event) => updateRoomMapping(index, { divisionName: event.target.value })} /></td>
+                      <td><input value={item.comciganRoom ?? ''} onChange={(event) => updateRoomMapping(index, { comciganRoom: event.target.value })} /></td>
+                      <td><input value={item.actualRoom} onChange={(event) => updateRoomMapping(index, { actualRoom: event.target.value })} /></td>
+                      <td><input value={item.floor ?? ''} onChange={(event) => updateRoomMapping(index, { floor: event.target.value })} /></td>
+                      <td>
+                        <select
+                          value={item.restroomAccessible ? '가능' : '불가'}
+                          onChange={(event) => updateRoomMapping(index, { restroomAccessible: event.target.value === '가능' })}
+                        >
+                          <option>가능</option>
+                          <option>불가</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          value={(item.involvedGrades ?? []).join(', ')}
+                          onChange={(event) => updateRoomMapping(index, { involvedGrades: splitCommaValues(event.target.value), isMixedGrade: splitCommaValues(event.target.value).length >= 2 })}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          value={(item.involvedClasses ?? []).join(', ')}
+                          onChange={(event) => {
+                            const classes = splitCommaValues(event.target.value);
+                            const grades = [...new Set(classes.map((className) => className.split('-')[0]).filter(Boolean))];
+                            updateRoomMapping(index, {
+                              involvedClasses: classes,
+                              involvedGrades: grades.length ? grades : item.involvedGrades,
+                              isMixedClass: classes.length >= 2,
+                              isMixedGrade: grades.length >= 2,
+                            });
+                          }}
+                        />
+                      </td>
+                      <td>
+                        <div className="badge-stack">
+                          {item.isMixedGrade && <span className="badge 불가">혼합학년</span>}
+                          {!item.isMixedGrade && item.isMixedClass && <span className="badge 주의">동학년 혼합</span>}
+                        </div>
+                      </td>
+                      <td>
+                        <select value={item.urineExamAvailability} onChange={(event) => updateRoomMapping(index, { urineExamAvailability: event.target.value as VenueRestrictionMode })}>
+                          {VENUE_RESTRICTION_MODES.map((mode) => <option key={mode}>{mode}</option>)}
+                        </select>
+                      </td>
+                      <td><input value={item.reason ?? ''} onChange={(event) => updateRoomMapping(index, { reason: event.target.value })} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -1684,6 +1832,10 @@ function splitKeywords(value: string) {
     .filter(Boolean);
 }
 
+function splitCommaValues(value: string) {
+  return splitKeywords(value);
+}
+
 function mergeKeywords(current: string[], value: string) {
   const seen = new Set(current.map((item) => item.trim()).filter(Boolean));
   const next = [...seen];
@@ -1730,6 +1882,9 @@ function snapshotTemplateData(data: AppData) {
     restrictedVenues: structuredClone(data.restrictedVenues),
     restrictedVenueEntries: structuredClone(data.restrictedVenueEntries),
     restrictedVenueWeekday: data.restrictedVenueWeekday,
+    roomMappings: structuredClone(data.roomMappings),
+    roomMappingSettings: structuredClone(data.roomMappingSettings),
+    uploadedMappingFileNames: structuredClone(data.uploadedMappingFileNames),
   };
 }
 

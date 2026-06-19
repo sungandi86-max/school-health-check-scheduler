@@ -516,6 +516,13 @@ td select {
   line-height: 1.25;
 }
 
+.badge-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 84px;
+}
+
 .compact table {
   min-width: 720px;
   font-size: 15px;

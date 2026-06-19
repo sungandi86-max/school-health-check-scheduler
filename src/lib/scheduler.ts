@@ -5,6 +5,7 @@ import type {
   ManualOverride,
   PeriodJudgement,
   RestrictedVenueEntry,
+  RoomMapping,
   ScheduleAssignment,
   SubjectDivision,
   TimetableRow,
@@ -130,6 +131,47 @@ function createRestrictionMap(settings: ExamSettings, entries: RestrictedVenueEn
   return map;
 }
 
+function findRoomMapping(settings: ExamSettings, mappings: RoomMapping[], location: VisitLocation | undefined, row: TimetableRow, period: number) {
+  if (!mappings.length) return undefined;
+  const subject = row.periods[period - 1] ?? '';
+  const teacher = row.teachers?.[period - 1] ?? '';
+  const rawText = row.rawTexts?.[period - 1] ?? subject;
+  const className = normalizeClassName(row.displayName || location?.displayName || row.locationId);
+  const candidates = mappings.filter((mapping) => !mapping.grade || !location?.grade || mapping.grade === location.grade);
+  return candidates
+    .map((mapping) => ({ mapping, score: scoreRoomMapping(mapping, { subject, teacher, rawText, className }) }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)[0]?.mapping;
+}
+
+function scoreRoomMapping(
+  mapping: RoomMapping,
+  target: { subject: string; teacher: string; rawText: string; className: string },
+) {
+  const subject = normalizeText(target.subject);
+  const teacher = normalizeText(target.teacher);
+  const rawText = normalizeText(target.rawText);
+  const subjectName = normalizeText(mapping.subjectName ?? '');
+  const divisionName = normalizeText(mapping.divisionName ?? '');
+  const mappingTeacher = normalizeText(mapping.teacher ?? '');
+  const comciganRoom = normalizeText(mapping.comciganRoom ?? '');
+  let score = 0;
+
+  if (mapping.involvedClasses?.length && !mapping.involvedClasses.includes(target.className)) return 0;
+  if (teacher && mappingTeacher && teacher === mappingTeacher) score += 6;
+  if (subject && subjectName && (subject.includes(subjectName) || subjectName.includes(subject))) score += 4;
+  if (subject && divisionName && (subject.includes(divisionName) || divisionName.includes(subject))) score += 5;
+  if (rawText && subjectName && rawText.includes(subjectName)) score += 2;
+  if (rawText && divisionName && rawText.includes(divisionName)) score += 2;
+  if (rawText && comciganRoom && rawText.includes(comciganRoom)) score += 1;
+  if (mapping.involvedClasses?.includes(target.className)) score += 1;
+  return score;
+}
+
+function normalizeText(value: string) {
+  return value.replace(/\s/g, '').toLowerCase();
+}
+
 function weekdayFromExamDate(examDate: string): VenueRestrictionWeekday {
   if (!examDate) return 'auto';
   const day = new Date(`${examDate}T00:00:00`).getDay();
@@ -151,6 +193,7 @@ export function judgePeriod(
   row: TimetableRow | undefined,
   period: number,
   settings: ExamSettings,
+  roomMapping?: RoomMapping,
   restriction?: RestrictedVenueEntry,
 ): PeriodJudgement {
   const subject = row?.periods[period - 1]?.trim() ?? '';
@@ -158,6 +201,35 @@ export function judgePeriod(
 
   if (!location) {
     return { locationId: row?.locationId ?? '', period, subject, status: '수동확인', reason: '방문 장소 목록에 없는 시간표 행' };
+  }
+  if (settings.examType === 'tb' && roomMapping?.isMixedGrade) {
+    return {
+      locationId: location.id,
+      period,
+      subject,
+      teacher,
+      status: '수동확인',
+      reason: '여러 학년 혼합 수업으로 호출 단위 확인 필요',
+      actualRoom: roomMapping.actualRoom,
+      roomMappingReason: roomMapping.mixedReason || '여러 학년 혼합 수업',
+      comciganRoom: roomMapping.comciganRoom,
+    };
+  }
+  if (settings.examType === 'urine' && roomMapping?.urineExamAvailability === '불가') {
+    const mixedReason = roomMapping.isMixedGrade ? '여러 학년 혼합 수업' : '';
+    return {
+      locationId: location.id,
+      period,
+      subject,
+      teacher,
+      status: '불가',
+      reason: [roomMapping.actualRoom ? `실제 수업 교실: ${roomMapping.actualRoom}` : '', roomMapping.reason || mixedReason || '실제 수업 교실 제한']
+        .filter(Boolean)
+        .join(' / '),
+      actualRoom: roomMapping.actualRoom,
+      roomMappingReason: roomMapping.reason || mixedReason,
+      comciganRoom: roomMapping.comciganRoom,
+    };
   }
   if (settings.examType === 'urine' && restriction?.mode === '불가') {
     return {
@@ -179,6 +251,22 @@ export function judgePeriod(
   }
   if (hasKeyword(subject, settings.blockedKeywords)) {
     return { locationId: location.id, period, subject, status: '불가', reason: `검사 불가 키워드 포함: ${subject}` };
+  }
+  if (settings.examType === 'urine' && roomMapping?.urineExamAvailability === '주의') {
+    const mixedReason = roomMapping.isMixedClass ? '같은 학년 내 여러 학급 혼합 수업' : '';
+    return {
+      locationId: location.id,
+      period,
+      subject,
+      teacher,
+      status: '주의',
+      reason: [roomMapping.actualRoom ? `실제 수업 교실: ${roomMapping.actualRoom}` : '', roomMapping.reason || mixedReason || '실제 수업 교실 확인 필요']
+        .filter(Boolean)
+        .join(' / '),
+      actualRoom: roomMapping.actualRoom,
+      roomMappingReason: roomMapping.reason || mixedReason,
+      comciganRoom: roomMapping.comciganRoom,
+    };
   }
   if (hasKeyword(subject, settings.cautionKeywords)) {
     return { locationId: location.id, period, subject, status: '주의', reason: `주의 키워드 포함: ${subject}` };
@@ -204,12 +292,22 @@ export function createJudgements(
   timetables: TimetableRow[],
   restrictedVenueEntries: RestrictedVenueEntry[] = [],
   restrictedVenueWeekday: VenueRestrictionWeekday = 'auto',
+  roomMappings: RoomMapping[] = [],
 ): PeriodJudgement[] {
   const restrictionMap = createRestrictionMap(settings, restrictedVenueEntries, restrictedVenueWeekday);
   return timetables.flatMap((row) => {
     const location = locations.find((item) => item.id === row.locationId || item.displayName === row.displayName);
     const className = normalizeClassName(row.displayName || location?.displayName || row.locationId);
-    return Array.from({ length: 7 }, (_, index) => judgePeriod(location, row, index + 1, settings, restrictionMap.get(`${className}|${index + 1}`)));
+    return Array.from({ length: 7 }, (_, index) =>
+      judgePeriod(
+        location,
+        row,
+        index + 1,
+        settings,
+        findRoomMapping(settings, roomMappings, location, row, index + 1),
+        restrictionMap.get(`${className}|${index + 1}`),
+      ),
+    );
   });
 }
 
@@ -249,6 +347,9 @@ function buildAssignment(
     note: manual?.note ?? '',
     restrictedVenueName: judgement?.restrictedVenueName,
     restrictedVenueReason: judgement?.restrictedVenueReason,
+    actualRoom: judgement?.actualRoom,
+    roomMappingReason: judgement?.roomMappingReason,
+    comciganRoom: judgement?.comciganRoom,
   };
 }
 
@@ -276,17 +377,20 @@ export function createManualConfirmRows(divisions: SubjectDivision[], assignment
     }));
 
   const blockedRows = judgements
-    .filter((item) => item.status === '불가')
+    .filter((item) => item.status === '불가' || (item.status === '수동확인' && item.actualRoom))
     .map((item) => ({
       name: item.locationId,
-      type: item.restrictedVenueName ? '장소 제한' : '검사 불가',
+      type: item.status === '수동확인' ? '혼합수업 확인' : item.actualRoom ? '실제 수업 교실' : item.restrictedVenueName ? '장소 제한' : '검사 불가',
       reason: item.reason,
-      required: '다른 교시 배정 필요',
+      required: item.status === '수동확인' ? '호출 또는 검사 단위 확인 필요' : '다른 교시 배정 필요',
       actualLocation: item.locationId,
       note: [
         `${item.period}교시`,
         item.subject,
         item.teacher ? `교사: ${item.teacher}` : '',
+        item.comciganRoom ? `컴시간 표시 교실: ${item.comciganRoom}` : '',
+        item.actualRoom ? `실제 수업 교실: ${item.actualRoom}` : '',
+        item.roomMappingReason ? `실제교실 사유: ${item.roomMappingReason}` : '',
         item.restrictedVenueName ? `제한 장소: ${item.restrictedVenueName}` : '',
         item.restrictedVenueReason ? `제한 사유: ${item.restrictedVenueReason}` : '',
       ]
@@ -299,7 +403,14 @@ export function createManualConfirmRows(divisions: SubjectDivision[], assignment
 
 export function makeSchedule(data: AppData): { judgements: PeriodJudgement[]; assignments: ScheduleAssignment[] } {
   const { settings, locations, timetables, manualOverrides } = data;
-  const judgements = createJudgements(settings, locations, timetables, data.restrictedVenueEntries, data.restrictedVenueWeekday);
+  const judgements = createJudgements(
+    settings,
+    locations,
+    timetables,
+    data.restrictedVenueEntries,
+    data.restrictedVenueWeekday,
+    data.roomMappingSettings?.enabled ? data.roomMappings : [],
+  );
   const timetableMap = new Map(timetables.map((row) => [row.locationId, row]));
   const assignments: ScheduleAssignment[] = [];
 
