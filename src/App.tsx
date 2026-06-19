@@ -1251,8 +1251,16 @@ function lineCsvLabel(name: string) {
 }
 
 function UrineTwoColumnPrintTable({ table, description }: { table: ReturnType<typeof createUrineTwoColumnTable>; description: string }) {
+  const [isCompact, setIsCompact] = useState(true);
+  const printTwoColumnOnly = () => {
+    setIsCompact(true);
+    document.body.classList.add('print-two-column-only');
+    window.setTimeout(() => window.print(), 0);
+    window.setTimeout(() => document.body.classList.remove('print-two-column-only'), 1000);
+  };
+
   return (
-    <div id="urine-two-column-print" className="card two-column-print-page">
+    <div id="urine-two-column-print" className={`card two-column-print-page ${isCompact ? 'compact-two-column' : ''}`}>
       <div className="two-column-print-header">
         <div>
           <h2>D. 학년별 2단 인쇄표</h2>
@@ -1264,13 +1272,23 @@ function UrineTwoColumnPrintTable({ table, description }: { table: ReturnType<ty
           </p>
         </div>
         <div className="actions no-print">
-          <button onClick={() => window.print()}><Printer size={17} /> 2단표 인쇄</button>
+          <button className={!isCompact ? 'primary' : ''} onClick={() => setIsCompact(false)}>일반형</button>
+          <button className={isCompact ? 'primary' : ''} onClick={() => setIsCompact(true)}>공지용 압축형</button>
+          <button onClick={printTwoColumnOnly}><Printer size={17} /> 2단표 인쇄</button>
           <button onClick={() => exportTableToCsv(table)}><Download size={17} /> 2단표 CSV 다운로드</button>
         </div>
       </div>
       <h3 className="two-column-title">2·3학년 소변검사 시간표</h3>
       <div className="two-column-table-wrap">
         <table className="two-column-table">
+          <colgroup>
+            <col className="time-col" />
+            <col className="room-col" />
+            <col className="teacher-col" />
+            <col className="time-col" />
+            <col className="room-col" />
+            <col className="teacher-col" />
+          </colgroup>
           <thead>
             <tr className="grade-title-row">
               <th colSpan={3}>2학년 소변검사</th>
