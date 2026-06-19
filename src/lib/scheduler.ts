@@ -157,6 +157,9 @@ function buildAssignment(
   meta: { lineName?: string; timeBlockLabel?: string } = {},
 ): ScheduleAssignment {
   const period = manual?.period ?? judgement?.period ?? null;
+  const periodIndex = period ? period - 1 : -1;
+  const rawText = periodIndex >= 0 ? row?.rawTexts?.[periodIndex] ?? '' : '';
+  const teacherFromRaw = rawText.split('\n')[1]?.trim() ?? '';
   return {
     id: location.id,
     order,
@@ -168,6 +171,7 @@ function buildAssignment(
     grade: location.grade,
     period,
     subject: period ? row?.periods[period - 1] ?? judgement?.subject ?? '' : judgement?.subject ?? '',
+    teacher: periodIndex >= 0 ? row?.teachers?.[periodIndex] || teacherFromRaw || '' : '',
     judgement: judgement?.status ?? '수동확인',
     isManual: Boolean(manual?.scheduledTime || manual?.period || manual?.excluded || manual?.locked || manual?.note),
     locked: Boolean(manual?.locked),

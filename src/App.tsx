@@ -28,6 +28,7 @@ import {
   createLabTable,
   createTbGradeTables,
   createTeacherTable,
+  createUrineTwoColumnTable,
   createUrineLineTables,
   downloadJsonBackup,
   exportTableToCsv,
@@ -211,6 +212,7 @@ export function App() {
     full: createFullTable(data.assignments, data.settings),
     lab: createLabTable(data.assignments),
     urineLines: createUrineLineTables(data.assignments),
+    urineTwoColumn: createUrineTwoColumnTable(data.assignments, data.settings),
     tbGrades: createTbGradeTables(data.assignments, data.settings),
     teacher: createTeacherTable(data.assignments, data.settings),
   };
@@ -961,6 +963,7 @@ function ResultsPanel({
     full: ReturnType<typeof createFullTable>;
     lab: ReturnType<typeof createLabTable>;
     urineLines: ReturnType<typeof createUrineLineTables>;
+    urineTwoColumn: ReturnType<typeof createUrineTwoColumnTable>;
     tbGrades: ReturnType<typeof createTbGradeTables>;
     teacher: ReturnType<typeof createTeacherTable>;
   };
@@ -986,6 +989,8 @@ function ResultsPanel({
           tables.urineLines.map((table) => (
             <button key={table.name} onClick={() => exportTableToCsv(table)}><Download size={17} /> {table.name.replaceAll('_', ' ')} CSV</button>
           ))}
+        {data.settings.examType === 'urine' && <button onClick={() => exportTableToCsv(tables.urineTwoColumn)}><Download size={17} /> 2단표 CSV 다운로드</button>}
+        {data.settings.examType === 'urine' && <button onClick={() => window.print()}><Printer size={17} /> 학년별 2단표 출력</button>}
         {data.settings.examType === 'tb' &&
           tables.tbGrades.map((table) => (
             <button key={table.name} onClick={() => exportTableToCsv(table)}><Download size={17} /> {table.name.replaceAll('_', ' ')} CSV</button>
@@ -1000,6 +1005,7 @@ function ResultsPanel({
       {data.settings.examType === 'urine' && <ResultTable title="B. 임상병리사용 간단표" headers={tables.lab.headers} rows={tables.lab.rows} compact />}
       {data.settings.examType === 'urine' &&
         tables.urineLines.map((table) => <ResultTable key={table.name} title={table.name.replaceAll('_', ' ')} headers={table.headers} rows={table.rows} compact />)}
+      {data.settings.examType === 'urine' && <UrineTwoColumnPrintTable table={tables.urineTwoColumn} />}
       {data.settings.examType === 'tb' &&
         tables.tbGrades.map((table) => <ResultTable key={table.name} title={table.name.replaceAll('_', ' ')} headers={table.headers} rows={table.rows} compact />)}
       <ResultTable title={data.settings.examType === 'tb' ? 'B. 교사용 안내표' : 'C. 교사용 안내표'} headers={tables.teacher.headers} rows={tables.teacher.rows} />
@@ -1053,6 +1059,54 @@ function ManualAdjustments({ assignments, setOverride }: { assignments: AppData[
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function UrineTwoColumnPrintTable({ table }: { table: ReturnType<typeof createUrineTwoColumnTable> }) {
+  return (
+    <div className="card two-column-print-page">
+      <div className="two-column-print-header">
+        <div>
+          <h2>학년별 2단 인쇄표</h2>
+          <p>
+            소변검사는 2학년과 3학년을 동시에 진행할 수 있도록 학년별 라인으로 배정하였습니다.
+            검사 예정 시간은 현장 진행 상황에 따라 변동될 수 있습니다.
+            해당 시간 수업 중인 선생님께서는 학생들이 질서 있게 검사에 참여할 수 있도록 협조 부탁드립니다.
+          </p>
+        </div>
+      </div>
+      <div className="two-column-table-wrap">
+        <table className="two-column-table">
+          <thead>
+            <tr className="grade-title-row">
+              <th colSpan={3}>2학년 소변검사</th>
+              <th colSpan={3}>3학년 소변검사</th>
+            </tr>
+            <tr>
+              <th>검진 시간</th>
+              <th>교실</th>
+              <th>교과교사</th>
+              <th>검진 시간</th>
+              <th>교실</th>
+              <th>교과교사</th>
+            </tr>
+          </thead>
+          <tbody>
+            {table.rows.length ? (
+              table.rows.map((row, index) => (
+                <tr key={index}>
+                  {row.map((cell, cellIndex) => <td key={`${index}-${cellIndex}`}>{cell}</td>)}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6} className="empty">2단표로 표시할 소변검사 배정 결과가 없습니다.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

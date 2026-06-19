@@ -63,6 +63,8 @@ export interface TimetableRow {
   locationId: string;
   displayName: string;
   periods: string[];
+  teachers?: string[];
+  rawTexts?: string[];
   notes: string;
 }
 
@@ -96,6 +98,7 @@ export interface ScheduleAssignment {
   grade: string;
   period: number | null;
   subject: string;
+  teacher?: string;
   judgement: JudgementStatus;
   isManual: boolean;
   locked: boolean;

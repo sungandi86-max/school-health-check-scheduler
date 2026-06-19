@@ -9,6 +9,8 @@ export interface CommonImportRow {
   actualLocation: string;
   autoInclude: string;
   periods: string[];
+  teachers?: string[];
+  rawTexts?: string[];
   notes: string;
 }
 
@@ -78,6 +80,8 @@ function parseCommonWorkbook(workbook: XLSX.WorkBook): ImportPreview {
       actualLocation: String(line[indexOf('실제장소')] ?? '').trim(),
       autoInclude: String(line[indexOf('자동배정')] ?? '포함').trim() || '포함',
       periods: Array.from({ length: 7 }, (_, period) => String(line[indexOf(`${period + 1}교시`)] ?? '').trim()),
+      teachers: Array.from({ length: 7 }, () => ''),
+      rawTexts: Array.from({ length: 7 }, (_, period) => String(line[indexOf(`${period + 1}교시`)] ?? '').trim()),
       notes: String(line[indexOf('비고')] ?? '').trim(),
     }];
   });
@@ -96,13 +100,16 @@ function parseComciganWorkbook(workbook: XLSX.WorkBook): ImportPreview {
     if (!/^[1-6]-\d+$/.test(name) || !day.startsWith('월')) continue;
     const [grade, klass] = name.split('-');
     const isDivision = klass === '13';
+    const rawPeriods = Array.from({ length: 7 }, (_, index) => String(raw[r + 1]?.[index + 1] ?? '').trim());
     rows.push({
       unit: name,
       grade,
       category: isDivision ? '선택분반' : '일반학급',
       actualLocation: isDivision ? '' : `${name}교실`,
       autoInclude: isDivision ? '제외' : '포함',
-      periods: Array.from({ length: 7 }, (_, index) => String(raw[r + 1]?.[index + 1] ?? '').split('\n')[0].trim()),
+      periods: rawPeriods.map((value) => value.split('\n')[0]?.trim() ?? ''),
+      teachers: rawPeriods.map((value) => value.split('\n')[1]?.trim() ?? ''),
+      rawTexts: rawPeriods,
       notes: isDivision ? '컴시간알리미 선택과목 분반, 실제 장소 확인 필요' : '컴시간알리미 엑셀 업로드',
     });
   }
@@ -153,6 +160,8 @@ export function convertPreviewToAppRows(rows: CommonImportRow[], settings: ExamS
       locationId: id,
       displayName,
       periods: row.periods,
+      teachers: row.teachers ?? [],
+      rawTexts: row.rawTexts ?? row.periods,
       notes: row.notes,
     });
   });

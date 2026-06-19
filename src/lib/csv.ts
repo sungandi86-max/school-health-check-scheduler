@@ -93,6 +93,42 @@ export function createTbGradeTables(assignments: ScheduleAssignment[], settings?
   }));
 }
 
+export function createUrineTwoColumnTable(assignments: ScheduleAssignment[], settings: ExamSettings): ExportTable {
+  const grade2 = getUrineGradeRows(assignments, settings, '2');
+  const grade3 = getUrineGradeRows(assignments, settings, '3');
+  const maxRows = Math.max(grade2.length, grade3.length);
+
+  return {
+    name: '소변검사_학년별_2단표',
+    headers: ['2학년 검진 시간', '2학년 교실', '2학년 교과교사', '3학년 검진 시간', '3학년 교실', '3학년 교과교사'],
+    rows: Array.from({ length: maxRows }, (_, index) => [
+      grade2[index]?.time ?? '',
+      grade2[index]?.room ?? '',
+      grade2[index]?.teacher ?? '',
+      grade3[index]?.time ?? '',
+      grade3[index]?.room ?? '',
+      grade3[index]?.teacher ?? '',
+    ]),
+  };
+}
+
+function getUrineGradeRows(assignments: ScheduleAssignment[], settings: ExamSettings, grade: string) {
+  return assignments
+    .filter((item) => item.order && item.grade === grade)
+    .sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || '') || a.locationName.localeCompare(b.locationName, 'ko', { numeric: true }))
+    .map((item) => ({
+      time: item.scheduledTime ? `${item.scheduledTime}~${addMinutes(item.scheduledTime, settings.durationMinutes)}` : '',
+      room: item.locationName.replace(/교실$/, ''),
+      teacher: item.teacher ?? '',
+    }));
+}
+
+function addMinutes(time: string, minutes: number) {
+  const [hour = '0', minute = '0'] = time.split(':');
+  const total = Number(hour) * 60 + Number(minute) + minutes;
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
 export function createTeacherTable(assignments: ScheduleAssignment[], settings?: ExamSettings): ExportTable {
   if (settings?.examType === 'tb') {
     return {
