@@ -284,14 +284,17 @@ export function makeSchedule(data: AppData): { judgements: PeriodJudgement[]; as
   }
 
   const sortedAssignments = assignments.sort((a, b) => {
-      if (a.order) return -1;
-      if (b.order) return 1;
-      const timeCompare = timeToMinutes(a.scheduledTime || '23:59') - timeToMinutes(b.scheduledTime || '23:59');
-      if (timeCompare) return timeCompare;
-      const lineCompare = (a.lineName ?? '').localeCompare(b.lineName ?? '', 'ko', { numeric: true });
-      if (lineCompare) return lineCompare;
-      return a.locationName.localeCompare(b.locationName, 'ko', { numeric: true });
-    });
+    const aAssigned = Boolean(a.order);
+    const bAssigned = Boolean(b.order);
+    if (aAssigned !== bAssigned) return aAssigned ? -1 : 1;
+    const aTime = settings.examType === 'tb' ? a.callTime || a.scheduledTime : a.scheduledTime;
+    const bTime = settings.examType === 'tb' ? b.callTime || b.scheduledTime : b.scheduledTime;
+    const timeCompare = timeToMinutes(aTime || '23:59') - timeToMinutes(bTime || '23:59');
+    if (timeCompare) return timeCompare;
+    const lineCompare = lineRank(a.lineName) - lineRank(b.lineName);
+    if (lineCompare) return lineCompare;
+    return a.locationName.localeCompare(b.locationName, 'ko', { numeric: true });
+  });
   let nextOrder = 1;
   sortedAssignments.forEach((assignment) => {
     if (assignment.order) assignment.order = nextOrder++;
@@ -305,6 +308,12 @@ export function makeSchedule(data: AppData): { judgements: PeriodJudgement[]; as
 
 function getGrades(candidates: { location: VisitLocation; valid: PeriodJudgement[] }[]) {
   return [...new Set(candidates.map((item) => item.location.grade).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+}
+
+function lineRank(lineName?: string) {
+  if (lineName?.includes('2')) return 1;
+  if (lineName?.includes('3')) return 2;
+  return 9;
 }
 
 function scheduleCandidateGroup({

@@ -27,6 +27,7 @@ import {
   createFullTable,
   createLabTable,
   createTbGradeTables,
+  createTbTeamTable,
   createTeacherTable,
   createUrineTwoColumnTable,
   createUrineLineTables,
@@ -91,7 +92,7 @@ export function App() {
   const mode = getModeCopy(data.settings.examType);
   const selectExamType = (examType: ExamType) => {
     const template = data.templates.find((item) => item.examType === examType);
-    const keywordSet = examType === 'tb' ? data.keywordSets.tuberculosis : data.keywordSets.urine;
+    const keywordSet = examType === 'tb' ? data.keywordSets.tb : data.keywordSets.urine;
     setData((prev) => ({
       ...prev,
       ...(template ? structuredClone(template.data) : {}),
@@ -213,6 +214,7 @@ export function App() {
     lab: createLabTable(data.assignments),
     urineLines: createUrineLineTables(data.assignments),
     urineTwoColumn: createUrineTwoColumnTable(data.assignments, data.settings),
+    tbTeam: createTbTeamTable(data.assignments, data.settings),
     tbGrades: createTbGradeTables(data.assignments, data.settings),
     teacher: createTeacherTable(data.assignments, data.settings),
   };
@@ -533,7 +535,7 @@ function SettingsPanel({
         settings.examType === 'tb'
           ? {
               ...prev.keywordSets,
-              tuberculosis: { blockedKeywords: settings.blockedKeywords, cautionKeywords: settings.cautionKeywords },
+              tb: { blockedKeywords: settings.blockedKeywords, cautionKeywords: settings.cautionKeywords },
             }
           : {
               ...prev.keywordSets,
@@ -686,8 +688,23 @@ function SettingsPanel({
           ))}
         </div>
       </div>
-      <KeywordEditor label="검사 불가 키워드" keywords={settings.blockedKeywords} onChange={(items) => update('blockedKeywords', items)} />
-      <KeywordEditor label="검사 주의 키워드" keywords={settings.cautionKeywords} onChange={(items) => update('cautionKeywords', items)} />
+      <div className="keyword-guide">
+        학교마다 과목명과 특별실 명칭이 다를 수 있습니다. 검사 진행이 어려운 수업명은 불가 키워드에 추가하고, 확인이 필요한 수업명은 주의 키워드에 추가해 주세요.
+      </div>
+      <KeywordEditor
+        label="검사 불가 키워드"
+        description="해당 키워드가 포함된 수업은 자동배정에서 제외됩니다."
+        keywords={settings.blockedKeywords}
+        defaultKeywords={settings.examType === 'tb' ? TB_BLOCKED_KEYWORDS : URINE_BLOCKED_KEYWORDS}
+        onChange={(items) => update('blockedKeywords', items)}
+      />
+      <KeywordEditor
+        label="검사 주의 키워드"
+        description="해당 키워드가 포함된 수업은 배정 가능하지만 결과표에 주의 표시됩니다."
+        keywords={settings.cautionKeywords}
+        defaultKeywords={settings.examType === 'tb' ? TB_CAUTION_KEYWORDS : URINE_CAUTION_KEYWORDS}
+        onChange={(items) => update('cautionKeywords', items)}
+      />
       <div className="actions">
         <button onClick={saveKeywordSet}>현재 키워드 세트를 검사 유형 기본값으로 저장</button>
         <button
@@ -704,11 +721,68 @@ function SettingsPanel({
   );
 }
 
-function KeywordEditor({ label, keywords, onChange }: { label: string; keywords: string[]; onChange: (items: string[]) => void }) {
+function KeywordEditor({
+  label,
+  description,
+  keywords,
+  defaultKeywords,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  keywords: string[];
+  defaultKeywords: string[];
+  onChange: (items: string[]) => void;
+}) {
+  const [draft, setDraft] = useState('');
+  const addKeywords = () => {
+    const next = mergeKeywords(keywords, draft);
+    if (next.length !== keywords.length) onChange(next);
+    setDraft('');
+  };
+  const removeKeyword = (keyword: string) => onChange(keywords.filter((item) => item !== keyword));
+
   return (
-    <Field label={label}>
-      <textarea value={keywords.join(', ')} onChange={(event) => onChange(splitKeywords(event.target.value))} />
-    </Field>
+    <div className="card subtle keyword-editor">
+      <div className="section-title">
+        <div>
+          <h2>{label}</h2>
+          <p>{description}</p>
+        </div>
+        <div className="actions">
+          <button onClick={() => onChange(structuredClone(defaultKeywords))}>기본값 적용</button>
+          <button onClick={() => onChange([])}>전체 삭제</button>
+        </div>
+      </div>
+      <div className="keyword-chip-list">
+        {keywords.length ? (
+          keywords.map((keyword) => (
+            <span key={keyword} className="keyword-chip">
+              {keyword}
+              <button type="button" aria-label={`${keyword} 삭제`} onClick={() => removeKeyword(keyword)}>
+                ×
+              </button>
+            </span>
+          ))
+        ) : (
+          <span className="keyword-empty">등록된 키워드가 없습니다.</span>
+        )}
+      </div>
+      <div className="keyword-add-row">
+        <input
+          value={draft}
+          placeholder="새 키워드 입력, 쉼표로 여러 개 추가"
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              addKeywords();
+            }
+          }}
+        />
+        <button onClick={addKeywords}>추가</button>
+      </div>
+    </div>
   );
 }
 
@@ -964,6 +1038,7 @@ function ResultsPanel({
     lab: ReturnType<typeof createLabTable>;
     urineLines: ReturnType<typeof createUrineLineTables>;
     urineTwoColumn: ReturnType<typeof createUrineTwoColumnTable>;
+    tbTeam: ReturnType<typeof createTbTeamTable>;
     tbGrades: ReturnType<typeof createTbGradeTables>;
     teacher: ReturnType<typeof createTeacherTable>;
   };
@@ -978,54 +1053,129 @@ function ResultsPanel({
       return { ...prev, manualOverrides: next };
     });
   };
+  const isUrine = data.settings.examType === 'urine';
+  const resultGuide = isUrine
+    ? `이 화면은 소변검사 자동배정 결과를 확인하고 출력하는 화면입니다.
+전체 자동 배정표는 보건교사용 검토표이며, 실제 공유용 자료는 임상병리사용 간단표, 교사용 안내표, 학년별 2단 인쇄표를 사용해 주세요.
+
+소변검사는 2학년 라인과 3학년 라인을 동시에 운영할 수 있도록 학년별 병렬 배정되었습니다.
+검사 예정 시간은 현장 진행 상황에 따라 변동될 수 있습니다.`
+    : `이 화면은 결핵검진 자동배정 결과를 확인하고 출력하는 화면입니다.
+전체 자동 배정표는 보건교사용 검토표이며, 실제 공유용 자료는 검진팀용 간단표와 교사용 안내표를 사용해 주세요.
+
+결핵검진은 학생들이 검진 장소로 이동하는 호출형 검진입니다.
+호출 시간은 학생들이 교실에서 출발해야 하는 시간이며, 검진 예상 시간은 검진 장소에서 실제 검진이 진행될 예상 시간입니다.`;
+  const gradeStats = createGradeStats(data);
+  const grade2 = gradeStats.find((stat) => stat.grade === '2');
+  const grade3 = gradeStats.find((stat) => stat.grade === '3');
+  const assigned = data.assignments.filter((item) => item.order);
+  const assignedGrade2 = assigned.filter((item) => item.grade === '2').length;
+  const assignedGrade3 = assigned.filter((item) => item.grade === '3').length;
+  const blockedCount = data.judgements.filter((item) => item.status === '불가').length;
+  const totalEstimate =
+    isUrine && data.settings.urineSimultaneous && data.settings.urineParallelMode === 'grade'
+      ? Math.max(grade2?.estimatedMinutes ?? 0, grade3?.estimatedMinutes ?? 0)
+      : Math.ceil((data.locations.filter((item) => item.isVisitable && item.includeInAuto).length * data.settings.durationMinutes) / Math.max(1, data.settings.teamCount || 1));
+  const fullDescription =
+    '보건교사용 검토표입니다. 검사 라인, 학년, 시간, 수업, 판정, 비고를 전체적으로 확인할 때 사용합니다. 교직원에게 그대로 공유하기보다는 검토용으로 사용해 주세요.';
+  const teamDescription = isUrine
+    ? '검사팀이 실제 방문 순서를 확인할 때 사용하는 표입니다. 학년별 라인에 따라 교실 방문 순서를 확인할 수 있습니다.'
+    : '검진팀이 검진 장소에서 학생 호출 순서를 확인할 때 사용하는 표입니다. 호출 시간과 검진 예상 시간을 함께 확인할 수 있습니다.';
+  const teacherDescription =
+    '담임 및 교과교사에게 공유할 안내용 표입니다. 검사 또는 검진 시간에 학생들이 질서 있게 참여할 수 있도록 협조 요청 문구가 포함됩니다.';
+  const twoColumnDescription =
+    '2학년과 3학년 소변검사 라인을 좌우로 나누어 한눈에 볼 수 있는 인쇄용 표입니다. 교무실 공유, 검사팀 전달, 인쇄물 배부용으로 사용하기 좋습니다.';
+  const scrollToTwoColumn = () => document.getElementById('urine-two-column-print')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   return (
     <section className="stack print-area">
-      <div className="notice">{guideText}</div>
-      <div className="card actions no-print">
-        <button onClick={() => exportTableToCsv(tables.full)}><Download size={17} /> 전체 자동 배정표 CSV</button>
-        {data.settings.examType === 'urine' && <button onClick={() => exportTableToCsv(tables.lab)}><Download size={17} /> 임상병리사용 CSV</button>}
-        {data.settings.examType === 'urine' &&
-          tables.urineLines.map((table) => (
-            <button key={table.name} onClick={() => exportTableToCsv(table)}><Download size={17} /> {table.name.replaceAll('_', ' ')} CSV</button>
-          ))}
-        {data.settings.examType === 'urine' && <button onClick={() => exportTableToCsv(tables.urineTwoColumn)}><Download size={17} /> 2단표 CSV 다운로드</button>}
-        {data.settings.examType === 'urine' && <button onClick={() => window.print()}><Printer size={17} /> 학년별 2단표 출력</button>}
-        {data.settings.examType === 'tb' &&
-          tables.tbGrades.map((table) => (
-            <button key={table.name} onClick={() => exportTableToCsv(table)}><Download size={17} /> {table.name.replaceAll('_', ' ')} CSV</button>
-          ))}
-        <button onClick={() => exportTableToCsv(tables.teacher)}><Download size={17} /> 교사용 안내표 CSV</button>
-        <button onClick={copyGuide}><ClipboardCopy size={17} /> 안내 문구 복사</button>
-        <button onClick={copyTeacher}><ClipboardCopy size={17} /> 교사용 안내 복사</button>
+      <div className="notice result-guide-card">{resultGuide}</div>
+      <div className="metric-grid result-summary-grid">
+        <Metric label="전체 배정 수" value={assigned.length} />
+        <Metric label="2학년 배정 수" value={assignedGrade2} />
+        <Metric label="3학년 배정 수" value={assignedGrade3} />
+        <Metric label="수동 확인 필요 수" value={manualRows.length} />
+        <Metric label={isUrine ? '검사 불가 충돌 수' : '호출 불가 충돌 수'} value={blockedCount} />
+        {isUrine ? (
+          <>
+            <Metric label="예상 전체 소요시간" value={`${totalEstimate}분`} />
+            <Metric label="2학년 라인 소요시간" value={`${grade2?.estimatedMinutes ?? 0}분`} />
+            <Metric label="3학년 라인 소요시간" value={`${grade3?.estimatedMinutes ?? 0}분`} />
+          </>
+        ) : (
+          <>
+            <Metric label="2학년 예상 소요시간" value={`${grade2?.estimatedMinutes ?? 0}분`} />
+            <Metric label="3학년 예상 소요시간" value={`${grade3?.estimatedMinutes ?? 0}분`} />
+          </>
+        )}
+      </div>
+      {manualRows.length > 0 && (
+        <div className="warning-banner no-print">수동 확인이 필요한 항목이 있습니다. 시간표를 공유하기 전에 아래 수동 확인 목록을 먼저 확인해 주세요.</div>
+      )}
+      <div className="result-button-groups no-print">
+        <OutputButtonGroup title="A. 보건교사용 검토자료" description="전체 배정 결과를 검토하거나 수정 확인용으로 사용하는 표입니다.">
+          <button onClick={() => exportTableToCsv(tables.full)}><Download size={17} /> 전체표 CSV</button>
+        </OutputButtonGroup>
+        <OutputButtonGroup
+          title="B. 검사팀 전달자료"
+          description={isUrine ? '검사팀이 실제 이동 순서를 확인할 때 사용하는 간단표입니다.' : '검진 장소에서 학생 호출 순서를 확인할 때 사용하는 간단표입니다.'}
+        >
+          {isUrine ? (
+            <>
+              <button onClick={() => exportTableToCsv(tables.lab)}><Download size={17} /> 검사팀용 CSV</button>
+              {tables.urineLines.map((table) => (
+                <button key={table.name} onClick={() => exportTableToCsv(table)}>
+                  <Download size={17} /> {lineCsvLabel(table.name)}
+                </button>
+              ))}
+              <button onClick={scrollToTwoColumn}><FileText size={17} /> 2단표 보기</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => exportTableToCsv(tables.tbTeam)}><Download size={17} /> 검진팀용 CSV</button>
+              {tables.tbGrades.map((table) => (
+                <button key={table.name} onClick={() => exportTableToCsv(table)}>
+                  <Download size={17} /> {table.name.includes('2학년') ? '2학년 호출표 CSV' : table.name.includes('3학년') ? '3학년 호출표 CSV' : `${table.name.replaceAll('_', ' ')} CSV`}
+                </button>
+              ))}
+            </>
+          )}
+        </OutputButtonGroup>
+        <OutputButtonGroup title="C. 교사용 안내자료" description="담임 및 교과교사에게 공유할 안내용 자료입니다.">
+          <button onClick={() => exportTableToCsv(tables.teacher)}><Download size={17} /> 교사용 CSV</button>
+          <button onClick={copyTeacher}><ClipboardCopy size={17} /> 교사용 안내 복사</button>
+        </OutputButtonGroup>
+        <OutputButtonGroup title="D. 공통" description="화면 인쇄 또는 메신저 안내 문구 복사용입니다.">
+          <button onClick={() => window.print()}><Printer size={17} /> 인쇄</button>
+          <button onClick={copyGuide}><ClipboardCopy size={17} /> 안내 복사</button>
+        </OutputButtonGroup>
       </div>
 
-      <ResultTable title="A. 전체 자동 배정표" headers={tables.full.headers} rows={tables.full.rows} />
+      <ResultTable title="A. 전체 자동 배정표" description={fullDescription} headers={tables.full.headers} rows={tables.full.rows} />
       <ManualAdjustments assignments={data.assignments} setOverride={setOverride} />
-      {data.settings.examType === 'urine' && <ResultTable title="B. 임상병리사용 간단표" headers={tables.lab.headers} rows={tables.lab.rows} compact />}
-      {data.settings.examType === 'urine' &&
-        tables.urineLines.map((table) => <ResultTable key={table.name} title={table.name.replaceAll('_', ' ')} headers={table.headers} rows={table.rows} compact />)}
-      {data.settings.examType === 'urine' && <UrineTwoColumnPrintTable table={tables.urineTwoColumn} />}
-      {data.settings.examType === 'tb' &&
-        tables.tbGrades.map((table) => <ResultTable key={table.name} title={table.name.replaceAll('_', ' ')} headers={table.headers} rows={table.rows} compact />)}
-      <ResultTable title={data.settings.examType === 'tb' ? 'B. 교사용 안내표' : 'C. 교사용 안내표'} headers={tables.teacher.headers} rows={tables.teacher.rows} />
+      {isUrine && <ResultTable title="B. 임상병리사용 간단표" description={teamDescription} headers={tables.lab.headers} rows={tables.lab.rows} compact />}
+      {isUrine &&
+        tables.urineLines.map((table) => <ResultTable key={table.name} title={table.name.replaceAll('_', ' ')} description={teamDescription} headers={table.headers} rows={table.rows} compact />)}
+      {!isUrine && <ResultTable title="B. 검진팀용 간단표" description={teamDescription} headers={tables.tbTeam.headers} rows={tables.tbTeam.rows} compact />}
+      {!isUrine &&
+        tables.tbGrades.map((table) => <ResultTable key={table.name} title={table.name.replaceAll('_', ' ')} description={teamDescription} headers={table.headers} rows={table.rows} compact />)}
+      <ResultTable title="C. 교사용 안내표" description={teacherDescription} headers={tables.teacher.headers} rows={tables.teacher.rows} />
+      {isUrine && <UrineTwoColumnPrintTable table={tables.urineTwoColumn} description={twoColumnDescription} />}
       <div className="card table-wrap">
-        <h2>D. 수동 확인 필요 목록</h2>
+        <h2>{isUrine ? 'E. 수동 확인 필요 목록' : 'D. 수동 확인 필요 목록'}</h2>
         <table>
           <thead>
-            <tr>{['항목명', '유형', '제외 또는 확인 사유', '필요한 확인', '실제 장소 입력란', '비고'].map((h) => <th key={h}>{h}</th>)}</tr>
+            <tr>{['항목명', '사유', '필요한 확인', '비고'].map((h) => <th key={h}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {manualRows.length ? manualRows.map((row, index) => (
               <tr key={`${row.name}-${index}`}>
                 <td>{row.name}</td>
-                <td><span className="badge manual">{row.type}</span></td>
                 <td>{row.reason}</td>
                 <td>{row.required}</td>
-                <td>{row.actualLocation}</td>
-                <td>{row.note}</td>
+                <td>{[row.type, row.note].filter(Boolean).join(' / ')}</td>
               </tr>
-            )) : <tr><td colSpan={6} className="empty">수동 확인 필요 항목이 없습니다.</td></tr>}
+            )) : <tr><td colSpan={4} className="empty">수동 확인 필요 항목이 없습니다.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -1063,19 +1213,43 @@ function ManualAdjustments({ assignments, setOverride }: { assignments: AppData[
   );
 }
 
-function UrineTwoColumnPrintTable({ table }: { table: ReturnType<typeof createUrineTwoColumnTable> }) {
+function OutputButtonGroup({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return (
-    <div className="card two-column-print-page">
+    <div className="card result-button-group">
+      <div>
+        <h3>{title}</h3>
+        <p>{description}</p>
+      </div>
+      <div className="actions">{children}</div>
+    </div>
+  );
+}
+
+function lineCsvLabel(name: string) {
+  if (name.includes('2학년')) return '2학년 라인 CSV';
+  if (name.includes('3학년')) return '3학년 라인 CSV';
+  return `${name.replaceAll('_', ' ')} CSV`;
+}
+
+function UrineTwoColumnPrintTable({ table, description }: { table: ReturnType<typeof createUrineTwoColumnTable>; description: string }) {
+  return (
+    <div id="urine-two-column-print" className="card two-column-print-page">
       <div className="two-column-print-header">
         <div>
-          <h2>학년별 2단 인쇄표</h2>
+          <h2>D. 학년별 2단 인쇄표</h2>
+          <p className="table-description">{description}</p>
           <p>
             소변검사는 2학년과 3학년을 동시에 진행할 수 있도록 학년별 라인으로 배정하였습니다.
             검사 예정 시간은 현장 진행 상황에 따라 변동될 수 있습니다.
             해당 시간 수업 중인 선생님께서는 학생들이 질서 있게 검사에 참여할 수 있도록 협조 부탁드립니다.
           </p>
         </div>
+        <div className="actions no-print">
+          <button onClick={() => window.print()}><Printer size={17} /> 2단표 인쇄</button>
+          <button onClick={() => exportTableToCsv(table)}><Download size={17} /> 2단표 CSV 다운로드</button>
+        </div>
       </div>
+      <h3 className="two-column-title">2·3학년 소변검사 시간표</h3>
       <div className="two-column-table-wrap">
         <table className="two-column-table">
           <thead>
@@ -1084,10 +1258,10 @@ function UrineTwoColumnPrintTable({ table }: { table: ReturnType<typeof createUr
               <th colSpan={3}>3학년 소변검사</th>
             </tr>
             <tr>
-              <th>검진 시간</th>
+              <th>검사 시간</th>
               <th>교실</th>
               <th>교과교사</th>
-              <th>검진 시간</th>
+              <th>검사 시간</th>
               <th>교실</th>
               <th>교과교사</th>
             </tr>
@@ -1111,10 +1285,23 @@ function UrineTwoColumnPrintTable({ table }: { table: ReturnType<typeof createUr
   );
 }
 
-function ResultTable({ title, headers, rows, compact = false }: { title: string; headers: string[]; rows: string[][]; compact?: boolean }) {
+function ResultTable({
+  title,
+  description,
+  headers,
+  rows,
+  compact = false,
+}: {
+  title: string;
+  description?: string;
+  headers: string[];
+  rows: string[][];
+  compact?: boolean;
+}) {
   return (
     <div className={`card table-wrap ${compact ? 'compact' : ''}`}>
       <h2>{title}</h2>
+      {description && <p className="table-description">{description}</p>}
       <table>
         <thead>
           <tr>{headers.map((header) => <th key={header}>{header}</th>)}</tr>
@@ -1156,6 +1343,18 @@ function splitKeywords(value: string) {
     .split(/,|\n/)
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function mergeKeywords(current: string[], value: string) {
+  const seen = new Set(current.map((item) => item.trim()).filter(Boolean));
+  const next = [...seen];
+  for (const keyword of splitKeywords(value)) {
+    if (!seen.has(keyword)) {
+      seen.add(keyword);
+      next.push(keyword);
+    }
+  }
+  return next;
 }
 
 function emptyLocation(index: number): VisitLocation {

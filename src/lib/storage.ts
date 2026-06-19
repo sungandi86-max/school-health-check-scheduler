@@ -51,7 +51,7 @@ export function loadAppData(): AppData {
       templates,
       activeTemplateId: typeof parsed.activeTemplateId === 'string' ? parsed.activeTemplateId : fallback.activeTemplateId,
       schoolDefaults: parsed.schoolDefaults?.daySchedule ? parsed.schoolDefaults : fallback.schoolDefaults,
-      keywordSets: parsed.keywordSets ? { ...fallback.keywordSets, ...parsed.keywordSets } : fallback.keywordSets,
+      keywordSets: normalizeKeywordSets(parsed.keywordSets, fallback.keywordSets),
       hasSelectedExamType: typeof parsed.hasSelectedExamType === 'boolean' ? parsed.hasSelectedExamType : false,
     };
   } catch {
@@ -70,6 +70,29 @@ function normalizeSettings(settings: AppData['settings'], fallback: AppData['set
   settings.gradeStartTimes = settings.gradeStartTimes ?? fallback.gradeStartTimes;
   settings.useGradeTimeBlocks = typeof settings.useGradeTimeBlocks === 'boolean' ? settings.useGradeTimeBlocks : fallback.useGradeTimeBlocks;
   settings.gradeTimeBlocks = Array.isArray(settings.gradeTimeBlocks) ? settings.gradeTimeBlocks : fallback.gradeTimeBlocks;
+}
+
+function normalizeKeywordSets(value: unknown, fallback: AppData['keywordSets']): AppData['keywordSets'] {
+  if (!value || typeof value !== 'object') return fallback;
+  const stored = value as Partial<AppData['keywordSets']> & { tuberculosis?: AppData['keywordSets']['tb'] };
+  return {
+    urine: {
+      blockedKeywords: Array.isArray(stored.urine?.blockedKeywords) ? stored.urine.blockedKeywords : fallback.urine.blockedKeywords,
+      cautionKeywords: Array.isArray(stored.urine?.cautionKeywords) ? stored.urine.cautionKeywords : fallback.urine.cautionKeywords,
+    },
+    tb: {
+      blockedKeywords: Array.isArray(stored.tb?.blockedKeywords)
+        ? stored.tb.blockedKeywords
+        : Array.isArray(stored.tuberculosis?.blockedKeywords)
+          ? stored.tuberculosis.blockedKeywords
+          : fallback.tb.blockedKeywords,
+      cautionKeywords: Array.isArray(stored.tb?.cautionKeywords)
+        ? stored.tb.cautionKeywords
+        : Array.isArray(stored.tuberculosis?.cautionKeywords)
+          ? stored.tuberculosis.cautionKeywords
+          : fallback.tb.cautionKeywords,
+    },
+  };
 }
 
 export function saveAppData(data: AppData) {

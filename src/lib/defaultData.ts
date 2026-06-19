@@ -8,6 +8,8 @@ export const URINE_BLOCKED_KEYWORDS = [
   '프로그래밍',
   '체육',
   '스포츠',
+  '스생',
+  '체탐',
   '운동장',
   '체육관',
   '무용',
@@ -28,15 +30,18 @@ export const URINE_CAUTION_KEYWORDS = [
 ];
 
 export const TB_BLOCKED_KEYWORDS = [
-  '체육',
-  '스포츠',
-  '운동장',
-  '체육관',
   '컴퓨터',
   '컴퓨터실',
   '정보',
   '코딩',
   '프로그래밍',
+  '체육',
+  '스포츠',
+  '스생',
+  '체탐',
+  '운동장',
+  '체육관',
+  '무용',
   '외부활동',
   '현장체험',
 ];
@@ -289,7 +294,7 @@ export function createDefaultData(): AppData {
         blockedKeywords: structuredClone(URINE_BLOCKED_KEYWORDS),
         cautionKeywords: structuredClone(URINE_CAUTION_KEYWORDS),
       },
-      tuberculosis: {
+      tb: {
         blockedKeywords: structuredClone(TB_BLOCKED_KEYWORDS),
         cautionKeywords: structuredClone(TB_CAUTION_KEYWORDS),
       },

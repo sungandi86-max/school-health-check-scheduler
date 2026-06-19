@@ -131,7 +131,7 @@ export interface KeywordSets {
     blockedKeywords: string[];
     cautionKeywords: string[];
   };
-  tuberculosis: {
+  tb: {
     blockedKeywords: string[];
     cautionKeywords: string[];
   };
