@@ -9,8 +9,11 @@ import type {
   ExamType,
   LocationCategory,
   ManualOverride,
+  RestrictedVenue,
   SubjectDivision,
   TimetableRow,
+  VenueRestrictionMode,
+  VenueRestrictionWeekday,
   VisitLocation,
 } from './types';
 import {
@@ -44,12 +47,15 @@ import {
   parseWorkbookFile,
 } from './lib/commonTemplate';
 import { parseSubjectCell } from './lib/subjectParser';
+import { parseRestrictedVenueWorkbook } from './lib/restrictedVenueParser';
 import { AppFooter } from './components/common/AppFooter';
 import { OtterMascot } from './components/common/OtterMascot';
 
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 const CATEGORIES: LocationCategory[] = ['일반교실', '특별실', '선택과목 장소', '체육시설', '수동확인'];
 const DIVISION_HANDLINGS: DivisionHandling[] = ['자동제외', '장소반영'];
+const VENUE_RESTRICTION_MODES: VenueRestrictionMode[] = ['가능', '주의', '불가'];
+const VENUE_WEEKDAYS: VenueRestrictionWeekday[] = ['auto', '월', '화', '수', '목', '금'];
 
 export function App() {
   const [data, setData] = useState<AppData>(() => loadAppData());
@@ -88,7 +94,7 @@ export function App() {
     };
   }, [data, manualRows.length]);
 
-  const setSettings = (settings: ExamSettings) => setData((prev) => ({ ...prev, settings }));
+  const setSettings = (settings: ExamSettings) => setData((prev) => ({ ...prev, settings, needsReschedule: true }));
   const guideText = getGuideText(data.settings.examType);
   const mode = getModeCopy(data.settings.examType);
   const selectExamType = (examType: ExamType) => {
@@ -182,7 +188,7 @@ export function App() {
       return;
     }
     const result = makeSchedule(data);
-    setData((prev) => ({ ...prev, ...result }));
+    setData((prev) => ({ ...prev, ...result, needsReschedule: false }));
     setActiveTab('results');
   };
 
@@ -250,7 +256,7 @@ export function App() {
           ))}
         </nav>
         <button className="primary full" onClick={runSchedule}>
-          <Sparkles size={18} /> 검사 시간표 만들기
+          <Sparkles size={18} /> 검사 시간표 자동배정하기
         </button>
         <button className="full" onClick={confirmReselectType}>검사 유형 다시 선택</button>
         <button className="full" onClick={startNewSchedule}>새 시간표 만들기</button>
@@ -278,6 +284,15 @@ export function App() {
             </button>
           </div>
         </header>
+
+        {data.needsReschedule && (
+          <div className="reschedule-banner no-print">
+            <span>검사 조건 또는 시간표가 변경되었습니다. 최신 조건을 반영하려면 자동배정을 다시 실행해 주세요.</span>
+            <button className="primary" onClick={runSchedule}>
+              <Sparkles size={17} /> 다시 자동배정하기
+            </button>
+          </div>
+        )}
 
         {activeTab === 'dashboard' && (
           <Dashboard
@@ -315,6 +330,7 @@ export function App() {
                 '교사용 안내 문구를 복사했습니다.',
               )
             }
+            runSchedule={runSchedule}
           />
         )}
 
@@ -430,6 +446,14 @@ function Dashboard({
             : '해당 학년 라인의 검사 가능 시간 안에 모든 방문 장소를 배정하기 어려울 수 있습니다. 학년별 시작 시간, 장소당 소요시간, 검사팀 수, 검사 가능 교시를 조정해 주세요.'}
         </div>
       )}
+      {dashboard.done === 0 && dashboard.totalCandidates > 0 && (
+        <div className="action-notice">
+          <span>방문 장소와 시간표가 입력되어 있습니다. 자동배정을 실행하면 검사 시간표가 생성됩니다.</span>
+          <button className="primary" onClick={runSchedule}>
+            <Sparkles size={17} /> 검사 시간표 자동배정하기
+          </button>
+        </div>
+      )}
       {validationMessages.length > 0 && (
         <div className="warning-list">
           <strong>자동배정 전 확인 필요</strong>
@@ -438,7 +462,7 @@ function Dashboard({
       )}
       <div className="card actions">
         <button className="primary" onClick={runSchedule}>
-          <Sparkles size={18} /> 검사 시간표 만들기
+          <Sparkles size={18} /> 검사 시간표 자동배정하기
         </button>
         <button onClick={exportFull}>
           <Download size={17} /> CSV 다운로드
@@ -797,11 +821,11 @@ function LocationsPanel({
   mode: ReturnType<typeof getModeCopy>;
 }) {
   const update = (index: number, patch: Partial<VisitLocation>) =>
-    setData((prev) => ({ ...prev, locations: prev.locations.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)) }));
+    setData((prev) => ({ ...prev, locations: prev.locations.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)), needsReschedule: true }));
 
   return (
     <section className="card stack">
-      <TableTitle title={`${mode.unitMenu} 목록`} action={() => setData((prev) => ({ ...prev, locations: [...prev.locations, emptyLocation(prev.locations.length + 1)] }))} />
+      <TableTitle title={`${mode.unitMenu} 목록`} action={() => setData((prev) => ({ ...prev, locations: [...prev.locations, emptyLocation(prev.locations.length + 1)], needsReschedule: true }))} />
       <div className="table-wrap">
         <table>
           <thead>
@@ -840,15 +864,16 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
   const [warnings, setWarnings] = useState<string[]>([]);
   const commonFileRef = useRef<HTMLInputElement>(null);
   const comciganFileRef = useRef<HTMLInputElement>(null);
+  const restrictedVenueFileRef = useRef<HTMLInputElement>(null);
   const update = (index: number, patch: Partial<TimetableRow>) =>
-    setData((prev) => ({ ...prev, timetables: prev.timetables.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)) }));
+    setData((prev) => ({ ...prev, timetables: prev.timetables.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)), needsReschedule: true }));
 
   const applyPaste = () => {
     const rows = parseTimetablePaste(paste).map((row) => {
       const location = data.locations.find((item) => item.displayName === row.displayName || item.id === row.displayName);
       return { ...row, locationId: location?.id ?? row.locationId, displayName: location?.displayName ?? row.displayName };
     });
-    setData((prev) => ({ ...prev, timetables: rows }));
+    setData((prev) => ({ ...prev, timetables: rows, needsReschedule: true }));
   };
   const uploadWorkbook = async (file: File | undefined, mode: 'common' | 'comcigan') => {
     if (!file) return;
@@ -866,10 +891,43 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
       assignments: [],
       judgements: [],
       manualOverrides: [],
+      needsReschedule: true,
     }));
   };
   const updatePreview = (index: number, patch: Partial<CommonImportRow>) =>
     setPreviewRows((prev) => prev.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
+  const uploadRestrictedVenueFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const imported = await Promise.all(Array.from(files).map((file) => parseRestrictedVenueWorkbook(file)));
+    const nextWarnings = imported.flatMap((item) => item.warnings);
+    const nextVenues = imported.flatMap((item) => item.venues);
+    const nextEntries = imported.flatMap((item) => item.entries);
+    const venueIds = new Set(nextVenues.map((venue) => venue.id));
+    setWarnings(nextWarnings);
+    setData((prev) => ({
+      ...prev,
+      restrictedVenues: [...prev.restrictedVenues.filter((venue) => !venueIds.has(venue.id)), ...nextVenues],
+      restrictedVenueEntries: [...prev.restrictedVenueEntries.filter((entry) => !venueIds.has(entry.venueId)), ...nextEntries],
+      needsReschedule: true,
+    }));
+  };
+  const updateRestrictedVenue = (venueId: string, patch: Partial<RestrictedVenue>) =>
+    setData((prev) => {
+      const venues = prev.restrictedVenues.map((venue) => (venue.id === venueId ? { ...venue, ...patch } : venue));
+      const updated = venues.find((venue) => venue.id === venueId);
+      return {
+        ...prev,
+        restrictedVenues: venues,
+        restrictedVenueEntries: prev.restrictedVenueEntries.map((entry) =>
+          entry.venueId === venueId && updated
+            ? { ...entry, mode: updated.mode, reason: updated.note }
+            : entry,
+        ),
+        needsReschedule: true,
+      };
+    });
+  const updateRestrictedWeekday = (weekday: VenueRestrictionWeekday) =>
+    setData((prev) => ({ ...prev, restrictedVenueWeekday: weekday, needsReschedule: true }));
 
   return (
     <section className="stack">
@@ -897,10 +955,15 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
           value={paste}
           onChange={(event) => setPaste(event.target.value)}
         />
+        {data.needsReschedule && data.timetables.length > 0 && (
+          <div className="action-notice">
+            <span>시간표가 입력되었습니다. 검사 조건을 확인한 뒤 [검사 시간표 자동배정하기]를 눌러 결과를 생성해 주세요.</span>
+          </div>
+        )}
         <div className="actions">
           <button className="primary" onClick={applyPaste}>붙여넣기 표 변환</button>
           <button onClick={resetExamples}>예시 데이터 입력</button>
-          <button onClick={() => setData((prev) => ({ ...prev, timetables: [] }))}>
+          <button onClick={() => setData((prev) => ({ ...prev, timetables: [], needsReschedule: true }))}>
             <RotateCcw size={17} /> 전체 초기화
           </button>
         </div>
@@ -1001,17 +1064,114 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
           </tbody>
         </table>
       </div>
+      {data.settings.examType === 'urine' && (
+        <div className="card stack">
+          <div className="section-title">
+            <div>
+              <h2>검사 불가 장소 참고 시간표</h2>
+              <p className="table-description">
+                학생 화장실이 없거나 검사 진행이 어려운 장소가 있는 경우, 해당 장소의 시간표를 업로드해 주세요.
+                해당 장소에 있는 학급은 해당 교시에 소변검사 자동배정에서 제외됩니다.
+                {'\n'}예: 2층 종강 교실처럼 학생 화장실 접근이 어려운 장소는 소변검사 불가 장소로 설정할 수 있습니다.
+              </p>
+            </div>
+            <div className="actions">
+              <button onClick={() => restrictedVenueFileRef.current?.click()}><FileInput size={17} /> 장소 시간표 업로드</button>
+              <button onClick={() => setData((prev) => ({ ...prev, restrictedVenues: [], restrictedVenueEntries: [], needsReschedule: true }))}>
+                <RotateCcw size={17} /> 장소 제한 초기화
+              </button>
+            </div>
+          </div>
+          <input
+            ref={restrictedVenueFileRef}
+            type="file"
+            accept=".xlsx,.xls"
+            multiple
+            hidden
+            onChange={(event) => uploadRestrictedVenueFiles(event.target.files)}
+          />
+          <div className="form-grid compact-form-grid">
+            <Field label="장소 시간표 적용 요일">
+              <select value={data.restrictedVenueWeekday} onChange={(event) => updateRestrictedWeekday(event.target.value as VenueRestrictionWeekday)}>
+                {VENUE_WEEKDAYS.map((weekday) => (
+                  <option key={weekday} value={weekday}>{weekday === 'auto' ? '자동 감지' : weekday}</option>
+                ))}
+              </select>
+            </Field>
+            <Metric label="등록 장소 수" value={data.restrictedVenues.length} />
+            <Metric label="장소 시간표 항목 수" value={data.restrictedVenueEntries.length} />
+          </div>
+          {data.restrictedVenues.length > 0 && (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>{['장소ID', '장소명', '층', '학생 화장실 접근', '처리 방식', '비고'].map((header) => <th key={header}>{header}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {data.restrictedVenues.map((venue) => (
+                    <tr key={venue.id}>
+                      <td>{venue.id}</td>
+                      <td>{venue.name}</td>
+                      <td>{venue.floor}</td>
+                      <td>
+                        <select
+                          value={venue.hasStudentRestroom ? '가능' : '불가'}
+                          onChange={(event) => updateRestrictedVenue(venue.id, { hasStudentRestroom: event.target.value === '가능' })}
+                        >
+                          <option>가능</option>
+                          <option>불가</option>
+                        </select>
+                      </td>
+                      <td>
+                        <select value={venue.mode} onChange={(event) => updateRestrictedVenue(venue.id, { mode: event.target.value as VenueRestrictionMode })}>
+                          {VENUE_RESTRICTION_MODES.map((mode) => <option key={mode}>{mode}</option>)}
+                        </select>
+                      </td>
+                      <td>
+                        <input value={venue.note} onChange={(event) => updateRestrictedVenue(venue.id, { note: event.target.value })} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {data.restrictedVenueEntries.length > 0 && (
+            <div className="table-wrap compact">
+              <h3>장소 시간표 적용 미리보기</h3>
+              <table>
+                <thead>
+                  <tr>{['요일', '교시', '학급', '수업명', '교과교사', '제한 장소', '처리'].map((header) => <th key={header}>{header}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {data.restrictedVenueEntries.slice(0, 80).map((entry, index) => (
+                    <tr key={`${entry.venueId}-${entry.weekday}-${entry.period}-${entry.className}-${index}`}>
+                      <td>{entry.weekday}</td>
+                      <td>{entry.period}교시</td>
+                      <td>{entry.className}</td>
+                      <td>{entry.subject}</td>
+                      <td>{entry.teacher}</td>
+                      <td>{entry.venueName}</td>
+                      <td><span className={`badge ${entry.mode}`}>{entry.mode}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }
 
 function DivisionsPanel({ data, setData }: { data: AppData; setData: React.Dispatch<React.SetStateAction<AppData>> }) {
   const update = (index: number, patch: Partial<SubjectDivision>) =>
-    setData((prev) => ({ ...prev, divisions: prev.divisions.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)) }));
+    setData((prev) => ({ ...prev, divisions: prev.divisions.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)), needsReschedule: true }));
 
   return (
     <section className="card stack">
-      <TableTitle title="선택과목 분반 참고 목록" action={() => setData((prev) => ({ ...prev, divisions: [...prev.divisions, emptyDivision()] }))} />
+      <TableTitle title="선택과목 분반 참고 목록" action={() => setData((prev) => ({ ...prev, divisions: [...prev.divisions, emptyDivision()], needsReschedule: true }))} />
       <div className="table-wrap">
         <table>
           <thead>
@@ -1048,6 +1208,7 @@ function ResultsPanel({
   guideText,
   copyGuide,
   copyTeacher,
+  runSchedule,
 }: {
   data: AppData;
   setData: React.Dispatch<React.SetStateAction<AppData>>;
@@ -1064,6 +1225,7 @@ function ResultsPanel({
   guideText: string;
   copyGuide: () => void;
   copyTeacher: () => void;
+  runSchedule: () => void;
 }) {
   const setOverride = (locationId: string, patch: Partial<ManualOverride>) => {
     setData((prev) => {
@@ -1115,6 +1277,18 @@ function ResultsPanel({
   return (
     <section className="stack print-area">
       <div className="notice result-guide-card">{resultGuide}</div>
+      {assigned.length === 0 && (
+        <div className="action-notice no-print">
+          <span>
+            아직 자동배정 결과가 없습니다.
+            <br />
+            검사 조건과 시간표 입력을 확인한 뒤 [검사 시간표 자동배정하기] 버튼을 눌러 주세요.
+          </span>
+          <button className="primary" onClick={runSchedule}>
+            <Sparkles size={17} /> 검사 시간표 자동배정하기
+          </button>
+        </div>
+      )}
       <div className="metric-grid result-summary-grid">
         <Metric label="전체 배정 수" value={assigned.length} />
         <Metric label="2학년 배정 수" value={assignedGrade2} />
@@ -1553,6 +1727,9 @@ function snapshotTemplateData(data: AppData) {
     judgements: structuredClone(data.judgements),
     assignments: structuredClone(data.assignments),
     manualOverrides: structuredClone(data.manualOverrides),
+    restrictedVenues: structuredClone(data.restrictedVenues),
+    restrictedVenueEntries: structuredClone(data.restrictedVenueEntries),
+    restrictedVenueWeekday: data.restrictedVenueWeekday,
   };
 }
 

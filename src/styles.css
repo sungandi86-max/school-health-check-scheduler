@@ -985,6 +985,30 @@ td select {
   font-weight: 700;
 }
 
+.reschedule-banner,
+.action-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #9bd8d0;
+  background: #e9fbf8;
+  color: #164b55;
+  border-radius: 10px;
+  padding: 13px 15px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.reschedule-banner {
+  margin-bottom: 18px;
+}
+
+.action-notice span,
+.reschedule-banner span {
+  min-width: 0;
+}
+
 .form-help {
   grid-column: 1 / -1;
   border-radius: 8px;

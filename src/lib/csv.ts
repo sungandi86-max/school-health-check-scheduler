@@ -45,7 +45,7 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
 
   return {
     name: '소변검사_자동배정표',
-    headers: ['순서', '검사 라인', '학년', '검사 시간', '교실/장소', '교시', '수업명', '판정', '수동수정 여부', '비고'],
+    headers: ['순서', '검사 라인', '학년', '검사 시간', '교실/장소', '교시', '수업명', '판정', '수동수정 여부', '제한 장소', '제한 사유', '비고'],
     rows: assignments.map((item) => [
       item.order?.toString() ?? '',
       item.lineName ?? '',
@@ -56,6 +56,8 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
       item.subject,
       item.judgement,
       item.isManual ? '수동수정' : '',
+      item.restrictedVenueName ?? '',
+      item.restrictedVenueReason ?? '',
       item.failedReason || item.note,
     ]),
   };

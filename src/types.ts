@@ -4,6 +4,8 @@ export type DivisionHandling = '자동제외' | '장소반영';
 export type ExamType = 'urine' | 'tb';
 export type DayScheduleKind = 'excluded' | 'period';
 export type UrineParallelMode = 'sequential' | 'grade' | 'team';
+export type VenueRestrictionMode = '가능' | '주의' | '불가';
+export type VenueRestrictionWeekday = 'auto' | '월' | '화' | '수' | '목' | '금';
 
 export interface GradeTimeBlock {
   grade: string;
@@ -82,6 +84,9 @@ export interface PeriodJudgement {
   subject: string;
   status: JudgementStatus;
   reason: string;
+  teacher?: string;
+  restrictedVenueName?: string;
+  restrictedVenueReason?: string;
 }
 
 export interface ScheduleAssignment {
@@ -105,6 +110,32 @@ export interface ScheduleAssignment {
   excluded: boolean;
   note: string;
   failedReason?: string;
+  restrictedVenueName?: string;
+  restrictedVenueReason?: string;
+}
+
+export interface RestrictedVenue {
+  id: string;
+  name: string;
+  floor: string;
+  hasStudentRestroom: boolean;
+  mode: VenueRestrictionMode;
+  note: string;
+}
+
+export interface RestrictedVenueEntry {
+  venueId: string;
+  venueName: string;
+  floor: string;
+  weekday: Exclude<VenueRestrictionWeekday, 'auto'>;
+  period: number;
+  classCode: string;
+  className: string;
+  subject: string;
+  teacher: string;
+  rawText: string;
+  mode: VenueRestrictionMode;
+  reason: string;
 }
 
 export interface ManualOverride {
@@ -145,6 +176,9 @@ export interface TemplateData {
   judgements: PeriodJudgement[];
   assignments: ScheduleAssignment[];
   manualOverrides: ManualOverride[];
+  restrictedVenues: RestrictedVenue[];
+  restrictedVenueEntries: RestrictedVenueEntry[];
+  restrictedVenueWeekday: VenueRestrictionWeekday;
 }
 
 export interface ExamTemplate {
@@ -165,9 +199,13 @@ export interface AppData {
   judgements: PeriodJudgement[];
   assignments: ScheduleAssignment[];
   manualOverrides: ManualOverride[];
+  restrictedVenues: RestrictedVenue[];
+  restrictedVenueEntries: RestrictedVenueEntry[];
+  restrictedVenueWeekday: VenueRestrictionWeekday;
   templates: ExamTemplate[];
   activeTemplateId: string;
   schoolDefaults: SchoolDefaults;
   keywordSets: KeywordSets;
   hasSelectedExamType: boolean;
+  needsReschedule: boolean;
 }

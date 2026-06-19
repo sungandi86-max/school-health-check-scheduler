@@ -241,6 +241,9 @@ export function createDefaultData(): AppData {
     judgements: [],
     assignments: [],
     manualOverrides: [],
+    restrictedVenues: [],
+    restrictedVenueEntries: [],
+    restrictedVenueWeekday: 'auto' as const,
   };
   const tbBase = {
     ...structuredClone(base),
@@ -300,5 +303,6 @@ export function createDefaultData(): AppData {
       },
     },
     hasSelectedExamType: false,
+    needsReschedule: false,
   };
 }

@@ -4,9 +4,11 @@ import type {
   JudgementStatus,
   ManualOverride,
   PeriodJudgement,
+  RestrictedVenueEntry,
   ScheduleAssignment,
   SubjectDivision,
   TimetableRow,
+  VenueRestrictionWeekday,
   VisitLocation,
 } from '../types';
 import { parseSubjectCell } from './subjectParser';
@@ -116,11 +118,58 @@ function sortDisplay(a: VisitLocation, b: VisitLocation) {
   return a.grade.localeCompare(b.grade, 'ko') || a.displayName.localeCompare(b.displayName, 'ko', { numeric: true });
 }
 
-export function judgePeriod(location: VisitLocation | undefined, row: TimetableRow | undefined, period: number, settings: ExamSettings): PeriodJudgement {
+function createRestrictionMap(settings: ExamSettings, entries: RestrictedVenueEntry[], selectedWeekday: VenueRestrictionWeekday) {
+  const map = new Map<string, RestrictedVenueEntry>();
+  if (settings.examType !== 'urine') return map;
+  const weekday = selectedWeekday === 'auto' ? weekdayFromExamDate(settings.examDate) : selectedWeekday;
+  if (!weekday || weekday === 'auto') return map;
+  for (const entry of entries) {
+    if (entry.weekday !== weekday || entry.mode === '가능') continue;
+    map.set(`${entry.className}|${entry.period}`, entry);
+  }
+  return map;
+}
+
+function weekdayFromExamDate(examDate: string): VenueRestrictionWeekday {
+  if (!examDate) return 'auto';
+  const day = new Date(`${examDate}T00:00:00`).getDay();
+  const weekdays: Record<number, VenueRestrictionWeekday> = { 1: '월', 2: '화', 3: '수', 4: '목', 5: '금' };
+  return weekdays[day] ?? 'auto';
+}
+
+function normalizeClassName(value: string) {
+  const text = value.replace(/\s/g, '');
+  const dashed = text.match(/([1-6])-(\d{1,2})/);
+  if (dashed) return `${dashed[1]}-${Number(dashed[2])}`;
+  const code = text.match(/\b([1-6]\d{2})\b/);
+  if (code) return `${code[1][0]}-${Number(code[1].slice(1))}`;
+  return text.replace(/교실$/, '');
+}
+
+export function judgePeriod(
+  location: VisitLocation | undefined,
+  row: TimetableRow | undefined,
+  period: number,
+  settings: ExamSettings,
+  restriction?: RestrictedVenueEntry,
+): PeriodJudgement {
   const subject = row?.periods[period - 1]?.trim() ?? '';
+  const teacher = row?.teachers?.[period - 1]?.trim() ?? '';
 
   if (!location) {
     return { locationId: row?.locationId ?? '', period, subject, status: '수동확인', reason: '방문 장소 목록에 없는 시간표 행' };
+  }
+  if (settings.examType === 'urine' && restriction?.mode === '불가') {
+    return {
+      locationId: location.id,
+      period,
+      subject: restriction.subject || subject,
+      teacher: restriction.teacher || teacher,
+      status: '불가',
+      reason: `검사 불가 장소: ${restriction.venueName} / ${restriction.reason || '장소 제한'}`,
+      restrictedVenueName: restriction.venueName,
+      restrictedVenueReason: restriction.reason || '장소 제한',
+    };
   }
   if (!location.isVisitable) {
     return { locationId: location.id, period, subject, status: '불가', reason: '실제 방문 가능 여부가 불가능' };
@@ -134,13 +183,33 @@ export function judgePeriod(location: VisitLocation | undefined, row: TimetableR
   if (hasKeyword(subject, settings.cautionKeywords)) {
     return { locationId: location.id, period, subject, status: '주의', reason: `주의 키워드 포함: ${subject}` };
   }
+  if (settings.examType === 'urine' && restriction?.mode === '주의') {
+    return {
+      locationId: location.id,
+      period,
+      subject: restriction.subject || subject,
+      teacher: restriction.teacher || teacher,
+      status: '주의',
+      reason: `주의 장소: ${restriction.venueName} / ${restriction.reason || '장소 확인 필요'}`,
+      restrictedVenueName: restriction.venueName,
+      restrictedVenueReason: restriction.reason || '장소 확인 필요',
+    };
+  }
   return { locationId: location.id, period, subject, status: '가능', reason: subject ? '일반 교실 수업' : '과목명 비어 있음' };
 }
 
-export function createJudgements(settings: ExamSettings, locations: VisitLocation[], timetables: TimetableRow[]): PeriodJudgement[] {
+export function createJudgements(
+  settings: ExamSettings,
+  locations: VisitLocation[],
+  timetables: TimetableRow[],
+  restrictedVenueEntries: RestrictedVenueEntry[] = [],
+  restrictedVenueWeekday: VenueRestrictionWeekday = 'auto',
+): PeriodJudgement[] {
+  const restrictionMap = createRestrictionMap(settings, restrictedVenueEntries, restrictedVenueWeekday);
   return timetables.flatMap((row) => {
     const location = locations.find((item) => item.id === row.locationId || item.displayName === row.displayName);
-    return Array.from({ length: 7 }, (_, index) => judgePeriod(location, row, index + 1, settings));
+    const className = normalizeClassName(row.displayName || location?.displayName || row.locationId);
+    return Array.from({ length: 7 }, (_, index) => judgePeriod(location, row, index + 1, settings, restrictionMap.get(`${className}|${index + 1}`)));
   });
 }
 
@@ -178,6 +247,8 @@ function buildAssignment(
     locked: Boolean(manual?.locked),
     excluded: Boolean(manual?.excluded),
     note: manual?.note ?? '',
+    restrictedVenueName: judgement?.restrictedVenueName,
+    restrictedVenueReason: judgement?.restrictedVenueReason,
   };
 }
 
@@ -208,11 +279,19 @@ export function createManualConfirmRows(divisions: SubjectDivision[], assignment
     .filter((item) => item.status === '불가')
     .map((item) => ({
       name: item.locationId,
-      type: '검사 불가',
+      type: item.restrictedVenueName ? '장소 제한' : '검사 불가',
       reason: item.reason,
       required: '다른 교시 배정 필요',
       actualLocation: item.locationId,
-      note: `${item.period}교시`,
+      note: [
+        `${item.period}교시`,
+        item.subject,
+        item.teacher ? `교사: ${item.teacher}` : '',
+        item.restrictedVenueName ? `제한 장소: ${item.restrictedVenueName}` : '',
+        item.restrictedVenueReason ? `제한 사유: ${item.restrictedVenueReason}` : '',
+      ]
+        .filter(Boolean)
+        .join(' / '),
     }));
 
   return [...divisionRows, ...failedRows, ...blockedRows];
@@ -220,7 +299,7 @@ export function createManualConfirmRows(divisions: SubjectDivision[], assignment
 
 export function makeSchedule(data: AppData): { judgements: PeriodJudgement[]; assignments: ScheduleAssignment[] } {
   const { settings, locations, timetables, manualOverrides } = data;
-  const judgements = createJudgements(settings, locations, timetables);
+  const judgements = createJudgements(settings, locations, timetables, data.restrictedVenueEntries, data.restrictedVenueWeekday);
   const timetableMap = new Map(timetables.map((row) => [row.locationId, row]));
   const assignments: ScheduleAssignment[] = [];
 
