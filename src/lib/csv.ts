@@ -1,6 +1,7 @@
 import type { AppData, ExamSettings, ExportTable, ScheduleAssignment } from '../types';
 
 const SECOND_FLOOR_LECTURE_ROOM_NOTE = '2층 종합강의실 수업 / 화장실 이동 안내 필요';
+const MIXED_GRADE_NOTE = '혼합학년 수업 / 명렬표 확인 필요';
 
 function escapeCsv(value: string | number | null | undefined) {
   const text = String(value ?? '');
@@ -9,6 +10,10 @@ function escapeCsv(value: string | number | null | undefined) {
 
 function normalizeRoomText(value = '') {
   return value.replace(/\s/g, '').toUpperCase();
+}
+
+function joinNotes(...notes: Array<string | undefined>) {
+  return [...new Set(notes.filter(Boolean))].join(' / ');
 }
 
 function isSecondFloorLectureRoomAssignment(item: ScheduleAssignment) {
@@ -23,10 +28,17 @@ function isSecondFloorLectureRoomAssignment(item: ScheduleAssignment) {
   );
 }
 
+function isMixedGradeAssignment(item: ScheduleAssignment) {
+  return item.roomMappingReason?.includes(MIXED_GRADE_NOTE) || item.note.includes(MIXED_GRADE_NOTE);
+}
+
 function displayNote(item: ScheduleAssignment) {
   if (item.failedReason) return item.failedReason;
-  if (isSecondFloorLectureRoomAssignment(item)) return SECOND_FLOOR_LECTURE_ROOM_NOTE;
-  return item.note;
+  const specialNote = joinNotes(
+    isSecondFloorLectureRoomAssignment(item) ? SECOND_FLOOR_LECTURE_ROOM_NOTE : undefined,
+    isMixedGradeAssignment(item) ? MIXED_GRADE_NOTE : undefined,
+  );
+  return specialNote || item.note;
 }
 
 export function downloadText(filename: string, content: string, type = 'text/plain;charset=utf-8') {
