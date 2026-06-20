@@ -1245,3 +1245,63 @@ td select {
     font-size: 11px;
   }
 }
+
+
+.stored-work-summary {
+  border: 1px solid #d8e8e5;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #496275;
+  font-size: 13px;
+}
+
+.stored-work-summary summary {
+  cursor: pointer;
+  font-weight: 800;
+  color: #29465a;
+}
+
+.stored-work-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 10px;
+  line-height: 1.5;
+}
+
+.stored-work-panel p {
+  margin: 4px 0 0;
+}
+
+.stored-work-panel .actions {
+  flex-shrink: 0;
+}
+
+button.ghost {
+  background: #ffffff;
+  color: #496275;
+  border-color: #cfe0dd;
+  box-shadow: none;
+}
+
+.entry-reset-notice {
+  border: 1px solid #cfe0dd;
+  background: rgba(255, 255, 255, 0.75);
+  color: #496275;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .stored-work-panel {
+    display: grid;
+  }
+
+  .stored-work-panel .actions {
+    justify-content: flex-start;
+  }
+}
