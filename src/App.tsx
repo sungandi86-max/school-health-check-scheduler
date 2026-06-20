@@ -26,7 +26,7 @@ import {
   URINE_BLOCKED_KEYWORDS,
   URINE_CAUTION_KEYWORDS,
 } from './lib/defaultData';
-import { clearAppData, loadAppData, saveAppData } from './lib/storage';
+import { clearAppData, getStoredAppDataInfo, loadAppData, saveAppData } from './lib/storage';
 import {
   createFullTable,
   createLabTable,
@@ -58,16 +58,27 @@ const CATEGORIES: LocationCategory[] = ['일반교실', '특별실', '선택과�
 const DIVISION_HANDLINGS: DivisionHandling[] = ['자동제외', '장소반영'];
 const VENUE_RESTRICTION_MODES: VenueRestrictionMode[] = ['가능', '주의', '불가'];
 const VENUE_WEEKDAYS: VenueRestrictionWeekday[] = ['auto', '월', '화', '수', '목', '금'];
+const APP_TITLE = '검진·검사 시간표 자동배정 도우미';
+const NEW_SCHEDULE_WARNING = '새 시간표를 만들면 현재 입력 화면은 초기화됩니다. 기존 데이터는 JSON 백업 후 진행하는 것을 권장합니다. 계속하시겠습니까?';
+const RESET_STORAGE_WARNING = '브라우저에 저장된 검사 조건, 시간표, 분반자료, 장소 제한, 자동배정 결과가 모두 삭제됩니다. 계속하시겠습니까?';
 
 export function App() {
-  const [data, setData] = useState<AppData>(() => loadAppData());
+  const [data, setData] = useState<AppData>(() => loadAppData({ startAtTypeSelect: true }));
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showTypeConfirm, setShowTypeConfirm] = useState(false);
+  const [storedInfo, setStoredInfo] = useState(() => getStoredAppDataInfo());
+  const [entryNotice, setEntryNotice] = useState('');
   const [validationMessages, setValidationMessages] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    document.title = APP_TITLE;
+  }, []);
+
+  useEffect(() => {
+    if (!data.hasSelectedExamType) return;
     saveAppData(data);
+    setStoredInfo(getStoredAppDataInfo());
   }, [data]);
 
   const manualRows = useMemo(
@@ -99,35 +110,54 @@ export function App() {
   const setSettings = (settings: ExamSettings) => setData((prev) => ({ ...prev, settings, needsReschedule: true }));
   const guideText = getGuideText(data.settings.examType);
   const mode = getModeCopy(data.settings.examType);
-  const selectExamType = (examType: ExamType) => {
-    const template = data.templates.find((item) => item.examType === examType);
-    const keywordSet = examType === 'tb' ? data.keywordSets.tb : data.keywordSets.urine;
-    setData((prev) => ({
-      ...prev,
-      ...(template ? structuredClone(template.data) : {}),
+  const startFreshExamType = (examType: ExamType) => {
+    const fresh = createDefaultData();
+    const keywordSet = examType === 'tb' ? fresh.keywordSets.tb : fresh.keywordSets.urine;
+    setData({
+      ...fresh,
       settings: {
-        ...(template ? structuredClone(template.data.settings) : prev.settings),
+        ...fresh.settings,
         examType,
         blockedKeywords: keywordSet.blockedKeywords,
         cautionKeywords: keywordSet.cautionKeywords,
       },
-      activeTemplateId: template?.id ?? '',
+      activeTemplateId: '',
       hasSelectedExamType: true,
-    }));
+    });
     setActiveTab('settings');
+    setEntryNotice('');
+  };
+  const selectExamType = (examType: ExamType) => {
+    if (storedInfo.exists && !window.confirm(NEW_SCHEDULE_WARNING)) return;
+    startFreshExamType(examType);
+  };
+  const continueStoredWork = () => {
+    const restored = loadAppData({ startAtTypeSelect: false });
+    setData(restored);
+    setActiveTab(restored.currentView ?? 'dashboard');
+    setEntryNotice('');
+    setStoredInfo(getStoredAppDataInfo());
+  };
+  const resetStoredData = () => {
+    if (!window.confirm(RESET_STORAGE_WARNING)) return;
+    clearAppData();
+    setData(createDefaultData());
+    setActiveTab('dashboard');
+    setShowTypeConfirm(false);
+    setStoredInfo(getStoredAppDataInfo());
+    setEntryNotice('저장 데이터가 초기화되었습니다. 검사 유형을 선택해 새 시간표를 만들어 주세요.');
   };
   const confirmReselectType = () => {
     setShowTypeConfirm(true);
   };
   const reselectType = () => {
-    setData((prev) => ({ ...prev, hasSelectedExamType: false, assignments: [], judgements: [], manualOverrides: [] }));
+    setData((prev) => ({ ...prev, hasSelectedExamType: false }));
     setActiveTab('dashboard');
     setShowTypeConfirm(false);
   };
   const startNewSchedule = () => {
-    if (window.confirm('새 시간표를 만들기 위해 검사 유형 선택 화면으로 돌아갈까요?')) {
-      setData((prev) => ({ ...prev, hasSelectedExamType: false, assignments: [], judgements: [], manualOverrides: [] }));
-      setActiveTab('dashboard');
+    if (window.confirm(NEW_SCHEDULE_WARNING)) {
+      startFreshExamType(data.settings.examType);
     }
   };
   const saveCurrentTemplate = () => {
@@ -195,8 +225,7 @@ export function App() {
   };
 
   const resetExamples = () => {
-    clearAppData();
-    setData(createDefaultData());
+    resetStoredData();
   };
 
   const importBackup = (file?: File) => {
@@ -229,7 +258,16 @@ export function App() {
   };
 
   if (!data.hasSelectedExamType) {
-    return <ExamTypeSelect onSelect={selectExamType} />;
+    return (
+      <ExamTypeSelect
+        onSelect={selectExamType}
+        onContinue={continueStoredWork}
+        onReset={resetStoredData}
+        hasStoredData={storedInfo.exists}
+        versionMismatch={storedInfo.versionMismatch}
+        notice={entryNotice}
+      />
+    );
   }
 
   return (
@@ -262,9 +300,10 @@ export function App() {
         </button>
         <button className="full" onClick={confirmReselectType}>검사 유형 다시 선택</button>
         <button className="full" onClick={startNewSchedule}>새 시간표 만들기</button>
+        <button className="full" onClick={resetStoredData}>저장 데이터 초기화</button>
         <div className="sidebar-mascot">
           <OtterMascot variant="md" decorative />
-          <span>쑤캥T 보건실 도구모음</span>
+          <span>검진·검사 시간표 자동배정 도우미</span>
         </div>
       </aside>
 
@@ -495,19 +534,51 @@ function Metric({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-function ExamTypeSelect({ onSelect }: { onSelect: (examType: ExamType) => void }) {
+function ExamTypeSelect({
+  onSelect,
+  onContinue,
+  onReset,
+  hasStoredData,
+  versionMismatch,
+  notice,
+}: {
+  onSelect: (examType: ExamType) => void;
+  onContinue: () => void;
+  onReset: () => void;
+  hasStoredData: boolean;
+  versionMismatch: boolean;
+  notice: string;
+}) {
   return (
     <main className="type-select-screen">
       <div className="type-select-content">
         <section className="type-hero">
           <div>
             <p className="eyebrow">학교 보건 업무 도구</p>
-            <h1>검진·검사 시간표 자동배정 도우미</h1>
+            <h1>{APP_TITLE}</h1>
             <p>소변검사와 결핵검진 시간표를 학교 일과표, 업체 검사 가능 시간, 수업 시간표를 기준으로 자동 배정합니다.</p>
             <strong className="brand-line">쑤캥T 보건실 도구모음</strong>
           </div>
           <OtterMascot variant="lg" className="type-hero-mascot" />
         </section>
+
+        {notice && <div className="action-notice">{notice}</div>}
+        {hasStoredData && (
+          <section className="card stack">
+            <h2>이전에 저장된 작업 데이터가 있습니다.</h2>
+            {versionMismatch && (
+              <p className="table-description">
+                이전 버전의 저장 데이터가 남아 있어 최신 판정 로직과 충돌할 수 있습니다. 정확한 자동배정을 위해 저장 데이터 초기화를 권장합니다.
+              </p>
+            )}
+            <div className="actions">
+              <button className="primary" onClick={onContinue}>이전 작업 이어서 하기</button>
+              <button onClick={() => window.alert('저장 데이터는 유지됩니다. 아래에서 검사 유형을 선택하면 새 시간표 시작 여부를 확인합니다.')}>새로 시작하기</button>
+              <button onClick={onReset}>저장 데이터 초기화</button>
+            </div>
+          </section>
+        )}
+
         <section className="type-card-grid">
           <div className="type-card">
             <span className="mode-pill">방문형 검사</span>

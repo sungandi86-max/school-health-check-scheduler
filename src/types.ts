@@ -233,6 +233,8 @@ export interface ExamTemplate {
 }
 
 export interface AppData {
+  appDataVersion?: string;
+  currentView?: string;
   settings: ExamSettings;
   locations: VisitLocation[];
   timetables: TimetableRow[];

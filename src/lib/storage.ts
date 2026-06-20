@@ -2,16 +2,17 @@ import type { AppData, ExamType } from '../types';
 import { createDefaultData } from './defaultData';
 
 const STORAGE_KEY = 'urine-exam-room-scheduler:v1';
+export const APP_DATA_VERSION = '2026-06-health-check-scheduler-v3';
 const REQUIRED_BLOCKED_KEYWORDS = ['스생'];
 const MIXED_GRADE_NOTE = '혼합학년 수업 / 명렬표 확인 필요';
 
-export function loadAppData(): AppData {
+export function loadAppData(options: { startAtTypeSelect?: boolean } = {}): AppData {
   if (typeof localStorage === 'undefined') return createDefaultData();
 
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return createDefaultData();
-    const parsed = JSON.parse(raw) as Partial<AppData>;
+    const parsed = JSON.parse(raw) as Partial<AppData> & { appDataVersion?: string };
     const fallback = createDefaultData();
 
     const settings = { ...fallback.settings, ...parsed.settings };
@@ -70,7 +71,9 @@ export function loadAppData(): AppData {
       activeTemplateId: typeof parsed.activeTemplateId === 'string' ? parsed.activeTemplateId : fallback.activeTemplateId,
       schoolDefaults: parsed.schoolDefaults?.daySchedule ? parsed.schoolDefaults : fallback.schoolDefaults,
       keywordSets: normalizeKeywordSets(parsed.keywordSets, fallback.keywordSets),
-      hasSelectedExamType: typeof parsed.hasSelectedExamType === 'boolean' ? parsed.hasSelectedExamType : false,
+      appDataVersion: APP_DATA_VERSION,
+      currentView: typeof parsed.currentView === 'string' ? parsed.currentView : undefined,
+      hasSelectedExamType: options.startAtTypeSelect ? false : typeof parsed.hasSelectedExamType === 'boolean' ? parsed.hasSelectedExamType : false,
       needsReschedule: typeof parsed.needsReschedule === 'boolean' ? parsed.needsReschedule : false,
     };
   } catch {
@@ -203,10 +206,25 @@ function mergeRequiredKeywords(keywords: string[]) {
   return next;
 }
 
+export function getStoredAppDataInfo() {
+  if (typeof localStorage === 'undefined') return { exists: false, versionMismatch: false };
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return { exists: false, versionMismatch: false };
+  try {
+    const parsed = JSON.parse(raw) as { appDataVersion?: string };
+    return {
+      exists: true,
+      versionMismatch: parsed.appDataVersion !== APP_DATA_VERSION,
+    };
+  } catch {
+    return { exists: true, versionMismatch: true };
+  }
+}
+
 export function saveAppData(data: AppData) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, appDataVersion: APP_DATA_VERSION }));
 }
 
 export function clearAppData() {
-  localStorage.removeItem(STORAGE_KEY);
+  localStorage.clear();
 }
