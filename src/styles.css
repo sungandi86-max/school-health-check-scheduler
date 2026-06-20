@@ -1305,3 +1305,140 @@ button.ghost {
     justify-content: flex-start;
   }
 }
+
+
+.entry-help-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #d8e8e5;
+  background: rgba(255, 255, 255, 0.78);
+  border-radius: 10px;
+  padding: 13px 15px;
+  color: #496275;
+}
+
+.entry-help-card div {
+  display: grid;
+  gap: 3px;
+}
+
+.entry-help-card strong {
+  color: #29465a;
+}
+
+.help-landing,
+.help-page {
+  color: #29465a;
+}
+
+.help-page-header,
+.help-card {
+  background: #ffffff;
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 12px 28px rgba(13, 42, 63, 0.06);
+}
+
+.help-page-header p,
+.help-card p,
+.help-card li {
+  color: #496275;
+  line-height: 1.65;
+}
+
+.help-card h2,
+.help-card h3,
+.help-page-header h2 {
+  margin-bottom: 10px;
+}
+
+.help-step-grid,
+.help-compare-grid,
+.help-output-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.help-step-grid.compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.help-step-card,
+.help-output-grid > div {
+  border: 1px solid #d8e8e5;
+  background: #f7fcfb;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.help-number {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #0f766e;
+  color: #ffffff;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.help-output-grid strong,
+.help-output-grid span {
+  display: block;
+}
+
+.help-output-grid span {
+  color: #496275;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.help-faq-list {
+  display: grid;
+  gap: 10px;
+}
+
+.help-faq-list details {
+  border: 1px solid #d8e8e5;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f7fcfb;
+}
+
+.help-faq-list summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.help-formula {
+  border-radius: 8px;
+  background: #e9fbf8;
+  color: #0f766e;
+  font-weight: 800;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.help-top-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+@media (max-width: 760px) {
+  .entry-help-card,
+  .help-step-grid,
+  .help-step-grid.compact,
+  .help-compare-grid,
+  .help-output-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .entry-help-card {
+    display: grid;
+  }
+}

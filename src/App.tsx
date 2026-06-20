@@ -52,6 +52,9 @@ import { parseRestrictedVenueWorkbook } from './lib/restrictedVenueParser';
 import { parseRoomMappingWorkbook } from './lib/roomMappingParser';
 import { AppFooter } from './components/common/AppFooter';
 import { OtterMascot } from './components/common/OtterMascot';
+import { CommonHelp } from './components/help/CommonHelp';
+import { UrineHelp } from './components/help/UrineHelp';
+import { TbHelp } from './components/help/TbHelp';
 
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 const CATEGORIES: LocationCategory[] = ['일반교실', '특별실', '선택과목 장소', '체육시설', '수동확인'];
@@ -68,6 +71,7 @@ export function App() {
   const [showTypeConfirm, setShowTypeConfirm] = useState(false);
   const [storedInfo, setStoredInfo] = useState(() => getStoredAppDataInfo());
   const [entryNotice, setEntryNotice] = useState('');
+  const [showCommonHelp, setShowCommonHelp] = useState(false);
   const [validationMessages, setValidationMessages] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -257,6 +261,10 @@ export function App() {
     teacher: createTeacherTable(data.assignments, data.settings),
   };
 
+  if (!data.hasSelectedExamType && showCommonHelp) {
+    return <CommonHelp onBack={() => setShowCommonHelp(false)} />;
+  }
+
   if (!data.hasSelectedExamType) {
     return (
       <ExamTypeSelect
@@ -266,6 +274,7 @@ export function App() {
         hasStoredData={storedInfo.exists}
         versionMismatch={storedInfo.versionMismatch}
         notice={entryNotice}
+        onOpenHelp={() => setShowCommonHelp(true)}
       />
     );
   }
@@ -283,6 +292,7 @@ export function App() {
         </div>
         <nav>
           {[
+            [data.settings.examType === 'urine' ? 'urine-help' : 'tb-help', data.settings.examType === 'urine' ? '소변검사 사용 안내' : '결핵검진 사용 안내'],
             ['dashboard', '대시보드'],
             ['settings', '검사 조건'],
             ['locations', mode.unitMenu],
@@ -335,6 +345,8 @@ export function App() {
           </div>
         )}
 
+        {activeTab === 'urine-help' && <UrineHelp />}
+        {activeTab === 'tb-help' && <TbHelp />}
         {activeTab === 'dashboard' && (
           <Dashboard
             data={data}
@@ -370,8 +382,8 @@ export function App() {
                 tables.teacher.rows.map((row) => `${row[0]} ${row[1]} ${row[3]}`).join('\n'),
                 '교사용 안내 문구를 복사했습니다.',
               )
-            }
-            runSchedule={runSchedule}
+            }            runSchedule={runSchedule}
+            openExamHelp={() => setActiveTab(data.settings.examType === 'urine' ? 'urine-help' : 'tb-help')}
           />
         )}
 
@@ -536,6 +548,7 @@ function Metric({ label, value }: { label: string; value: string | number }) {
 
 function ExamTypeSelect({
   onSelect,
+  onOpenHelp,
   onContinue,
   onReset,
   hasStoredData,
@@ -543,6 +556,7 @@ function ExamTypeSelect({
   notice,
 }: {
   onSelect: (examType: ExamType) => void;
+  onOpenHelp: () => void;
   onContinue: () => void;
   onReset: () => void;
   hasStoredData: boolean;
@@ -560,6 +574,14 @@ function ExamTypeSelect({
             <strong className="brand-line">쑤캥T 보건실 도구모음</strong>
           </div>
           <OtterMascot variant="lg" className="type-hero-mascot" />
+        </section>
+
+        <section className="entry-help-card">
+          <div>
+            <strong>처음 사용하시나요?</strong>
+            <span>사용 설명을 먼저 확인해 보세요.</span>
+          </div>
+          <button onClick={onOpenHelp}>사용 설명 보기</button>
         </section>
 
         <section className="type-card-grid">
@@ -1429,6 +1451,7 @@ function ResultsPanel({
   copyGuide,
   copyTeacher,
   runSchedule,
+  openExamHelp,
 }: {
   data: AppData;
   setData: React.Dispatch<React.SetStateAction<AppData>>;
@@ -1446,6 +1469,7 @@ function ResultsPanel({
   copyGuide: () => void;
   copyTeacher: () => void;
   runSchedule: () => void;
+  openExamHelp: () => void;
 }) {
   const setOverride = (locationId: string, patch: Partial<ManualOverride>) => {
     setData((prev) => {
@@ -1496,7 +1520,10 @@ function ResultsPanel({
 
   return (
     <section className="stack print-area">
-      <div className="notice result-guide-card">{resultGuide}</div>
+      <div className="notice result-guide-card">
+        <span>{resultGuide}</span>
+        <button className="ghost" onClick={openExamHelp}>{isUrine ? '소변검사 사용 안내 보기' : '결핵검진 사용 안내 보기'}</button>
+      </div>
       {assigned.length === 0 && (
         <div className="action-notice no-print">
           <span>
