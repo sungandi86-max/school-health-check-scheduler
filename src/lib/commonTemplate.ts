@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import type { ExamSettings, LocationCategory, SubjectDivision, TimetableRow, VisitLocation } from '../types';
+import type { ExamSettings, LocationCategory, SubjectDivision, TimetableRow, VenueRestrictionWeekday, VisitLocation } from '../types';
 import { downloadText } from './csv';
 import { parseSubjectCells } from './subjectParser';
 
@@ -18,6 +18,9 @@ export interface CommonImportRow {
 export interface ImportPreview {
   rows: CommonImportRow[];
   warnings: string[];
+  notices?: string[];
+  appliedWeekday?: Exclude<VenueRestrictionWeekday, 'auto'>;
+  sourceMode?: 'common' | 'comcigan';
 }
 
 const COMMON_HEADERS = ['검사단위', '학년', '구분', '실제장소', '자동배정', '1교시', '2교시', '3교시', '4교시', '5교시', '6교시', '7교시', '비고'];
@@ -48,10 +51,14 @@ export function downloadCommonTemplateCsv() {
   downloadText('검진검사_시간표_공통서식.csv', `\uFEFF${csv}`, 'text/csv;charset=utf-8');
 }
 
-export async function parseWorkbookFile(file: File, mode: 'common' | 'comcigan'): Promise<ImportPreview> {
+export async function parseWorkbookFile(
+  file: File,
+  mode: 'common' | 'comcigan',
+  options: { targetWeekday?: Exclude<VenueRestrictionWeekday, 'auto'> } = {},
+): Promise<ImportPreview> {
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer);
-  return mode === 'common' ? parseCommonWorkbook(workbook) : parseComciganWorkbook(workbook);
+  return mode === 'common' ? parseCommonWorkbook(workbook) : parseComciganWorkbook(workbook, options.targetWeekday ?? '월');
 }
 
 function parseCommonWorkbook(workbook: XLSX.WorkBook): ImportPreview {
@@ -92,15 +99,24 @@ function parseCommonWorkbook(workbook: XLSX.WorkBook): ImportPreview {
   return { rows, warnings };
 }
 
-function parseComciganWorkbook(workbook: XLSX.WorkBook): ImportPreview {
+function parseComciganWorkbook(workbook: XLSX.WorkBook, targetWeekday: Exclude<VenueRestrictionWeekday, 'auto'>): ImportPreview {
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const raw = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
   const rows: CommonImportRow[] = [];
+  let sawClassBlock = false;
+  let usedHeaderlessBlock = false;
 
   for (let r = 0; r < raw.length - 1; r += 1) {
     const name = String(raw[r]?.[0] ?? '').trim().replaceAll(' ', '');
     const day = String(raw[r + 1]?.[0] ?? '').trim();
-    if (!/^[1-6]-\d+$/.test(name) || !day.startsWith('월')) continue;
+    if (!/^[1-6]-\d+$/.test(name)) continue;
+    sawClassBlock = true;
+    const hasWeekdayHeader = Boolean(parseWeekdayLabel(day));
+    const matchesTargetWeekday = hasWeekdayHeader && isTargetWeekdayLabel(day, targetWeekday);
+    const hasPeriodCells = Array.from({ length: 7 }, (_, index) => String(raw[r + 1]?.[index + 1] ?? '').trim()).some(Boolean);
+    const canUseHeaderlessBlock = !hasWeekdayHeader && hasPeriodCells;
+    if (!matchesTargetWeekday && !canUseHeaderlessBlock) continue;
+    if (canUseHeaderlessBlock) usedHeaderlessBlock = true;
     const [grade, klass] = name.split('-');
     const isDivision = klass === '13';
     const rawPeriods = Array.from({ length: 7 }, (_, index) => String(raw[r + 1]?.[index + 1] ?? '').trim());
@@ -118,7 +134,35 @@ function parseComciganWorkbook(workbook: XLSX.WorkBook): ImportPreview {
     });
   }
 
-  return { rows, warnings: rows.length ? [] : ['컴시간알리미 블록형 월요일 시간표를 찾지 못했습니다.'] };
+  const weekdayLabel = `${targetWeekday}요일`;
+  if (!rows.length) {
+    const base = sawClassBlock
+      ? `업로드한 파일에서 ${weekdayLabel} 시간표 영역을 자동으로 찾지 못했습니다. 시간표 미리보기를 확인하거나 적용 요일을 직접 선택해 주세요.`
+      : '컴시간알리미 블록형 시간표 구조를 찾지 못했습니다. 업로드 파일 형식을 확인해 주세요.';
+    return { rows, warnings: [base], appliedWeekday: targetWeekday, sourceMode: 'comcigan' };
+  }
+
+  return {
+    rows,
+    warnings: [],
+    notices: usedHeaderlessBlock ? [`요일 헤더는 찾지 못했지만, 업로드한 표를 ${weekdayLabel} 시간표로 적용했습니다. 미리보기를 확인해 주세요.`] : [],
+    appliedWeekday: targetWeekday,
+    sourceMode: 'comcigan',
+  };
+}
+
+function parseWeekdayLabel(value: string): Exclude<VenueRestrictionWeekday, 'auto'> | null {
+  const normalized = value.replace(/\s/g, '').toLowerCase();
+  if (/월|mon|monday/.test(normalized)) return '월';
+  if (/화|tue|tuesday/.test(normalized)) return '화';
+  if (/수|wed|wednesday/.test(normalized)) return '수';
+  if (/목|thu|thursday/.test(normalized)) return '목';
+  if (/금|fri|friday/.test(normalized)) return '금';
+  return null;
+}
+
+function isTargetWeekdayLabel(value: string, targetWeekday: Exclude<VenueRestrictionWeekday, 'auto'>) {
+  return parseWeekdayLabel(value) === targetWeekday;
 }
 
 function toCategory(value: string): LocationCategory {

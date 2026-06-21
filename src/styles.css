@@ -333,6 +333,23 @@ h3 {
   grid-template-columns: minmax(120px, 1.3fr) minmax(100px, 1fr) minmax(100px, 1fr);
 }
 
+.preview-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 14px;
+  color: #496275;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.preview-summary span {
+  padding: 6px 9px;
+  border: 1px solid #cfe1df;
+  border-radius: 8px;
+  background: #f8fcfb;
+}
+
 input,
 select,
 textarea {

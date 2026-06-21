@@ -994,9 +994,15 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
   const [paste, setPaste] = useState('');
   const [previewRows, setPreviewRows] = useState<CommonImportRow[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [uploadNotices, setUploadNotices] = useState<string[]>([]);
+  const [timetableWeekday, setTimetableWeekday] = useState<VenueRestrictionWeekday>('auto');
+  const [lastUploadMode, setLastUploadMode] = useState<'직접 입력' | '컴시간알리미' | '공통 서식'>('직접 입력');
   const commonFileRef = useRef<HTMLInputElement>(null);
   const comciganFileRef = useRef<HTMLInputElement>(null);
   const restrictedVenueFileRef = useRef<HTMLInputElement>(null);
+  const detectedExamWeekday = getWeekdayFromDateString(data.settings.examDate);
+  const appliedTimetableWeekday = timetableWeekday === 'auto' ? detectedExamWeekday : timetableWeekday;
+  const appliedTimetableWeekdayLabel = appliedTimetableWeekday ? `${appliedTimetableWeekday}요일` : '검사일 미입력';
   const update = (index: number, patch: Partial<TimetableRow>) =>
     setData((prev) => ({ ...prev, timetables: prev.timetables.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)), needsReschedule: true }));
 
@@ -1009,9 +1015,11 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
   };
   const uploadWorkbook = async (file: File | undefined, mode: 'common' | 'comcigan') => {
     if (!file) return;
-    const preview = await parseWorkbookFile(file, mode);
+    const preview = await parseWorkbookFile(file, mode, { targetWeekday: appliedTimetableWeekday || '월' });
     setPreviewRows(preview.rows);
     setWarnings(preview.warnings);
+    setUploadNotices(preview.notices ?? []);
+    setLastUploadMode(mode === 'comcigan' ? '컴시간알리미' : '공통 서식');
   };
   const applyPreview = () => {
     const converted = convertPreviewToAppRows(previewRows, data.settings);
@@ -1079,6 +1087,19 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
           <button onClick={downloadCommonTemplateCsv}><Download size={17} /> CSV 서식 다운로드</button>
           <button onClick={() => commonFileRef.current?.click()}><FileInput size={17} /> 공통 서식 업로드</button>
         </div>
+        <div className="inline-fields">
+          <Field label="검사일">
+            <input value={data.settings.examDate || ''} readOnly />
+          </Field>
+          <Field label="적용 요일">
+            <select value={timetableWeekday} onChange={(event) => setTimetableWeekday(event.target.value as VenueRestrictionWeekday)}>
+              <option value="auto">검사일 기준 자동{detectedExamWeekday ? ` (${detectedExamWeekday}요일)` : ''}</option>
+              {(['월', '화', '수', '목', '금'] as const).map((weekday) => (
+                <option key={weekday} value={weekday}>{weekday}요일</option>
+              ))}
+            </select>
+          </Field>
+        </div>
         <input ref={comciganFileRef} type="file" accept=".xlsx,.xls" hidden onChange={(event) => uploadWorkbook(event.target.files?.[0], 'comcigan')} />
         <input ref={commonFileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(event) => uploadWorkbook(event.target.files?.[0], 'common')} />
         <textarea
@@ -1106,11 +1127,23 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
           {warnings.map((warning, index) => <p key={index}>{warning}</p>)}
         </div>
       )}
+      {uploadNotices.length > 0 && (
+        <div className="card warning-list">
+          <strong>업로드 안내</strong>
+          {uploadNotices.map((notice, index) => <p key={index}>{notice}</p>)}
+        </div>
+      )}
       {previewRows.length > 0 && (
         <div className="card table-wrap">
           <div className="section-title">
             <h2>업로드 변환 결과 미리보기</h2>
             <button className="primary" onClick={applyPreview}>미리보기 내용을 시간표에 적용</button>
+          </div>
+          <div className="preview-summary">
+            <span>검사일: {data.settings.examDate || '-'}</span>
+            <span>적용 요일: {appliedTimetableWeekdayLabel}</span>
+            <span>업로드 방식: {lastUploadMode}</span>
+            <span>읽은 시간표 행 수: {previewRows.length}</span>
           </div>
           <table>
             <thead>
@@ -2058,6 +2091,14 @@ function minutesBetween(start: string, end: string) {
   const [startHour = '0', startMinute = '0'] = start.split(':');
   const [endHour = '0', endMinute = '0'] = end.split(':');
   return Math.max(0, Number(endHour) * 60 + Number(endMinute) - (Number(startHour) * 60 + Number(startMinute)));
+}
+
+function getWeekdayFromDateString(dateString: string): Exclude<VenueRestrictionWeekday, 'auto'> | '' {
+  const [year, month, day] = dateString.split('-').map(Number);
+  if (!year || !month || !day) return '';
+  const weekday = new Date(year, month - 1, day).getDay();
+  const weekdays: Record<number, Exclude<VenueRestrictionWeekday, 'auto'>> = { 1: '월', 2: '화', 3: '수', 4: '목', 5: '금' };
+  return weekdays[weekday] ?? '';
 }
 
 function minutesFromTime(time: string) {
