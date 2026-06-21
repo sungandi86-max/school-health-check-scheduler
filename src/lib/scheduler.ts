@@ -16,6 +16,8 @@ import { parseSubjectCell } from './subjectParser';
 
 const SECOND_FLOOR_LECTURE_ROOM_NOTE = '2층 종합강의실 수업 / 화장실 이동 안내 필요';
 const MIXED_GRADE_NOTE = '혼합학년 수업 / 명렬표 확인 필요';
+const LOW_CONFIDENCE_ROOM_NOTE = '실제 수업 장소 확인 필요';
+const DUPLICATE_VISIT_LOCATION_NOTE = '동일한 방문 장소가 여러 번 배정되어 수동 확인 필요';
 
 function hasKeyword(subject: string, keywords: string[]) {
   const normalized = subject.replace(/\s/g, '').toLowerCase();
@@ -24,6 +26,10 @@ function hasKeyword(subject: string, keywords: string[]) {
 
 function normalizeRoomText(value = '') {
   return value.replace(/\s/g, '').toUpperCase();
+}
+
+function normalizeVisitLocationKey(value = '') {
+  return normalizeRoomText(value).replace(/교실$/, '');
 }
 
 function joinNotes(...notes: Array<string | undefined>) {
@@ -60,6 +66,10 @@ function displaySecondFloorLectureRoomName(value?: string) {
   return isSecondFloorLectureRoomName(value) ? '2층 종합강의실' : value;
 }
 
+function isBareRoomNumber(value?: string) {
+  return /^\d{1,2}$/.test(String(value ?? '').trim());
+}
+
 function normalizeVisitRoomName(value?: string) {
   return displaySecondFloorLectureRoomName(value)?.trim() ?? '';
 }
@@ -69,6 +79,7 @@ function getUnitName(location: VisitLocation) {
 }
 
 function getActualRoomName(judgement?: PeriodJudgement) {
+  if (judgement?.roomMappingConfidence === 'low') return undefined;
   return normalizeVisitRoomName(judgement?.actualRoom || judgement?.restrictedVenueName) || undefined;
 }
 
@@ -95,6 +106,7 @@ function createAssignmentNote(manual: ManualOverride | undefined, judgement: Per
   const specialNotes = joinNotes(
     isSecondFloorLectureRoomJudgement(judgement) ? SECOND_FLOOR_LECTURE_ROOM_NOTE : undefined,
     isMixedGradeJudgement(judgement) ? MIXED_GRADE_NOTE : undefined,
+    judgement?.roomMappingConfidence === 'low' ? LOW_CONFIDENCE_ROOM_NOTE : undefined,
   );
   const autoNote = specialNotes || joinNotes(
     judgement?.actualRoom && judgement.roomMappingReason ? `${normalizeVisitRoomName(judgement.actualRoom)} / ${judgement.roomMappingReason}` : undefined,
@@ -223,10 +235,18 @@ function findRoomMapping(settings: ExamSettings, mappings: RoomMapping[], locati
   const rawText = row.rawTexts?.[period - 1] ?? subject;
   const className = normalizeClassName(row.displayName || location?.displayName || row.locationId);
   const candidates = mappings.filter((mapping) => !mapping.grade || !location?.grade || mapping.grade === location.grade);
-  return candidates
-    .map((mapping) => ({ mapping, score: scoreRoomMapping(mapping, { subject, teacher, rawText, className }) }))
+  const best = candidates
+    .map((mapping) => scoreRoomMapping(mapping, { subject, teacher, rawText, className }))
     .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score)[0]?.mapping;
+    .sort((a, b) => b.score - a.score)[0];
+  if (!best) return undefined;
+  if (best.confidence !== 'low') return { ...best.mapping, confidence: best.confidence };
+  return {
+    ...best.mapping,
+    confidence: 'low' as const,
+    actualRoom: '',
+    reason: joinNotes(best.mapping.reason, LOW_CONFIDENCE_ROOM_NOTE),
+  };
 }
 
 function scoreRoomMapping(
@@ -242,15 +262,35 @@ function scoreRoomMapping(
   const comciganRoom = normalizeText(mapping.comciganRoom ?? '');
   let score = 0;
 
-  if (mapping.involvedClasses?.length && !mapping.involvedClasses.includes(target.className)) return 0;
-  if (teacher && mappingTeacher && teacher === mappingTeacher) score += 6;
+  if (mapping.involvedClasses?.length && !mapping.involvedClasses.includes(target.className)) {
+    return { mapping, score: 0, confidence: 'low' as const };
+  }
+  const classMatched = mapping.involvedClasses?.includes(target.className) ?? false;
+  const teacherMatched = Boolean(teacher && mappingTeacher && teacher === mappingTeacher);
+  const subjectMatched = Boolean(
+    (subject && subjectName && (subject.includes(subjectName) || subjectName.includes(subject))) ||
+      (subject && divisionName && (subject.includes(divisionName) || divisionName.includes(subject))) ||
+      (rawText && subjectName && rawText.includes(subjectName)) ||
+      (rawText && divisionName && rawText.includes(divisionName))
+  );
+
+  if (teacherMatched) score += 6;
   if (subject && subjectName && (subject.includes(subjectName) || subjectName.includes(subject))) score += 4;
   if (subject && divisionName && (subject.includes(divisionName) || divisionName.includes(subject))) score += 5;
   if (rawText && subjectName && rawText.includes(subjectName)) score += 2;
   if (rawText && divisionName && rawText.includes(divisionName)) score += 2;
   if (rawText && comciganRoom && rawText.includes(comciganRoom)) score += 1;
-  if (mapping.involvedClasses?.includes(target.className)) score += 1;
-  return score;
+  if (classMatched) score += 1;
+
+  const bareNumberActualRoom = isBareRoomNumber(mapping.actualRoom);
+  const confidence: RoomMapping['confidence'] =
+    classMatched && subjectMatched && teacherMatched
+      ? 'high'
+      : classMatched && subjectMatched && !bareNumberActualRoom
+        ? 'medium'
+        : 'low';
+
+  return { mapping, score, confidence };
 }
 
 function normalizeText(value: string) {
@@ -284,6 +324,8 @@ export function judgePeriod(
   const subject = row?.periods[period - 1]?.trim() ?? '';
   const teacher = row?.teachers?.[period - 1]?.trim() ?? '';
   const isMixedGrade = Boolean(roomMapping?.isMixedGrade);
+  const roomMappingConfidence = roomMapping?.confidence;
+  const confidentActualRoom = roomMappingConfidence === 'low' ? undefined : roomMapping?.actualRoom;
 
   if (!location) {
     return { locationId: row?.locationId ?? '', period, subject, status: '수동확인', reason: '방문 장소 목록에 없는 시간표 행' };
@@ -296,8 +338,9 @@ export function judgePeriod(
       teacher,
       status: '수동확인',
       reason: '여러 학년 혼합 수업으로 호출 단위 확인 필요',
-      actualRoom: roomMapping?.actualRoom,
+      actualRoom: confidentActualRoom,
       roomMappingReason: roomMapping?.mixedReason || '여러 학년 혼합 수업',
+      roomMappingConfidence,
       comciganRoom: roomMapping?.comciganRoom,
     };
   }
@@ -319,8 +362,9 @@ export function judgePeriod(
       teacher: restriction?.teacher || teacher,
       status: '주의',
       reason,
-      actualRoom: displaySecondFloorLectureRoomName(roomMapping?.actualRoom),
+      actualRoom: displaySecondFloorLectureRoomName(confidentActualRoom),
       roomMappingReason: roomMapping ? reason : undefined,
+      roomMappingConfidence,
       restrictedVenueName: restriction ? '2층 종합강의실' : undefined,
       restrictedVenueReason: restriction ? reason : undefined,
       comciganRoom: roomMapping?.comciganRoom,
@@ -335,8 +379,9 @@ export function judgePeriod(
         teacher,
         status: '불가',
         reason: MIXED_GRADE_NOTE,
-        actualRoom: roomMapping?.actualRoom,
+        actualRoom: confidentActualRoom,
         roomMappingReason: MIXED_GRADE_NOTE,
+        roomMappingConfidence,
         comciganRoom: roomMapping?.comciganRoom,
       };
     }
@@ -348,8 +393,9 @@ export function judgePeriod(
         teacher,
         status: '수동확인',
         reason: MIXED_GRADE_NOTE,
-        actualRoom: roomMapping?.actualRoom,
+        actualRoom: confidentActualRoom,
         roomMappingReason: MIXED_GRADE_NOTE,
+        roomMappingConfidence,
         comciganRoom: roomMapping?.comciganRoom,
       };
     }
@@ -360,8 +406,9 @@ export function judgePeriod(
       teacher,
       status: '주의',
       reason: MIXED_GRADE_NOTE,
-      actualRoom: roomMapping?.actualRoom,
+      actualRoom: confidentActualRoom,
       roomMappingReason: MIXED_GRADE_NOTE,
+      roomMappingConfidence,
       comciganRoom: roomMapping?.comciganRoom,
     };
   }
@@ -372,11 +419,12 @@ export function judgePeriod(
       subject,
       teacher,
       status: '불가',
-      reason: [roomMapping.actualRoom ? `실제 수업 교실: ${roomMapping.actualRoom}` : '', roomMapping.reason || '실제 수업 교실 제한']
+      reason: [confidentActualRoom ? `실제 수업 교실: ${confidentActualRoom}` : '', roomMapping.reason || '실제 수업 교실 제한']
         .filter(Boolean)
         .join(' / '),
-      actualRoom: roomMapping.actualRoom,
+      actualRoom: confidentActualRoom,
       roomMappingReason: roomMapping.reason,
+      roomMappingConfidence,
       comciganRoom: roomMapping.comciganRoom,
     };
   }
@@ -400,11 +448,12 @@ export function judgePeriod(
       subject,
       teacher,
       status: '주의',
-      reason: [roomMapping.actualRoom ? `실제 수업 교실: ${roomMapping.actualRoom}` : '', roomMapping.reason || mixedReason || '실제 수업 교실 확인 필요']
+      reason: [confidentActualRoom ? `실제 수업 교실: ${confidentActualRoom}` : '', roomMapping.reason || mixedReason || '실제 수업 교실 확인 필요']
         .filter(Boolean)
         .join(' / '),
-      actualRoom: roomMapping.actualRoom,
+      actualRoom: confidentActualRoom,
       roomMappingReason: roomMapping.reason || mixedReason,
+      roomMappingConfidence,
       comciganRoom: roomMapping.comciganRoom,
     };
   }
@@ -482,6 +531,7 @@ function buildAssignment(
     timeBlockLabel: meta.timeBlockLabel,
     locationId: location.id,
     locationName: location.displayName,
+    unitId: location.id,
     unitName,
     homeRoomName,
     actualRoomName,
@@ -499,6 +549,7 @@ function buildAssignment(
     restrictedVenueReason: judgement?.restrictedVenueReason,
     actualRoom: actualRoomName ?? judgement?.actualRoom,
     roomMappingReason: judgement?.roomMappingReason,
+    roomMappingConfidence: judgement?.roomMappingConfidence,
     comciganRoom: judgement?.comciganRoom,
   };
 }
@@ -677,6 +728,28 @@ function scheduleCandidateGroup({
   const slots = getAssignableSlots(settings, slotOptions);
   const usedSlots = new Set<number>();
   const assignments: ScheduleAssignment[] = [];
+  const assignedUnitIds = new Set<string>();
+  const assignedVisitLocationsByGrade = new Map<string, Set<string>>();
+
+  const canAssign = (assignment: ScheduleAssignment) => {
+    if (settings.examType !== 'urine') return true;
+    const unitKey = assignment.unitId || assignment.locationId || assignment.unitName;
+    const visitKey = normalizeVisitLocationKey(assignment.displayVisitLocation || assignment.homeRoomName);
+    const grade = assignment.grade || 'unknown';
+    if (assignedUnitIds.has(unitKey)) return false;
+    if (visitKey && assignedVisitLocationsByGrade.get(grade)?.has(visitKey)) return false;
+    return true;
+  };
+
+  const markAssigned = (assignment: ScheduleAssignment) => {
+    if (settings.examType !== 'urine') return;
+    const unitKey = assignment.unitId || assignment.locationId || assignment.unitName;
+    const visitKey = normalizeVisitLocationKey(assignment.displayVisitLocation || assignment.homeRoomName);
+    const grade = assignment.grade || 'unknown';
+    assignedUnitIds.add(unitKey);
+    if (!assignedVisitLocationsByGrade.has(grade)) assignedVisitLocationsByGrade.set(grade, new Set());
+    if (visitKey) assignedVisitLocationsByGrade.get(grade)?.add(visitKey);
+  };
 
   for (const { location, valid } of candidates) {
     const manual = getManual(manualOverrides, location.id);
@@ -690,11 +763,30 @@ function scheduleCandidateGroup({
     }
 
     const preferred = manual?.period ? valid.find((item) => item.period === manual.period) : undefined;
-    const slotIndex = slots.findIndex(
-      (slot, index) => !usedSlots.has(index) && valid.some((item) => item.period === slot.period) && (!manual?.period || slot.period === manual.period),
-    );
-    const slot = slotIndex >= 0 ? slots[slotIndex] : undefined;
-    const judgement = preferred ?? valid.find((item) => item.period === slot?.period) ?? valid[0];
+    let selected:
+      | { slot: Slot | undefined; slotIndex: number; judgement: PeriodJudgement | undefined; duplicate: boolean }
+      | undefined;
+
+    if (manual?.scheduledTime) {
+      const judgement = preferred ?? valid[0];
+      const preview = buildAssignment(location, row, judgement, null, manual.scheduledTime, manual, { lineName, timeBlockLabel });
+      selected = { slot: undefined, slotIndex: -1, judgement, duplicate: !canAssign(preview) };
+    } else {
+      for (let index = 0; index < slots.length; index += 1) {
+        const slot = slots[index];
+        if (usedSlots.has(index) || (manual?.period && slot.period !== manual.period)) continue;
+        const judgement = preferred ?? valid.find((item) => item.period === slot.period);
+        if (!judgement) continue;
+        const preview = buildAssignment(location, row, judgement, null, slot.time, manual, { lineName, timeBlockLabel });
+        const duplicate = !canAssign(preview);
+        selected = { slot, slotIndex: index, judgement, duplicate };
+        if (!duplicate) break;
+      }
+    }
+
+    const slot = selected?.slot;
+    const slotIndex = selected?.slotIndex ?? -1;
+    const judgement = selected?.judgement ?? preferred ?? valid[0];
     const assignment = buildAssignment(location, row, judgement, null, manual?.scheduledTime || slot?.time || '', manual, {
       lineName,
       timeBlockLabel,
@@ -704,9 +796,14 @@ function scheduleCandidateGroup({
       assignment.failedReason = '검사 가능한 교시가 없음';
     } else if (!slot && !manual?.scheduledTime) {
       assignment.failedReason = settings.examType === 'tb' ? '학년별 검진 가능 시간 구간 안에 배정 불가' : '해당 학년 라인 시간 안에 배정 불가';
+    } else if (selected?.duplicate) {
+      assignment.failedReason = DUPLICATE_VISIT_LOCATION_NOTE;
+      assignment.duplicateWarning = duplicateWarningText(assignment, assignments);
+      appendNote(assignment, DUPLICATE_VISIT_LOCATION_NOTE);
     } else {
       assignment.order = assignments.filter((item) => item.order).length + 1;
       if (slotIndex >= 0) usedSlots.add(slotIndex);
+      markAssigned(assignment);
     }
     if (slot?.isBreak) appendNote(assignment, '쉬는 시간 포함');
     enrichExamTimes(assignment, settings);
@@ -714,6 +811,18 @@ function scheduleCandidateGroup({
   }
 
   return assignments;
+}
+
+function duplicateWarningText(assignment: ScheduleAssignment, assignments: ScheduleAssignment[]) {
+  const visitKey = normalizeVisitLocationKey(assignment.displayVisitLocation || assignment.homeRoomName);
+  const matched = assignments.find(
+    (item) =>
+      item.order &&
+      item.grade === assignment.grade &&
+      normalizeVisitLocationKey(item.displayVisitLocation || item.homeRoomName) === visitKey,
+  );
+  if (!matched) return DUPLICATE_VISIT_LOCATION_NOTE;
+  return `${DUPLICATE_VISIT_LOCATION_NOTE}: ${assignment.displayVisitLocation} / 기존 ${matched.unitName} ${matched.scheduledTime}`;
 }
 
 function enrichExamTimes(assignment: ScheduleAssignment, settings: ExamSettings) {

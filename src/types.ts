@@ -92,6 +92,7 @@ export interface PeriodJudgement {
   restrictedVenueReason?: string;
   actualRoom?: string;
   roomMappingReason?: string;
+  roomMappingConfidence?: 'high' | 'medium' | 'low';
   comciganRoom?: string;
 }
 
@@ -106,6 +107,7 @@ export interface ScheduleAssignment {
   timeBlockLabel?: string;
   locationId: string;
   locationName: string;
+  unitId: string;
   unitName: string;
   homeRoomName: string;
   actualRoomName?: string;
@@ -124,6 +126,8 @@ export interface ScheduleAssignment {
   restrictedVenueReason?: string;
   actualRoom?: string;
   roomMappingReason?: string;
+  roomMappingConfidence?: 'high' | 'medium' | 'low';
+  duplicateWarning?: string;
   comciganRoom?: string;
 }
 
@@ -170,6 +174,7 @@ export interface RoomMapping {
   isMixedGrade?: boolean;
   isMixedClass?: boolean;
   mixedReason?: string;
+  confidence?: 'high' | 'medium' | 'low';
 }
 
 export interface RoomMappingSettings {

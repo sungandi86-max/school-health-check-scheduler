@@ -12,6 +12,7 @@ import type {
   RestrictedVenue,
   RoomMapping,
   SubjectDivision,
+  ScheduleAssignment,
   TimetableRow,
   VenueRestrictionMode,
   VenueRestrictionWeekday,
@@ -96,6 +97,7 @@ export function App() {
     const lineCount = Math.max(1, data.settings.teamCount || 1);
     const vendorMinutes = minutesBetween(data.settings.startTime, data.settings.endTime);
     const gradeStats = createGradeStats(data);
+    const duplicateWarnings = createDuplicateVisitLocationWarnings(data.assignments);
     const estimatedMinutes =
       data.settings.examType === 'urine' && data.settings.urineSimultaneous && data.settings.urineParallelMode === 'grade'
         ? Math.max(0, ...gradeStats.map((stat) => stat.estimatedMinutes))
@@ -109,6 +111,7 @@ export function App() {
       vendorMinutes,
       fitsVendorTime: estimatedMinutes <= vendorMinutes,
       gradeStats,
+      duplicateWarnings,
     };
   }, [data, manualRows.length]);
 
@@ -433,6 +436,7 @@ function Dashboard({
     vendorMinutes: number;
     fitsVendorTime: boolean;
     gradeStats: ReturnType<typeof createGradeStats>;
+    duplicateWarnings: ReturnType<typeof createDuplicateVisitLocationWarnings>;
   };
   runSchedule: () => void;
   exportFull: () => void;
@@ -498,6 +502,37 @@ function Dashboard({
           {data.settings.examType === 'tb'
             ? '해당 학년의 검진 가능 시간 안에 모든 호출 단위를 배정하기 어려울 수 있습니다. 학년별 시간 구간, 호출단위당 소요시간, 검진 라인 수를 조정해 주세요.'
             : '해당 학년 라인의 검사 가능 시간 안에 모든 방문 장소를 배정하기 어려울 수 있습니다. 학년별 시작 시간, 장소당 소요시간, 검사팀 수, 검사 가능 교시를 조정해 주세요.'}
+        </div>
+      )}
+      {data.settings.examType === 'urine' && dashboard.duplicateWarnings.length > 0 && (
+        <div className="warning-list">
+          <strong>동일한 방문 장소가 여러 번 배정된 항목이 있습니다. 결과를 공유하기 전에 중복 배정 목록을 확인해 주세요.</strong>
+          <div className="table-wrap compact">
+            <table>
+              <thead>
+                <tr>
+                  <th>학년</th>
+                  <th>방문 장소</th>
+                  <th>배정 횟수</th>
+                  <th>관련 시간</th>
+                  <th>관련 기준 학급</th>
+                  <th>필요한 확인</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dashboard.duplicateWarnings.map((warning) => (
+                  <tr key={`${warning.grade}-${warning.visitLocation}-${warning.unitNames.join('-')}`}>
+                    <td>{warning.grade}학년</td>
+                    <td>{warning.visitLocation}</td>
+                    <td>{warning.count}</td>
+                    <td>{warning.times.join(', ')}</td>
+                    <td>{warning.unitNames.join(', ')}</td>
+                    <td>{warning.action}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
       {dashboard.done === 0 && dashboard.totalCandidates > 0 && (
@@ -2056,6 +2091,53 @@ function validateBeforeSchedule(data: AppData) {
   }
 
   return messages;
+}
+
+function createDuplicateVisitLocationWarnings(assignments: ScheduleAssignment[]) {
+  const rows = assignments.filter((item) => item.grade && (item.order || item.duplicateWarning));
+  const byVisitLocation = new Map<string, ScheduleAssignment[]>();
+  const byUnit = new Map<string, ScheduleAssignment[]>();
+
+  for (const item of rows) {
+    const visitKey = `${item.grade}|${normalizeDashboardVisitLocation(formatVisitLocation(item))}`;
+    const unitKey = `${item.grade}|${item.unitId || item.locationId || item.unitName}`;
+    byVisitLocation.set(visitKey, [...(byVisitLocation.get(visitKey) ?? []), item]);
+    byUnit.set(unitKey, [...(byUnit.get(unitKey) ?? []), item]);
+  }
+
+  const warnings = new Map<string, {
+    grade: string;
+    visitLocation: string;
+    count: number;
+    times: string[];
+    unitNames: string[];
+    action: string;
+  }>();
+
+  const addWarning = (items: ScheduleAssignment[], action: string) => {
+    if (items.length < 2 && !items.some((item) => item.duplicateWarning)) return;
+    const first = items[0];
+    const key = `${first.grade}|${normalizeDashboardVisitLocation(formatVisitLocation(first))}|${items.map((item) => item.unitId || item.locationId).join(',')}`;
+    warnings.set(key, {
+      grade: first.grade,
+      visitLocation: formatVisitLocation(first),
+      count: items.length,
+      times: [...new Set(items.map((item) => item.scheduledTime).filter(Boolean))],
+      unitNames: [...new Set(items.map((item) => item.unitName || item.homeRoomName || item.locationName).filter(Boolean))],
+      action,
+    });
+  };
+
+  byVisitLocation.forEach((items) => addWarning(items, '방문 장소 중복 여부 확인 및 수동 배정'));
+  byUnit.forEach((items) => addWarning(items, '기준 학급 중복 여부 확인'));
+
+  return [...warnings.values()].sort(
+    (a, b) => a.grade.localeCompare(b.grade, 'ko', { numeric: true }) || a.visitLocation.localeCompare(b.visitLocation, 'ko', { numeric: true }),
+  );
+}
+
+function normalizeDashboardVisitLocation(value: string) {
+  return value.replace(/\s/g, '').replace(/교실$/, '').toUpperCase();
 }
 
 function createGradeStats(data: AppData) {
