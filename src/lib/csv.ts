@@ -5,6 +5,14 @@ const MIXED_GRADE_NOTE = '혼합학년 수업 / 명렬표 확인 필요';
 const VISIT_LOCATION_GUIDE = '교실/장소는 검사팀이 실제 방문할 수업 장소 기준으로 표시됩니다. 원래 학급 교실과 다를 수 있으며, 학생의 실제 반은 명렬표로 확인해 주세요.';
 const NOTICE_LOCATION_GUIDE = '일부 이동수업·선택과목 수업은 원래 학급 교실이 아닌 실제 수업 장소 기준으로 표시됩니다.';
 
+type VisitLocationDisplaySource = Pick<ScheduleAssignment, 'grade' | 'locationName' | 'actualRoom'> & {
+  actualRoomName?: string;
+  displayVisitLocation?: string;
+  homeRoomName?: string;
+  rawRoom?: string;
+  unitName?: string;
+};
+
 function escapeCsv(value: string | number | null | undefined) {
   const text = String(value ?? '');
   return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
@@ -19,7 +27,7 @@ function joinNotes(...notes: Array<string | undefined>) {
 }
 
 function visitLocation(item: ScheduleAssignment) {
-  return item.displayVisitLocation || item.actualRoomName || item.actualRoom || item.locationName || item.unitName;
+  return formatVisitLocation(item);
 }
 
 function unitName(item: ScheduleAssignment) {
@@ -69,6 +77,89 @@ export function exportTableToCsv(table: ExportTable) {
   downloadText(`${table.name}.csv`, `\uFEFF${csv}`, 'text/csv;charset=utf-8');
 }
 
+export function formatVisitLocation(assignment: VisitLocationDisplaySource) {
+  const grade = String(assignment.grade ?? '').trim();
+  const fallback = formatHomeRoomName(assignment.homeRoomName || assignment.locationName || assignment.unitName, grade);
+  const candidates = [
+    assignment.actualRoomName,
+    assignment.actualRoom,
+    assignment.rawRoom,
+    assignment.displayVisitLocation,
+    assignment.locationName,
+    assignment.unitName,
+  ];
+
+  for (const candidate of candidates) {
+    const formatted = formatLocationCandidate(candidate, grade, fallback);
+    if (formatted) return formatted;
+  }
+
+  return fallback || '';
+}
+
+function formatLocationCandidate(value: string | undefined, grade: string, fallback: string) {
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+
+  const lectureRoom = normalizeComprehensiveLectureRoom(text);
+  if (lectureRoom) return lectureRoom;
+
+  const classRoom = normalizeClassRoomName(text, grade);
+  if (classRoom) return classRoom;
+
+  if (/^\d+$/.test(text.replace(/\s/g, ''))) return fallback;
+  return text;
+}
+
+function normalizeComprehensiveLectureRoom(value: string) {
+  const normalized = value.replace(/\s/g, '').toUpperCase();
+  if (
+    normalized.includes('5층중강') ||
+    normalized.includes('5층종강') ||
+    normalized.includes('5층종합강의실') ||
+    normalized.includes('5층종합')
+  ) {
+    return '5층 종합강의실';
+  }
+  if (
+    /^U-2-[123]$/.test(normalized) ||
+    normalized.includes('2층중강') ||
+    normalized.includes('2층종강') ||
+    normalized.includes('2층종합강의실') ||
+    normalized.includes('2층종합') ||
+    normalized.includes('종강1') ||
+    normalized.includes('종강2') ||
+    normalized.includes('중강1') ||
+    normalized.includes('중강2') ||
+    normalized.includes('중강기') ||
+    normalized === '종합강의실'
+  ) {
+    return '2층 종합강의실';
+  }
+  return '';
+}
+
+function normalizeClassRoomName(value: string, grade: string) {
+  const text = value.trim();
+  const compact = text.replace(/\s/g, '').replace(/교실$/, '');
+  const code = compact.match(/^([23])(\d{2})$/);
+  if (code) return `${code[1]}-${Number(code[2])}교실`;
+
+  const dashed = compact.match(/^([1-6])-(\d{1,2})$/);
+  if (dashed) return `${dashed[1]}-${Number(dashed[2])}교실`;
+
+  const bareNumber = compact.match(/^(\d{1,2})$/);
+  if (bareNumber && grade) return `${grade}-${Number(bareNumber[1])}교실`;
+
+  return '';
+}
+
+function formatHomeRoomName(value: string | undefined, grade: string) {
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+  return normalizeClassRoomName(text, grade) || text;
+}
+
 export function createFullTable(assignments: ScheduleAssignment[], settings?: ExamSettings): ExportTable {
   if (settings?.examType === 'tb') {
     return {
@@ -80,7 +171,7 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
         item.timeBlockLabel ?? '',
         item.callTime ?? '',
         item.examTime ?? item.scheduledTime,
-        item.locationName,
+        formatVisitLocation(item),
         item.examVenue || settings.examVenue,
         item.period ? `${item.period}교시` : '',
         item.subject,
@@ -102,7 +193,7 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
       item.lineName ?? '',
       item.grade,
       item.scheduledTime,
-      visitLocation(item),
+      formatVisitLocation(item),
       unitName(item),
       item.homeRoomName || item.locationName,
       item.period ? `${item.period}교시` : '',
@@ -127,7 +218,7 @@ export function createLabTable(assignments: ScheduleAssignment[]): ExportTable {
     rows: assignments
       .filter((item) => item.order)
       .sort(sortByDisplayTime)
-      .map((item) => [String(item.order), item.scheduledTime, unitName(item), visitLocation(item), item.subject, item.teacher ?? '', displayNote(item)]),
+      .map((item) => [String(item.order), item.scheduledTime, unitName(item), formatVisitLocation(item), item.subject, item.teacher ?? '', displayNote(item)]),
   };
 }
 
@@ -139,7 +230,7 @@ export function createUrineLineTables(assignments: ScheduleAssignment[]): Export
     rows: assignments
       .filter((item) => item.order && (item.lineName || '통합 라인') === lineName)
       .sort(sortByDisplayTime)
-      .map((item) => [String(item.order), item.scheduledTime, unitName(item), visitLocation(item), item.subject, item.teacher ?? '', displayNote(item)]),
+      .map((item) => [String(item.order), item.scheduledTime, unitName(item), formatVisitLocation(item), item.subject, item.teacher ?? '', displayNote(item)]),
   }));
 }
 
@@ -155,7 +246,7 @@ export function createTbTeamTable(assignments: ScheduleAssignment[], settings?: 
         item.grade,
         item.callTime ?? '',
         item.examTime ?? item.scheduledTime,
-        item.locationName,
+        formatVisitLocation(item),
         item.examVenue || settings?.examVenue || '',
         displayNote(item),
       ]),
@@ -170,7 +261,7 @@ export function createTbGradeTables(assignments: ScheduleAssignment[], settings?
     rows: assignments
       .filter((item) => item.order && item.grade === grade)
       .sort(sortByDisplayTime)
-      .map((item) => [String(item.order), item.callTime ?? '', item.examTime ?? item.scheduledTime, item.locationName, item.examVenue || settings?.examVenue || '', displayNote(item)]),
+      .map((item) => [String(item.order), item.callTime ?? '', item.examTime ?? item.scheduledTime, formatVisitLocation(item), item.examVenue || settings?.examVenue || '', displayNote(item)]),
   }));
 }
 
@@ -199,7 +290,7 @@ function getUrineGradeRows(assignments: ScheduleAssignment[], settings: ExamSett
     .sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || '') || visitLocation(a).localeCompare(visitLocation(b), 'ko', { numeric: true }))
     .map((item) => ({
       time: item.scheduledTime ? `${item.scheduledTime}~${addMinutes(item.scheduledTime, settings.durationMinutes)}` : '',
-      room: visitLocation(item),
+      room: formatVisitLocation(item),
       teacher: item.teacher ?? '',
     }));
 }
@@ -234,7 +325,7 @@ export function createTeacherTable(assignments: ScheduleAssignment[], settings?:
         .map((item) => [
           item.grade,
           item.timeBlockLabel ?? '',
-          item.locationName,
+          formatVisitLocation(item),
           item.callTime ?? '',
           item.examTime ?? item.scheduledTime,
           item.examVenue || settings.examVenue,
@@ -249,7 +340,7 @@ export function createTeacherTable(assignments: ScheduleAssignment[], settings?:
     rows: assignments
       .filter((item) => item.order)
       .map((item) => [
-        visitLocation(item),
+        formatVisitLocation(item),
         item.scheduledTime,
         item.period ? `${item.period}교시` : '',
         `해당 시간 소변검사팀이 방문할 예정입니다. 수업 중 학생들이 질서 있게 검사에 참여할 수 있도록 협조 부탁드립니다. ${NOTICE_LOCATION_GUIDE}`,

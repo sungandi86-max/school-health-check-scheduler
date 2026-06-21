@@ -297,8 +297,9 @@ function chooseReason(roomReason: string, availability: UrineExamAvailability, m
 
 function judgeRoom(room: string): { availability: UrineExamAvailability; reason: string } {
   const normalized = room.replace(/\s/g, '');
-  if (isComprehensiveLectureRoom(room)) {
-    return { availability: '주의', reason: '2층 종합강의실 수업 / 화장실 이동 안내 필요' };
+  const lectureRoomName = normalizeComprehensiveLectureRoom(room);
+  if (lectureRoomName) {
+    return { availability: '주의', reason: `${lectureRoomName} 수업 / 화장실 이동 안내 필요` };
   }
   if (isRestroomBlockedRoom(room)) return { availability: '불가', reason: '학생 화장실 접근 어려움' };
   if (['컴퓨터실', '체육관', '운동장'].some((keyword) => normalized.includes(keyword))) {
@@ -315,23 +316,39 @@ function isRestroomBlockedRoom(room: string) {
 }
 
 function isComprehensiveLectureRoom(room: string) {
+  return Boolean(normalizeComprehensiveLectureRoom(room));
+}
+
+function normalizeComprehensiveLectureRoom(room: string) {
   const normalized = room.replace(/\s/g, '').toUpperCase();
-  return (
+  if (
+    normalized.includes('5층중강') ||
+    normalized.includes('5층종강') ||
+    normalized.includes('5층종합강의실') ||
+    normalized.includes('5층종합')
+  ) {
+    return '5층 종합강의실';
+  }
+  if (
     /^U-2-\d+/.test(normalized) ||
     normalized.includes('2층종합강의실') ||
-    normalized.includes('종합강의실') ||
     normalized.includes('2층종강') ||
     normalized.includes('2층중강') ||
+    normalized.includes('2층종합') ||
     normalized.includes('종강1') ||
     normalized.includes('종강2') ||
     normalized.includes('중강1') ||
     normalized.includes('중강2') ||
-    normalized.includes('중강기')
-  );
+    normalized.includes('중강기') ||
+    normalized === '종합강의실'
+  ) {
+    return '2층 종합강의실';
+  }
+  return '';
 }
 
 function displayRoomName(room: string) {
-  return isComprehensiveLectureRoom(room) ? '2층 종합강의실' : room;
+  return normalizeComprehensiveLectureRoom(room) || room;
 }
 
 function detectGrade(value: string) {

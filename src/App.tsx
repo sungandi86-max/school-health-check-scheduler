@@ -37,6 +37,7 @@ import {
   createUrineLineTables,
   downloadJsonBackup,
   exportTableToCsv,
+  formatVisitLocation,
 } from './lib/csv';
 import { makeSchedule, createManualConfirmRows } from './lib/scheduler';
 import { parseTimetablePaste } from './lib/paste';
@@ -1644,7 +1645,7 @@ function ManualAdjustments({ assignments, setOverride }: { assignments: AppData[
         <tbody>
           {assignments.map((item) => (
             <tr key={item.locationId}>
-              <td>{item.locationName}</td>
+              <td>{formatVisitLocation(item)}</td>
               <td><input type="time" defaultValue={item.scheduledTime} onBlur={(event) => setOverride(item.locationId, { scheduledTime: event.target.value })} /></td>
               <td>
                 <select defaultValue={item.period ?? ''} onChange={(event) => setOverride(item.locationId, { period: event.target.value ? Number(event.target.value) : null })}>
@@ -1728,10 +1729,10 @@ function UrineTwoColumnPrintTable({ table, description }: { table: ReturnType<ty
             </tr>
             <tr>
               <th>검사 시간</th>
-              <th>교실</th>
+              <th>교실/장소</th>
               <th>교과교사</th>
               <th>검사 시간</th>
-              <th>교실</th>
+              <th>교실/장소</th>
               <th>교과교사</th>
             </tr>
           </thead>
@@ -1792,7 +1793,7 @@ function UrineNoticeSection({ title, rows }: { title: string; rows: string[][] }
         <thead>
           <tr>
             <th>검사 시간</th>
-            <th>교실</th>
+            <th>교실/장소</th>
             <th>교과교사</th>
           </tr>
         </thead>
@@ -1831,7 +1832,7 @@ function UrineUltraCompactNoticeTable({ table, description }: { table: ReturnTyp
         </div>
         <div className="actions no-print">
           <button onClick={printUltraCompactOnly}><Printer size={17} /> 초압축표 인쇄</button>
-          <button onClick={() => exportTableToCsv({ name: '소변검사_초압축_공지표', headers: ['검사 시간', '2학년 교실', '3학년 교실'], rows })}><Download size={17} /> 초압축 CSV</button>
+          <button onClick={() => exportTableToCsv({ name: '소변검사_초압축_공지표', headers: ['검사 시간', '2학년 교실/장소', '3학년 교실/장소'], rows })}><Download size={17} /> 초압축 CSV</button>
         </div>
       </div>
       <div className="urine-notice-sheet ultra">
@@ -1840,8 +1841,8 @@ function UrineUltraCompactNoticeTable({ table, description }: { table: ReturnTyp
           <thead>
             <tr>
               <th>검사 시간</th>
-              <th>2학년 교실</th>
-              <th>3학년 교실</th>
+              <th>2학년 교실/장소</th>
+              <th>3학년 교실/장소</th>
             </tr>
           </thead>
           <tbody>
@@ -1864,7 +1865,7 @@ function UrineUltraCompactNoticeTable({ table, description }: { table: ReturnTyp
 function exportNoticeRowsToCsv(name: string, grade2Rows: string[][], grade3Rows: string[][]) {
   exportTableToCsv({
     name,
-    headers: ['학년', '검사 시간', '교실', '교과교사'],
+    headers: ['학년', '검사 시간', '교실/장소', '교과교사'],
     rows: [
       ...grade2Rows.map((row) => ['2학년', ...row]),
       ...grade3Rows.map((row) => ['3학년', ...row]),

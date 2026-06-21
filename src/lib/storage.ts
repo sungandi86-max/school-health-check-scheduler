@@ -91,13 +91,14 @@ function normalizeExamType(value: unknown): ExamType {
 
 function normalizeRoomMappings(mappings: AppData['roomMappings']): AppData['roomMappings'] {
   return mappings.map((mapping) => {
-    if (isComprehensiveLectureRoom(mapping.actualRoom)) {
+    const lectureRoomName = normalizeComprehensiveLectureRoom(mapping.actualRoom);
+    if (lectureRoomName) {
       return {
         ...mapping,
-        actualRoom: '2층 종합강의실',
+        actualRoom: lectureRoomName,
         restroomAccessible: true,
         urineExamAvailability: '주의',
-        reason: mapping.isMixedGrade ? mixedRoomReason('2층 종합강의실 수업 / 화장실 이동 안내 필요') : '2층 종합강의실 수업 / 화장실 이동 안내 필요',
+        reason: mapping.isMixedGrade ? mixedRoomReason(`${lectureRoomName} 수업 / 화장실 이동 안내 필요`) : `${lectureRoomName} 수업 / 화장실 이동 안내 필요`,
       };
     }
     if (mapping.isMixedGrade && mapping.urineExamAvailability === '불가') {
@@ -118,43 +119,57 @@ function mixedRoomReason(reason: string) {
 
 function normalizeRestrictedVenues(venues: AppData['restrictedVenues']): AppData['restrictedVenues'] {
   return venues.map((venue) => {
-    if (!isComprehensiveLectureRoom(venue.name)) return venue;
+    const lectureRoomName = normalizeComprehensiveLectureRoom(venue.name);
+    if (!lectureRoomName) return venue;
     return {
       ...venue,
-      name: '2층 종합강의실',
+      name: lectureRoomName,
       hasStudentRestroom: true,
       mode: '주의',
-      note: '2층 종합강의실 수업 / 화장실 이동 안내 필요',
+      note: `${lectureRoomName} 수업 / 화장실 이동 안내 필요`,
     };
   });
 }
 
 function normalizeRestrictedVenueEntries(entries: AppData['restrictedVenueEntries']): AppData['restrictedVenueEntries'] {
   return entries.map((entry) => {
-    if (!isComprehensiveLectureRoom(entry.venueName)) return entry;
+    const lectureRoomName = normalizeComprehensiveLectureRoom(entry.venueName);
+    if (!lectureRoomName) return entry;
     return {
       ...entry,
-      venueName: '2층 종합강의실',
+      venueName: lectureRoomName,
       mode: '주의',
-      reason: '2층 종합강의실 수업 / 화장실 이동 안내 필요',
+      reason: `${lectureRoomName} 수업 / 화장실 이동 안내 필요`,
     };
   });
 }
 
-function isComprehensiveLectureRoom(value = '') {
+function normalizeComprehensiveLectureRoom(value = '') {
   const normalized = value.replace(/\s/g, '').toUpperCase();
-  return (
+  if (
+    normalized.includes('5층중강') ||
+    normalized.includes('5층종강') ||
+    normalized.includes('5층종합강의실') ||
+    normalized.includes('5층종합')
+  ) {
+    return '5층 종합강의실';
+  }
+  if (
     /^U-2-\d+/.test(normalized) ||
     normalized.includes('2층종합강의실') ||
-    normalized.includes('종합강의실') ||
     normalized.includes('2층종강') ||
     normalized.includes('2층중강') ||
+    normalized.includes('2층종합') ||
     normalized.includes('종강1') ||
     normalized.includes('종강2') ||
     normalized.includes('중강1') ||
     normalized.includes('중강2') ||
-    normalized.includes('중강기')
-  );
+    normalized.includes('중강기') ||
+    normalized === '종합강의실'
+  ) {
+    return '2층 종합강의실';
+  }
+  return '';
 }
 
 function normalizeSettings(settings: AppData['settings'], fallback: AppData['settings']) {

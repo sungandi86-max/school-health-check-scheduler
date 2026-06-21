@@ -75,14 +75,15 @@ function parseVenueMeta(sheetName: string, rows: unknown[][]): RestrictedVenue |
   const floor = rawName.match(/(\d+층)/)?.[1] ?? (rawName.toUpperCase().startsWith('U-2-') ? '2층' : '');
   const mode = defaultModeForVenue(rawName);
   const isSecondFloor = rawName.includes('2층') || rawName.toUpperCase().startsWith('U-2-');
+  const lectureRoomName = normalizeComprehensiveLectureRoom(rawName);
   return {
     id,
     name,
     floor,
-    hasStudentRestroom: isComprehensiveLectureRoom(rawName) || !isSecondFloor,
+    hasStudentRestroom: Boolean(lectureRoomName) || !isSecondFloor,
     mode,
-    note: isComprehensiveLectureRoom(rawName)
-      ? '2층 종합강의실 수업 / 화장실 이동 안내 필요'
+    note: lectureRoomName
+      ? `${lectureRoomName} 수업 / 화장실 이동 안내 필요`
       : isSecondFloor
         ? '2층 학생 화장실 없음'
         : mode === '주의'
@@ -100,23 +101,39 @@ function defaultModeForVenue(name: string): VenueRestrictionMode {
 }
 
 function isComprehensiveLectureRoom(name: string) {
+  return Boolean(normalizeComprehensiveLectureRoom(name));
+}
+
+function normalizeComprehensiveLectureRoom(name: string) {
   const normalized = name.replace(/\s/g, '').toUpperCase();
-  return (
+  if (
+    normalized.includes('5층중강') ||
+    normalized.includes('5층종강') ||
+    normalized.includes('5층종합강의실') ||
+    normalized.includes('5층종합')
+  ) {
+    return '5층 종합강의실';
+  }
+  if (
     /^U-2-\d+/.test(normalized) ||
     normalized.includes('2층종합강의실') ||
-    normalized.includes('종합강의실') ||
     normalized.includes('2층종강') ||
     normalized.includes('2층중강') ||
+    normalized.includes('2층종합') ||
     normalized.includes('종강1') ||
     normalized.includes('종강2') ||
     normalized.includes('중강1') ||
     normalized.includes('중강2') ||
-    normalized.includes('중강기')
-  );
+    normalized.includes('중강기') ||
+    normalized === '종합강의실'
+  ) {
+    return '2층 종합강의실';
+  }
+  return '';
 }
 
 function displayVenueName(name: string) {
-  return isComprehensiveLectureRoom(name) ? '2층 종합강의실' : name;
+  return normalizeComprehensiveLectureRoom(name) || name;
 }
 
 function parseWeekday(value: string): Weekday | null {
