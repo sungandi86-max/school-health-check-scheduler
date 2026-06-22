@@ -2,6 +2,7 @@ export type JudgementStatus = '가능' | '주의' | '불가' | '수동확인';
 export type LocationCategory = '일반교실' | '특별실' | '선택과목 장소' | '체육시설' | '수동확인';
 export type DivisionHandling = '자동제외' | '장소반영';
 export type ExamType = 'urine' | 'tb';
+export type ExamOperationMode = 'visit' | 'move';
 export type DayScheduleKind = 'excluded' | 'period';
 export type UrineParallelMode = 'sequential' | 'grade' | 'team';
 export type UrineMixedGradeHandling = 'allow-caution' | 'manual-confirm' | 'exclude';
@@ -30,6 +31,7 @@ export interface DayScheduleItem {
 
 export interface ExamSettings {
   examType: ExamType;
+  operationMode: ExamOperationMode;
   examDate: string;
   targetGrades: string[];
   startTime: string;

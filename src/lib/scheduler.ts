@@ -201,7 +201,7 @@ function getAssignableSlots(
 ) {
   const globalStart = Math.max(timeToMinutes(settings.startTime), timeToMinutes(options.startTime ?? settings.startTime));
   const globalEnd = Math.min(timeToMinutes(settings.endTime), timeToMinutes(options.endTime ?? settings.endTime));
-  const lines = Math.max(1, options.lineCount ?? settings.teamCount ?? 1);
+  const lines = getEffectiveLineCount(settings, options.lineCount);
   const slots: Slot[] = [];
 
   for (const item of settings.daySchedule) {
@@ -240,6 +240,13 @@ function getAssignableSlots(
 
   slots.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time) || a.period - b.period);
   return slots;
+}
+
+function getEffectiveLineCount(settings: ExamSettings, requestedLineCount?: number) {
+  const requested = Math.max(1, requestedLineCount ?? settings.teamCount ?? 1);
+  if (settings.examType !== 'tb') return requested;
+  if (!settings.allowWaiting) return 1;
+  return Math.max(1, Math.min(requested, settings.teamCount || 1, settings.maxUnitsPerCall || 1));
 }
 
 function overlapsNonAssignableSchedule(start: number, end: number, settings: ExamSettings) {
@@ -436,7 +443,7 @@ export function judgePeriod(
   }
   if (!location.isVisitable) {
     if (settings.examType === 'tb') {
-      return { locationId: location.id, period, subject, teacher, status: '주의', reason: '현재 수업 장소 기준 호출 가능' };
+      return { locationId: location.id, period, subject, teacher, status: '주의', reason: '검진 대상 학급 기준 이동 가능' };
     }
     return { locationId: location.id, period, subject, status: '불가', reason: '실제 방문 가능 여부가 불가능' };
   }
@@ -918,10 +925,14 @@ export function makeSchedule(data: AppData): { judgements: PeriodJudgement[]; as
     const aAssigned = Boolean(a.order);
     const bAssigned = Boolean(b.order);
     if (aAssigned !== bAssigned) return aAssigned ? -1 : 1;
-    const aTime = settings.examType === 'tb' ? a.callTime || a.scheduledTime : a.scheduledTime;
-    const bTime = settings.examType === 'tb' ? b.callTime || b.scheduledTime : b.scheduledTime;
+    const aTime = settings.examType === 'tb' ? a.examTime || a.scheduledTime : a.scheduledTime;
+    const bTime = settings.examType === 'tb' ? b.examTime || b.scheduledTime : b.scheduledTime;
     const timeCompare = timeToMinutes(aTime || '23:59') - timeToMinutes(bTime || '23:59');
     if (timeCompare) return timeCompare;
+    if (settings.examType === 'tb') {
+      const callTimeCompare = timeToMinutes(a.callTime || '23:59') - timeToMinutes(b.callTime || '23:59');
+      if (callTimeCompare) return callTimeCompare;
+    }
     const lineCompare = lineRank(a.lineName) - lineRank(b.lineName);
     if (lineCompare) return lineCompare;
     return a.displayVisitLocation.localeCompare(b.displayVisitLocation, 'ko', { numeric: true });
@@ -967,35 +978,6 @@ function markUsedDurationSlots(usedSlots: Set<number>, slots: Slot[], startIndex
   }
 }
 
-function tbPlaceGroupKey(assignment: ScheduleAssignment) {
-  const place = normalizeVisitLocationKey(assignment.actualRoomName || assignment.actualRoom || assignment.homeRoomName || assignment.locationName);
-  return [place, assignment.period ?? '', assignment.subject.trim(), (assignment.teacher ?? '').trim()].join('|');
-}
-
-function applyTbMixedDuration(settings: ExamSettings, assignment: ScheduleAssignment) {
-  let duration = settings.durationMinutes;
-  if (assignment.isMixedGrade) duration += settings.tbMixedGradeExtraMinutes || 0;
-  else if (assignment.isMixedClass) duration += settings.tbSameGradeMixedExtraMinutes || 0;
-  if ((assignment.isMixedClass || assignment.isMixedGrade) && settings.tbMixedUseTwoSlots) {
-    duration = Math.max(duration, settings.durationMinutes * 2);
-  }
-  assignment.estimatedDurationMinutes = Math.max(1, duration);
-  assignment.hasMixedDurationExtra = assignment.estimatedDurationMinutes > settings.durationMinutes;
-}
-
-function mergeTbPlaceGroup(target: ScheduleAssignment, source: ScheduleAssignment, settings: ExamSettings) {
-  const classes = [...new Set([...(target.involvedClasses ?? []), target.unitName, ...(source.involvedClasses ?? []), source.unitName].filter(Boolean))];
-  const grades = [...new Set([...(target.involvedGrades ?? []), target.grade, ...(source.involvedGrades ?? []), source.grade].filter(Boolean))];
-  target.involvedClasses = classes;
-  target.involvedGrades = grades;
-  target.mixedClassCount = classes.length;
-  target.isMixedClass = classes.length >= 2 || target.isMixedClass || source.isMixedClass;
-  target.isMixedGrade = grades.length >= 2 || target.isMixedGrade || source.isMixedGrade;
-  target.judgement = target.judgement === '가능' ? '주의' : target.judgement;
-  appendNote(target, target.isMixedGrade ? '혼합학년 수업 / 명렬표 확인 필요' : '여러 학급 혼합수업 / 명렬표 확인 필요');
-  applyTbMixedDuration(settings, target);
-}
-
 function applyTbCumulativeDurations(assignments: ScheduleAssignment[], settings: ExamSettings, startTime?: string, lineCount = 1) {
   if (settings.examType !== 'tb') return;
   const ordered = assignments
@@ -1004,7 +986,8 @@ function applyTbCumulativeDurations(assignments: ScheduleAssignment[], settings:
   if (!ordered.length) return;
 
   const firstTime = ordered.find((item) => item.scheduledTime)?.scheduledTime || startTime || settings.startTime;
-  const lineCursors = Array.from({ length: Math.max(1, lineCount) }, () => timeToMinutes(startTime || firstTime));
+  const effectiveLineCount = getEffectiveLineCount(settings, lineCount);
+  const lineCursors = Array.from({ length: effectiveLineCount }, () => timeToMinutes(startTime || firstTime));
 
   for (const assignment of ordered) {
     const duration = Math.max(1, assignment.estimatedDurationMinutes ?? settings.durationMinutes);
@@ -1045,7 +1028,6 @@ function scheduleCandidateGroup({
   const assignments: ScheduleAssignment[] = [];
   const assignedUnitIds = new Set<string>();
   const assignedVisitLocationsByGrade = new Map<string, Set<string>>();
-  const tbPlaceGroups = new Map<string, ScheduleAssignment>();
 
   const canAssign = (assignment: ScheduleAssignment) => {
     if (settings.examType !== 'urine') return true;
@@ -1130,15 +1112,6 @@ function scheduleCandidateGroup({
       assignment.duplicateWarning = duplicateWarningText(assignment, assignments);
       appendNote(assignment, DUPLICATE_VISIT_LOCATION_NOTE);
     } else {
-      if (settings.examType === 'tb') {
-        const placeKey = tbPlaceGroupKey(assignment);
-        const existing = tbPlaceGroups.get(placeKey);
-        if (existing) {
-          mergeTbPlaceGroup(existing, assignment, settings);
-          continue;
-        }
-        tbPlaceGroups.set(placeKey, assignment);
-      }
       assignment.order = assignments.filter((item) => item.order).length + 1;
       if (slotIndex >= 0) markUsedDurationSlots(usedSlots, slots, slotIndex, assignment.estimatedDurationMinutes ?? settings.durationMinutes, settings);
       markAssigned(assignment);
@@ -1172,7 +1145,7 @@ function enrichExamTimes(assignment: ScheduleAssignment, settings: ExamSettings)
   if (settings.examType === 'tb' && assignment.scheduledTime) {
     assignment.callTime = minutesToTime(timeToMinutes(assignment.scheduledTime) - Math.max(0, settings.travelMinutes || 0));
     if (!isAssignableCallTime(assignment.callTime, settings)) {
-      assignment.failedReason = assignment.failedReason || '호출 시간이 조회시간, 점심시간 또는 제외 시간 등 배정 불가 시간에 걸림';
+      assignment.failedReason = assignment.failedReason || '학생 이동 안내 시간이 조회시간, 점심시간 또는 제외 시간 등 배정 불가 시간에 걸림';
     }
   }
 }

@@ -174,6 +174,11 @@ function normalizeComprehensiveLectureRoom(value = '') {
 
 function normalizeSettings(settings: AppData['settings'], fallback: AppData['settings']) {
   const hasStoredGradeTimeMode = typeof settings.gradeTimeMode === 'string';
+  settings.operationMode = ['visit', 'move'].includes(String(settings.operationMode))
+    ? settings.operationMode
+    : settings.examType === 'tb'
+      ? 'move'
+      : 'visit';
   settings.urineSimultaneous = typeof settings.urineSimultaneous === 'boolean' ? settings.urineSimultaneous : fallback.urineSimultaneous;
   settings.urineParallelMode = settings.urineParallelMode ?? fallback.urineParallelMode;
   settings.urineMixedGradeHandling = ['allow-caution', 'manual-confirm', 'exclude'].includes(String(settings.urineMixedGradeHandling))
