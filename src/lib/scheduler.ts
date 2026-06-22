@@ -922,6 +922,8 @@ export function makeSchedule(data: AppData): { judgements: PeriodJudgement[]; as
     );
   }
 
+  preventTbOverlaps(assignments, settings);
+
   const sortedAssignments = assignments.sort((a, b) => {
     const aAssigned = Boolean(a.order);
     const bAssigned = Boolean(b.order);
@@ -1048,6 +1050,80 @@ function applyTbCumulativeDurations(assignments: ScheduleAssignment[], settings:
     assignment.scheduledTime = minutesToTime(lineCursors[lineIndex]);
     enrichExamTimes(assignment, settings);
     lineCursors[lineIndex] += duration;
+  }
+}
+
+function getTbAssignmentBlock(settings: ExamSettings, assignment: ScheduleAssignment) {
+  if (!settings.useGradeTimeBlocks || settings.gradeTimeMode === 'ALL_GRADES_FULL_RANGE') {
+    return { startTime: settings.startTime, endTime: settings.endTime };
+  }
+  const blocks = getEffectiveGradeTimeBlocks(settings);
+  const block = isCombinedGradeTimeMode(settings.gradeTimeMode)
+    ? blocks[0]
+    : blocks.find((item) => item.grade === assignment.grade);
+  return {
+    startTime: block?.startTime ?? settings.startTime,
+    endTime: block?.endTime ?? settings.endTime,
+  };
+}
+
+function getTbAssignmentGroupKey(settings: ExamSettings, assignment: ScheduleAssignment) {
+  const block = getTbAssignmentBlock(settings, assignment);
+  if (isCombinedGradeTimeMode(settings.gradeTimeMode)) return `${block.startTime}-${block.endTime}`;
+  return `${assignment.grade || assignment.lineName || 'tb'}|${block.startTime}-${block.endTime}`;
+}
+
+function preventTbOverlaps(assignments: ScheduleAssignment[], settings: ExamSettings) {
+  if (settings.examType !== 'tb') return;
+  const groups = new Map<string, ScheduleAssignment[]>();
+  for (const assignment of assignments) {
+    if (!assignment.order || assignment.failedReason) continue;
+    const key = getTbAssignmentGroupKey(settings, assignment);
+    groups.set(key, [...(groups.get(key) ?? []), assignment]);
+  }
+
+  for (const rows of groups.values()) {
+    rows.sort(
+      (a, b) =>
+        timeToMinutes(a.scheduledTime || '23:59') - timeToMinutes(b.scheduledTime || '23:59') ||
+        (a.order ?? 9999) - (b.order ?? 9999) ||
+        a.unitName.localeCompare(b.unitName, 'ko', { numeric: true }),
+    );
+    let cursor = timeToMinutes(getTbAssignmentBlock(settings, rows[0]).startTime);
+    for (const assignment of rows) {
+      const block = getTbAssignmentBlock(settings, assignment);
+      const blockEnd = timeToMinutes(block.endTime);
+      const previousStart = timeToMinutes(assignment.scheduledTime || block.startTime);
+      const start = Math.max(previousStart, cursor);
+      const duration = Math.max(1, assignment.estimatedDurationMinutes ?? settings.durationMinutes);
+      const end = start + duration;
+      if (end > blockEnd) {
+        assignment.failedReason = createTbFailureDebug({
+          location: {
+            id: assignment.locationId,
+            displayName: assignment.unitName || assignment.locationName,
+            grade: assignment.grade,
+            category: '일반교실',
+            isVisitable: true,
+            includeInAuto: true,
+            notes: '',
+          },
+          previousEnd: cursor,
+          expectedStart: start,
+          expectedEnd: end,
+          gradeEnd: blockEnd,
+          duration,
+          settings,
+          mixedExtra: Math.max(0, duration - settings.durationMinutes),
+          reason: '시간 겹침 보정 후 학년별 검진 가능 시간 구간 안에 배정 불가',
+        });
+        assignment.order = null;
+        continue;
+      }
+      assignment.scheduledTime = minutesToTime(start);
+      enrichExamTimes(assignment, settings);
+      cursor = end;
+    }
   }
 }
 
