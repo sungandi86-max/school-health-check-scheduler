@@ -739,6 +739,110 @@ td select {
   width: 46%;
 }
 
+.tb-print-two-column-table {
+  max-width: 1240px;
+  width: 100%;
+  margin: 0 auto;
+  overflow-x: auto;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.tb-print-two-column-table .two-column-table {
+  width: 100%;
+  min-width: 1080px;
+  table-layout: fixed;
+}
+
+.tb-print-two-column-table .two-column-table th,
+.tb-print-two-column-table .two-column-table td {
+  padding: 7px 6px;
+  font-size: 13.5px;
+  line-height: 1.24;
+  word-break: keep-all;
+}
+
+.tb-compact-two-column {
+  padding: 14px;
+}
+
+.tb-compact-two-column .two-column-print-header p {
+  display: none;
+}
+
+.tb-compact-two-column .two-column-table {
+  min-width: 1020px;
+}
+
+.tb-print-vertical-table {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.tb-notice-sheet {
+  width: min(100%, 840px);
+  margin: 0 auto;
+  border: 1px solid #b7d7d2;
+  background: #ffffff;
+  padding: 18px 20px;
+}
+
+.tb-notice-sheet.ultra {
+  width: min(100%, 520px);
+  padding: 12px;
+}
+
+.tb-notice-sheet h3 {
+  margin: 0 0 10px;
+  text-align: center;
+  color: #15364d;
+  font-size: 19px;
+  line-height: 1.25;
+}
+
+.tb-notice-sheet .table-description {
+  margin: 0 0 12px;
+  text-align: center;
+}
+
+.tb-notice-sheet .urine-notice-table th,
+.tb-notice-sheet .urine-notice-table td {
+  padding: 7px 7px;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.tb-notice-sheet .urine-notice-table th:first-child,
+.tb-notice-sheet .urine-notice-table td:first-child {
+  width: 22%;
+}
+
+.tb-notice-sheet .urine-notice-table th:nth-child(2),
+.tb-notice-sheet .urine-notice-table td:nth-child(2) {
+  width: 22%;
+}
+
+.tb-notice-sheet .urine-notice-table th:nth-child(3),
+.tb-notice-sheet .urine-notice-table td:nth-child(3) {
+  width: 26%;
+}
+
+.tb-notice-sheet .urine-notice-table th:nth-child(4),
+.tb-notice-sheet .urine-notice-table td:nth-child(4) {
+  width: 30%;
+}
+
+.tb-print-ultra-table {
+  max-width: 620px;
+  width: 100%;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 14px;
+}
+
 .urine-notice-page,
 .urine-ultra-page {
   background: #ffffff;
@@ -1141,6 +1245,16 @@ td select {
     margin: 8mm;
   }
 
+  @page tbNoticePortrait {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  @page tbTwoColumnLandscape {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
   body {
     min-width: 0;
     background: #ffffff;
@@ -1171,8 +1285,17 @@ td select {
     display: none !important;
   }
 
+  body.print-tb-two-column-only .print-area > :not(.tb-print-two-column-table) {
+    display: none !important;
+  }
+
   body.print-urine-notice-only .print-area > :not(.urine-notice-page),
   body.print-urine-ultra-only .print-area > :not(.urine-ultra-page) {
+    display: none !important;
+  }
+
+  body.print-tb-notice-only .print-area > :not(.tb-print-vertical-table),
+  body.print-tb-ultra-only .print-area > :not(.tb-print-ultra-table) {
     display: none !important;
   }
 
@@ -1214,8 +1337,38 @@ td select {
     padding: 4px 3px;
   }
 
+  body.print-tb-two-column-only .tb-print-two-column-table {
+    page: tbTwoColumnLandscape;
+    width: 281mm;
+    max-width: none;
+    min-height: auto;
+    padding: 0;
+    border: 0;
+    overflow: visible;
+    box-shadow: none;
+  }
+
+  body.print-tb-two-column-only .tb-print-two-column-table .two-column-table {
+    width: 100%;
+    min-width: 0;
+  }
+
+  body.print-tb-two-column-only .tb-print-two-column-table .two-column-table th,
+  body.print-tb-two-column-only .tb-print-two-column-table .two-column-table td {
+    padding: 3.5px 3px;
+    font-size: 10.4px;
+    line-height: 1.12;
+  }
+
+  body.print-tb-two-column-only .tb-print-two-column-table .two-column-table .grade-title-row th {
+    font-size: 12px;
+    padding: 4px 3px;
+  }
+
   body.print-urine-notice-only,
-  body.print-urine-ultra-only {
+  body.print-urine-ultra-only,
+  body.print-tb-notice-only,
+  body.print-tb-ultra-only {
     background: #ffffff;
   }
 
@@ -1234,6 +1387,51 @@ td select {
 
   body.print-urine-ultra-only .urine-notice-sheet {
     width: 92mm;
+  }
+
+  body.print-tb-notice-only .tb-print-vertical-table,
+  body.print-tb-ultra-only .tb-print-ultra-table {
+    page: tbNoticePortrait;
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  body.print-tb-notice-only .tb-notice-sheet {
+    width: 176mm;
+    padding: 5mm;
+  }
+
+  body.print-tb-ultra-only .tb-notice-sheet {
+    width: 110mm;
+    padding: 4mm;
+  }
+
+  body.print-tb-notice-only .tb-notice-sheet h3,
+  body.print-tb-ultra-only .tb-notice-sheet h3 {
+    margin-bottom: 3mm;
+    font-size: 16px;
+  }
+
+  body.print-tb-notice-only .tb-notice-sheet .table-description {
+    margin-bottom: 3mm;
+    font-size: 10.5px;
+  }
+
+  body.print-tb-notice-only .tb-notice-sheet .urine-notice-section + .urine-notice-section {
+    margin-top: 4mm;
+  }
+
+  body.print-tb-notice-only .tb-notice-sheet .urine-notice-section h4,
+  body.print-tb-notice-only .tb-notice-sheet .urine-notice-table th,
+  body.print-tb-notice-only .tb-notice-sheet .urine-notice-table td,
+  body.print-tb-ultra-only .tb-notice-sheet .urine-notice-table th,
+  body.print-tb-ultra-only .tb-notice-sheet .urine-notice-table td {
+    padding: 4px 5px;
+    font-size: 10.8px;
+    line-height: 1.14;
   }
 
   .urine-notice-header {

@@ -1962,13 +1962,13 @@ function TbTwoColumnPrintTable({ table, settings, description }: { table: Return
   const [isCompact, setIsCompact] = useState(true);
   const printTwoColumnOnly = () => {
     setIsCompact(true);
-    document.body.classList.add('print-two-column-only');
+    document.body.classList.add('print-tb-two-column-only');
     window.setTimeout(() => window.print(), 0);
-    window.setTimeout(() => document.body.classList.remove('print-two-column-only'), 1000);
+    window.setTimeout(() => document.body.classList.remove('print-tb-two-column-only'), 1000);
   };
 
   return (
-    <div id="tb-two-column-print" className={`card two-column-print-page ${isCompact ? 'compact-two-column' : ''}`}>
+    <div id="tb-two-column-print" className={`card tb-print-two-column-table ${isCompact ? 'tb-compact-two-column' : ''}`}>
       <div className="two-column-print-header">
         <div>
           <h2>D. 학년별 2단 인쇄표</h2>
@@ -2020,13 +2020,13 @@ function TbNoticeVerticalTable({ table, settings, description }: { table: Return
   const grade2Rows = table.rows.map((row) => row.slice(0, 4)).filter((row) => row.some(Boolean));
   const grade3Rows = table.rows.map((row) => row.slice(4, 8)).filter((row) => row.some(Boolean));
   const printNoticeOnly = () => {
-    document.body.classList.add('print-urine-notice-only');
+    document.body.classList.add('print-tb-notice-only');
     window.setTimeout(() => window.print(), 0);
-    window.setTimeout(() => document.body.classList.remove('print-urine-notice-only'), 1000);
+    window.setTimeout(() => document.body.classList.remove('print-tb-notice-only'), 1000);
   };
 
   return (
-    <div id="tb-notice-print" className="card urine-notice-page">
+    <div id="tb-notice-print" className="card tb-print-vertical-table">
       <div className="urine-notice-header">
         <div>
           <h2>E. 공지용 세로형 표</h2>
@@ -2037,7 +2037,7 @@ function TbNoticeVerticalTable({ table, settings, description }: { table: Return
           <button onClick={() => exportTbNoticeRowsToCsv('결핵검진_공지용_세로형표', grade2Rows, grade3Rows)}><Download size={17} /> 세로형 CSV</button>
         </div>
       </div>
-      <div className="urine-notice-sheet">
+      <div className="tb-notice-sheet">
         <h3>2·3학년 결핵검진 시간표</h3>
         <p className="table-description">{tbScheduleSummary(settings)}</p>
         <TbNoticeSection title="2학년 결핵검진" rows={grade2Rows} />
@@ -2083,13 +2083,13 @@ function TbUltraCompactNoticeTable({ assignments, settings, description }: { ass
     .sort((a, b) => (a.callTime || a.scheduledTime || '').localeCompare(b.callTime || b.scheduledTime || '') || a.grade.localeCompare(b.grade, 'ko', { numeric: true }))
     .map((item) => [`${item.grade}학년`, item.callTime ?? '', formatVisitLocation(item), item.examVenue || settings.examVenue]);
   const printUltraCompactOnly = () => {
-    document.body.classList.add('print-urine-ultra-only');
+    document.body.classList.add('print-tb-ultra-only');
     window.setTimeout(() => window.print(), 0);
-    window.setTimeout(() => document.body.classList.remove('print-urine-ultra-only'), 1000);
+    window.setTimeout(() => document.body.classList.remove('print-tb-ultra-only'), 1000);
   };
 
   return (
-    <div id="tb-ultra-compact-print" className="card urine-ultra-page">
+    <div id="tb-ultra-compact-print" className="card tb-print-ultra-table">
       <div className="urine-notice-header">
         <div>
           <h2>F. 초압축 공지표</h2>
@@ -2100,7 +2100,7 @@ function TbUltraCompactNoticeTable({ assignments, settings, description }: { ass
           <button onClick={() => exportTableToCsv({ name: '결핵검진_초압축_공지표', headers: ['학년', '호출 시간', '호출 단위', '검진 장소'], rows })}><Download size={17} /> 초압축 CSV</button>
         </div>
       </div>
-      <div className="urine-notice-sheet ultra">
+      <div className="tb-notice-sheet ultra">
         <h3>2·3학년 결핵검진 호출 시간표</h3>
         <table className="urine-notice-table ultra">
           <thead>
