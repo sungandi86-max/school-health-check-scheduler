@@ -41,6 +41,30 @@ export function formatCurrentClassroom(item: ScheduleAssignment) {
   });
 }
 
+function includedClasses(item: ScheduleAssignment) {
+  const classes = item.involvedClasses?.filter(Boolean) ?? [];
+  const fallback = unitName(item);
+  return [...new Set(classes.length ? classes : [fallback])].join(', ');
+}
+
+function includedGrades(item: ScheduleAssignment) {
+  const grades = item.involvedGrades?.filter(Boolean) ?? [];
+  const classGrades = (item.involvedClasses ?? [])
+    .map((className) => className.match(/^(\d)/)?.[1])
+    .filter((grade): grade is string => Boolean(grade));
+  return [...new Set([...(grades.length ? grades : classGrades), item.grade].filter(Boolean))].sort().join(', ');
+}
+
+function tbPlaceNote(item: ScheduleAssignment) {
+  const note = displayNote(item);
+  const checklistNote = item.isMixedGrade
+    ? '혼합학년 수업 / 명렬표 확인 필요'
+    : item.isMixedClass || (item.mixedClassCount ?? 1) >= 2
+      ? '여러 학급 혼합수업 / 명렬표 확인 필요'
+      : '명렬표 확인 후 검진';
+  return joinNotes(note, checklistNote, item.hasMixedDurationExtra ? '소요시간 변동 가능' : undefined);
+}
+
 function unitName(item: ScheduleAssignment) {
   return item.unitName || item.homeRoomName?.replace(/교실$/, '') || item.locationName.replace(/교실$/, '');
 }
@@ -175,25 +199,25 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
   if (settings?.examType === 'tb') {
     return {
       name: '결핵검진_자동배정표',
-      headers: ['순서', '학년', '시간 구간', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '현재 수업 장소', '교시', '수업명', '교과교사', '예상 소요시간', '판정', '수동수정 여부', '컴시간 표시 교실', '실제교실 사유', '비고'],
+      headers: ['순서', '시간 구간', '호출 시간', '검진 예상 시간', '현재 수업 장소', '수업명', '교과교사', '포함 학년', '포함 학급', '검진 장소', '교시', '예상 소요시간', '판정', '수동수정 여부', '컴시간 표시 교실', '실제교실 사유', '비고'],
       rows: assignments.map((item) => [
         item.order?.toString() ?? '',
-        item.grade,
         item.timeBlockLabel ?? '',
         item.callTime ?? '',
         item.examTime ?? item.scheduledTime,
-        unitName(item),
-        item.examVenue || settings.examVenue,
         formatCurrentClassroom(item),
-        item.period ? `${item.period}교시` : '',
         item.subject,
         item.teacher ?? '',
+        includedGrades(item),
+        includedClasses(item),
+        item.examVenue || settings.examVenue,
+        item.period ? `${item.period}교시` : '',
         item.estimatedDurationMinutes ? `${item.estimatedDurationMinutes}분` : '',
         item.judgement,
         item.isManual ? '수동수정' : '',
         item.comciganRoom ?? '',
         item.roomMappingReason ?? '',
-        displayNote(item),
+        tbPlaceNote(item),
       ]),
     };
   }
@@ -249,23 +273,22 @@ export function createUrineLineTables(assignments: ScheduleAssignment[]): Export
 
 export function createTbTeamTable(assignments: ScheduleAssignment[], settings?: ExamSettings): ExportTable {
   return {
-    name: '결핵검진_검진팀용_간단표',
-    headers: ['순서', '학년', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '현재 수업 장소', '수업명', '교과교사', '예상 소요시간', '비고'],
+    name: '결핵검진_검진팀용_장소별_호출표',
+    headers: ['순서', '호출 시간', '검진 예상 시간', '현재 수업 장소', '수업명', '교과교사', '포함 학년', '포함 학급', '검진 장소', '비고'],
     rows: assignments
       .filter((item) => item.order)
       .sort(sortByDisplayTime)
       .map((item) => [
         String(item.order),
-        item.grade,
         item.callTime ?? '',
         item.examTime ?? item.scheduledTime,
-        unitName(item),
-        item.examVenue || settings?.examVenue || '',
         formatCurrentClassroom(item),
         item.subject,
         item.teacher ?? '',
-        item.estimatedDurationMinutes ? `${item.estimatedDurationMinutes}분` : '',
-        displayNote(item),
+        includedGrades(item),
+        includedClasses(item),
+        item.examVenue || settings?.examVenue || '',
+        tbPlaceNote(item),
       ]),
   };
 }
@@ -273,8 +296,8 @@ export function createTbTeamTable(assignments: ScheduleAssignment[], settings?: 
 export function createTbGradeTables(assignments: ScheduleAssignment[], settings?: ExamSettings): ExportTable[] {
   const grades = [...new Set(assignments.filter((item) => item.order).map((item) => item.grade))].sort();
   return grades.map((grade) => ({
-    name: `결핵검진_${grade}학년_검진팀용_간단표`,
-    headers: ['순서', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '현재 수업 장소', '수업명', '교과교사', '예상 소요시간', '비고'],
+    name: `결핵검진_${grade}학년_장소별_호출표`,
+    headers: ['순서', '호출 시간', '검진 예상 시간', '현재 수업 장소', '수업명', '교과교사', '포함 학년', '포함 학급', '검진 장소', '비고'],
     rows: assignments
       .filter((item) => item.order && item.grade === grade)
       .sort(sortByDisplayTime)
@@ -282,13 +305,13 @@ export function createTbGradeTables(assignments: ScheduleAssignment[], settings?
         String(item.order),
         item.callTime ?? '',
         item.examTime ?? item.scheduledTime,
-        unitName(item),
-        item.examVenue || settings?.examVenue || '',
         formatCurrentClassroom(item),
         item.subject,
         item.teacher ?? '',
-        item.estimatedDurationMinutes ? `${item.estimatedDurationMinutes}분` : '',
-        displayNote(item),
+        includedGrades(item),
+        includedClasses(item),
+        item.examVenue || settings?.examVenue || '',
+        tbPlaceNote(item),
       ]),
   }));
 }
@@ -299,19 +322,19 @@ export function createTbTwoColumnTable(assignments: ScheduleAssignment[], settin
   const maxRows = Math.max(grade2.length, grade3.length);
 
   return {
-    name: '결핵검진_학년별_2단표',
-    headers: ['2학년 호출 시간', '2학년 검진 예상 시간', '2학년 호출 단위', '2학년 현재 수업 장소', '2학년 교과교사', '3학년 호출 시간', '3학년 검진 예상 시간', '3학년 호출 단위', '3학년 현재 수업 장소', '3학년 교과교사'],
+    name: '결핵검진_장소별_2단표',
+    headers: ['2학년 호출 시간', '2학년 현재 수업 장소', '2학년 수업명', '2학년 교과교사', '2학년 비고', '3학년 호출 시간', '3학년 현재 수업 장소', '3학년 수업명', '3학년 교과교사', '3학년 비고'],
     rows: Array.from({ length: maxRows }, (_, index) => [
       grade2[index]?.callTime ?? '',
-      grade2[index]?.examTime ?? '',
-      grade2[index]?.unit ?? '',
       grade2[index]?.currentClassroom ?? '',
+      grade2[index]?.subject ?? '',
       grade2[index]?.teacher ?? '',
+      grade2[index]?.note ?? '',
       grade3[index]?.callTime ?? '',
-      grade3[index]?.examTime ?? '',
-      grade3[index]?.unit ?? '',
       grade3[index]?.currentClassroom ?? '',
+      grade3[index]?.subject ?? '',
       grade3[index]?.teacher ?? '',
+      grade3[index]?.note ?? '',
     ]),
   };
 }
@@ -328,6 +351,7 @@ function getTbGradeRows(assignments: ScheduleAssignment[], settings: ExamSetting
       currentClassroom: formatCurrentClassroom(item),
       teacher: item.teacher ?? '',
       subject: item.subject,
+      note: tbPlaceNote(item),
     }));
 }
 
@@ -384,21 +408,19 @@ function lineRank(lineName?: string) {
 export function createTeacherTable(assignments: ScheduleAssignment[], settings?: ExamSettings): ExportTable {
   if (settings?.examType === 'tb') {
     return {
-      name: '결핵검진_교사용_안내표',
-      headers: ['학년', '호출 시간', '검진 예상 시간', '호출 단위', '현재 수업 장소', '해당 교시', '수업명', '교과교사', '비고', '협조 요청 문구'],
+      name: '결핵검진_교사용_장소별_안내표',
+      headers: ['호출 시간', '현재 수업 장소', '수업명', '교과교사', '포함 학년', '포함 학급', '검진 장소', '협조 요청'],
       rows: assignments
         .filter((item) => item.order)
         .map((item) => [
-          item.grade,
           item.callTime ?? '',
-          item.examTime ?? item.scheduledTime,
-          unitName(item),
           formatCurrentClassroom(item),
-          item.period ? `${item.period}교시` : '',
           item.subject,
           item.teacher ?? '',
-          displayNote(item),
-          '해당 시간 결핵검진을 위해 학생들이 검진 장소로 이동할 예정입니다. 학생들이 질서 있게 이동하고 검진 후 바로 수업에 복귀할 수 있도록 협조 부탁드립니다.',
+          includedGrades(item),
+          includedClasses(item),
+          item.examVenue || settings.examVenue,
+          '해당 시간 수업 중인 학생들이 검진 장소로 이동할 수 있도록 안내 부탁드립니다. 검진팀이 현장에서 명렬표 확인 후 검진을 진행할 예정입니다.',
         ]),
     };
   }

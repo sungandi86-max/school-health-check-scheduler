@@ -800,15 +800,15 @@ td select {
 }
 
 .tb-print-vertical-table .urine-notice-table th:nth-child(2) {
-  width: 18%;
+  width: 30%;
 }
 
 .tb-print-vertical-table .urine-notice-table th:nth-child(3) {
-  width: 16%;
+  width: 18%;
 }
 
 .tb-print-vertical-table .urine-notice-table th:nth-child(4) {
-  width: 30%;
+  width: 16%;
 }
 
 .tb-print-vertical-table .urine-notice-table th:nth-child(5) {

@@ -404,9 +404,9 @@ export function judgePeriod(
         subject,
         teacher,
         status: '수동확인',
-        reason: '혼합 규모가 커서 호출 단위 확인 필요',
+        reason: '혼합 규모가 커서 수업 장소 확인 필요',
         actualRoom: confidentActualRoom,
-        roomMappingReason: '혼합 규모가 커서 호출 단위 확인 필요',
+        roomMappingReason: '혼합 규모가 커서 수업 장소 확인 필요',
         roomMappingConfidence,
         involvedGrades: roomMapping?.involvedGrades,
         involvedClasses: roomMapping?.involvedClasses,
@@ -436,7 +436,7 @@ export function judgePeriod(
   }
   if (!location.isVisitable) {
     if (settings.examType === 'tb') {
-      return { locationId: location.id, period, subject, teacher, status: '주의', reason: '호출 단위 방문 가능 여부 참고 / 호출 가능' };
+      return { locationId: location.id, period, subject, teacher, status: '주의', reason: '현재 수업 장소 기준 호출 가능' };
     }
     return { locationId: location.id, period, subject, status: '불가', reason: '실제 방문 가능 여부가 불가능' };
   }
@@ -475,9 +475,9 @@ export function judgePeriod(
         subject,
         teacher,
         status: '수동확인',
-        reason: '혼합 규모가 커서 호출 단위 확인 필요',
+        reason: '혼합 규모가 커서 수업 장소 확인 필요',
         actualRoom: confidentActualRoom,
-        roomMappingReason: '혼합 규모가 커서 호출 단위 확인 필요',
+        roomMappingReason: '혼합 규모가 커서 수업 장소 확인 필요',
         roomMappingConfidence,
         involvedGrades: roomMapping.involvedGrades,
         involvedClasses: roomMapping.involvedClasses,
@@ -967,6 +967,35 @@ function markUsedDurationSlots(usedSlots: Set<number>, slots: Slot[], startIndex
   }
 }
 
+function tbPlaceGroupKey(assignment: ScheduleAssignment) {
+  const place = normalizeVisitLocationKey(assignment.actualRoomName || assignment.actualRoom || assignment.homeRoomName || assignment.locationName);
+  return [place, assignment.period ?? '', assignment.subject.trim(), (assignment.teacher ?? '').trim()].join('|');
+}
+
+function applyTbMixedDuration(settings: ExamSettings, assignment: ScheduleAssignment) {
+  let duration = settings.durationMinutes;
+  if (assignment.isMixedGrade) duration += settings.tbMixedGradeExtraMinutes || 0;
+  else if (assignment.isMixedClass) duration += settings.tbSameGradeMixedExtraMinutes || 0;
+  if ((assignment.isMixedClass || assignment.isMixedGrade) && settings.tbMixedUseTwoSlots) {
+    duration = Math.max(duration, settings.durationMinutes * 2);
+  }
+  assignment.estimatedDurationMinutes = Math.max(1, duration);
+  assignment.hasMixedDurationExtra = assignment.estimatedDurationMinutes > settings.durationMinutes;
+}
+
+function mergeTbPlaceGroup(target: ScheduleAssignment, source: ScheduleAssignment, settings: ExamSettings) {
+  const classes = [...new Set([...(target.involvedClasses ?? []), target.unitName, ...(source.involvedClasses ?? []), source.unitName].filter(Boolean))];
+  const grades = [...new Set([...(target.involvedGrades ?? []), target.grade, ...(source.involvedGrades ?? []), source.grade].filter(Boolean))];
+  target.involvedClasses = classes;
+  target.involvedGrades = grades;
+  target.mixedClassCount = classes.length;
+  target.isMixedClass = classes.length >= 2 || target.isMixedClass || source.isMixedClass;
+  target.isMixedGrade = grades.length >= 2 || target.isMixedGrade || source.isMixedGrade;
+  target.judgement = target.judgement === '가능' ? '주의' : target.judgement;
+  appendNote(target, target.isMixedGrade ? '혼합학년 수업 / 명렬표 확인 필요' : '여러 학급 혼합수업 / 명렬표 확인 필요');
+  applyTbMixedDuration(settings, target);
+}
+
 function applyTbCumulativeDurations(assignments: ScheduleAssignment[], settings: ExamSettings, startTime?: string, lineCount = 1) {
   if (settings.examType !== 'tb') return;
   const ordered = assignments
@@ -1016,6 +1045,7 @@ function scheduleCandidateGroup({
   const assignments: ScheduleAssignment[] = [];
   const assignedUnitIds = new Set<string>();
   const assignedVisitLocationsByGrade = new Map<string, Set<string>>();
+  const tbPlaceGroups = new Map<string, ScheduleAssignment>();
 
   const canAssign = (assignment: ScheduleAssignment) => {
     if (settings.examType !== 'urine') return true;
@@ -1100,6 +1130,15 @@ function scheduleCandidateGroup({
       assignment.duplicateWarning = duplicateWarningText(assignment, assignments);
       appendNote(assignment, DUPLICATE_VISIT_LOCATION_NOTE);
     } else {
+      if (settings.examType === 'tb') {
+        const placeKey = tbPlaceGroupKey(assignment);
+        const existing = tbPlaceGroups.get(placeKey);
+        if (existing) {
+          mergeTbPlaceGroup(existing, assignment, settings);
+          continue;
+        }
+        tbPlaceGroups.set(placeKey, assignment);
+      }
       assignment.order = assignments.filter((item) => item.order).length + 1;
       if (slotIndex >= 0) markUsedDurationSlots(usedSlots, slots, slotIndex, assignment.estimatedDurationMinutes ?? settings.durationMinutes, settings);
       markAssigned(assignment);

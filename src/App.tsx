@@ -40,6 +40,7 @@ import {
   createTbTwoColumnTable,
   downloadJsonBackup,
   exportTableToCsv,
+  formatCurrentClassroom,
   formatVisitLocation,
 } from './lib/csv';
 import { makeSchedule, createManualConfirmRows } from './lib/scheduler';
@@ -506,7 +507,7 @@ function Dashboard({
         <Metric label={mode.gradeLabel} value={data.settings.targetGrades.join(', ') || '-'} />
         <Metric label={mode.totalLabel} value={dashboard.totalCandidates} />
         {dashboard.gradeStats.map((stat) => (
-          <Metric key={`${stat.grade}-count`} label={`${stat.grade}학년 ${data.settings.examType === 'tb' ? '호출 단위 수' : '방문 장소 수'}`} value={stat.count} />
+          <Metric key={`${stat.grade}-count`} label={`${stat.grade}학년 ${data.settings.examType === 'tb' ? '수업 장소 수' : '방문 장소 수'}`} value={stat.count} />
         ))}
         <Metric label="자동 배정 완료 수" value={dashboard.done} />
         {data.settings.examType === 'tb' && <Metric label="주의 배정 수" value={dashboard.cautionDone} />}
@@ -517,7 +518,7 @@ function Dashboard({
         {data.settings.examType === 'tb' &&
           dashboard.gradeStats.map((stat) => <Metric key={`${stat.grade}-done`} label={`${stat.grade}학년 배정 완료 수`} value={stat.done} />)}
         <Metric label="수동 확인 필요 수" value={dashboard.manual} />
-        {data.settings.examType === 'tb' && <Metric label="미배정 호출 단위 수" value={dashboard.unassigned} />}
+        {data.settings.examType === 'tb' && <Metric label="미배정 수업 장소 수" value={dashboard.unassigned} />}
         {data.settings.examType === 'tb' && <Metric label="시간 부족 미배정 수" value={dashboard.timeShortage} />}
         {data.settings.examType === 'tb' && <Metric label="조건 필터 미배정 수" value={dashboard.filteredOut} />}
         <Metric label={mode.blockedLabel} value={dashboard.blocked} />
@@ -537,7 +538,7 @@ function Dashboard({
       {dashboard.gradeStats.some((stat) => !stat.fits) && (
         <div className="warning-banner">
           {data.settings.examType === 'tb'
-            ? '해당 학년의 검진 가능 시간 안에 모든 호출 단위를 배정하기 어려울 수 있습니다. 학년별 시간 구간, 호출단위당 소요시간, 검진 라인 수를 조정해 주세요.'
+            ? '해당 학년의 검진 가능 시간 안에 모든 수업 장소를 배정하기 어려울 수 있습니다. 학년별 시간 구간, 장소당 소요시간, 검진 라인 수를 조정해 주세요.'
             : '해당 학년 라인의 검사 가능 시간 안에 모든 방문 장소를 배정하기 어려울 수 있습니다. 학년별 시작 시간, 장소당 소요시간, 검사팀 수, 검사 가능 교시를 조정해 주세요.'}
         </div>
       )}
@@ -804,7 +805,7 @@ function SettingsPanel({
           <input type="time" value={settings.endTime} onChange={(event) => update('endTime', event.target.value)} />
         </Field>
         <div className="form-help">업체가 실제 검사를 시작·종료할 수 있는 시간을 입력해 주세요. 자동배정은 학교 일과표와 업체 가능 시간이 겹치는 시간 안에서만 진행됩니다.</div>
-        <Field label={settings.examType === 'tb' ? '학급/호출단위당 검진 소요시간(분)' : '장소당 검사 소요시간(분)'}>
+        <Field label={settings.examType === 'tb' ? '수업 장소당 검진 소요시간(분)' : '장소당 검사 소요시간(분)'}>
           <input type="number" min={1} value={settings.durationMinutes} onChange={(event) => update('durationMinutes', Number(event.target.value))} />
         </Field>
         <Field label={settings.examType === 'tb' ? '검진 라인 수' : '검사팀 수'}>
@@ -1691,7 +1692,8 @@ function ResultsPanel({
 전체 자동 배정표는 보건교사용 검토표이며, 실제 공유용 자료는 검진팀용 간단표와 교사용 안내표를 사용해 주세요.
 
 결핵검진은 학생들이 검진 장소로 이동하는 호출형 검진입니다.
-호출 시간은 학생들이 교실에서 출발해야 하는 시간이며, 검진 예상 시간은 검진 장소에서 실제 검진이 진행될 예상 시간입니다.`;
+선택과목·이동수업으로 인해 학급별 호출보다 현재 수업 장소 기준 호출이 더 적합할 수 있습니다.
+이 시간표는 학생들이 현재 수업 중인 교실·장소를 기준으로 작성되며, 검진팀이 현장에서 명렬표를 확인하며 진행합니다.`;
   const gradeStats = createGradeStats(data);
   const grade2 = gradeStats.find((stat) => stat.grade === '2');
   const grade3 = gradeStats.find((stat) => stat.grade === '3');
@@ -1723,17 +1725,17 @@ function ResultsPanel({
     '보건교사용 검토표입니다. 검사 라인, 학년, 시간, 수업, 판정, 비고를 전체적으로 확인할 때 사용합니다. 교직원에게 그대로 공유하기보다는 검토용으로 사용해 주세요.';
   const teamDescription = isUrine
     ? '검사팀이 실제 방문 순서를 확인할 때 사용하는 표입니다. 학년별 라인에 따라 교실 방문 순서를 확인할 수 있습니다.'
-    : '검진팀이 검진 장소에서 학생 호출 순서를 확인할 때 사용하는 표입니다. 호출 시간과 검진 예상 시간을 함께 확인할 수 있습니다.';
+    : '검진팀이 검진 장소에서 현재 수업 장소 기준 호출 순서를 확인할 때 사용하는 표입니다. 포함 학년과 포함 학급은 명렬표 확인용 참고자료입니다.';
   const teacherDescription =
     '담임 및 교과교사에게 공유할 안내용 표입니다. 검사 또는 검진 시간에 학생들이 질서 있게 참여할 수 있도록 협조 요청 문구가 포함됩니다.';
   const twoColumnDescription = isUrine
     ? '2학년과 3학년 소변검사 라인을 좌우로 나누어 한눈에 볼 수 있는 표입니다. 검사팀 및 내부 검토용으로 적합합니다.'
-    : '2학년과 3학년 결핵검진 호출 시간표를 좌우로 나누어 한눈에 볼 수 있는 표입니다. 검진팀 및 교직원 공지용으로 적합합니다.';
+    : '2학년과 3학년 결핵검진 장소별 호출 시간표를 좌우로 나누어 한눈에 볼 수 있는 표입니다. 검진팀 및 교직원 공지용으로 적합합니다.';
   const noticeDescription =
     '메신저 공지, 교직원 안내, 화면 캡처 공유용으로 적합합니다.';
   const ultraCompactDescription = isUrine
     ? '교과교사 정보를 제외하고 시간대별 교실만 빠르게 공유하는 초압축 공지표입니다.'
-    : '호출 시간, 호출 단위, 검진 장소만 빠르게 공유하는 초압축 공지표입니다.';
+    : '호출 시간, 현재 수업 장소, 검진 장소만 빠르게 공유하는 초압축 공지표입니다.';
   const scrollToTwoColumn = () => document.getElementById(isUrine ? 'urine-two-column-print' : 'tb-two-column-print')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const scrollToNotice = () => document.getElementById(isUrine ? 'urine-notice-print' : 'tb-notice-print')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const scrollToUltraCompact = () => document.getElementById(isUrine ? 'urine-ultra-compact-print' : 'tb-ultra-compact-print')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1766,7 +1768,7 @@ function ResultsPanel({
         {!isUrine && <Metric label="추가 소요시간 적용 수" value={mixedDurationAssigned} />}
         {!isUrine && <Metric label="수동확인 혼합수업 수" value={mixedManualCount} />}
         <Metric label="수동 확인 필요 수" value={manualRows.length} />
-        {!isUrine && <Metric label="미배정 호출 단위 수" value={unassignedTbRows.length} />}
+        {!isUrine && <Metric label="미배정 수업 장소 수" value={unassignedTbRows.length} />}
         {!isUrine && <Metric label="시간 부족 미배정 수" value={timeShortageCount} />}
         {!isUrine && <Metric label="조건 필터 미배정 수" value={filteredOutCount} />}
         <Metric label={isUrine ? '검사 불가 충돌 수' : '호출 불가 충돌 수'} value={blockedCount} />
@@ -1795,7 +1797,7 @@ function ResultsPanel({
         </OutputButtonGroup>
         <OutputButtonGroup
           title="B. 검사팀 전달자료"
-          description={isUrine ? '검사팀이 실제 이동 순서를 확인할 때 사용하는 간단표입니다.' : '검진 장소에서 학생 호출 순서를 확인할 때 사용하는 간단표입니다.'}
+          description={isUrine ? '검사팀이 실제 이동 순서를 확인할 때 사용하는 간단표입니다.' : '검진 장소에서 현재 수업 장소 기준 호출 순서를 확인할 때 사용하는 장소별 호출표입니다.'}
         >
           {isUrine ? (
             <>
@@ -1811,10 +1813,10 @@ function ResultsPanel({
             </>
           ) : (
             <>
-              <button onClick={() => exportTableToCsv(tables.tbTeam)}><Download size={17} /> 검진팀용 CSV</button>
+              <button onClick={() => exportTableToCsv(tables.tbTeam)}><Download size={17} /> 검진팀용 장소별 CSV</button>
               {tables.tbGrades.map((table) => (
                 <button key={table.name} onClick={() => exportTableToCsv(table)}>
-                  <Download size={17} /> {table.name.includes('2학년') ? '2학년 호출표 CSV' : table.name.includes('3학년') ? '3학년 호출표 CSV' : `${table.name.replaceAll('_', ' ')} CSV`}
+                  <Download size={17} /> {table.name.includes('2학년') ? '2학년 장소별 호출표 CSV' : table.name.includes('3학년') ? '3학년 장소별 호출표 CSV' : `${table.name.replaceAll('_', ' ')} CSV`}
                 </button>
               ))}
               <button onClick={scrollToTwoColumn}><FileText size={17} /> 2단표 보기</button>
@@ -1838,7 +1840,7 @@ function ResultsPanel({
       {isUrine && <ResultTable title="B. 임상병리사용 간단표" description={teamDescription} headers={tables.lab.headers} rows={tables.lab.rows} compact />}
       {isUrine &&
         tables.urineLines.map((table) => <ResultTable key={table.name} title={table.name.replaceAll('_', ' ')} description={teamDescription} headers={table.headers} rows={table.rows} compact />)}
-      {!isUrine && <ResultTable title="B. 검진팀용 간단표" description={teamDescription} headers={tables.tbTeam.headers} rows={tables.tbTeam.rows} compact />}
+      {!isUrine && <ResultTable title="B. 검진팀용 장소별 호출표" description={teamDescription} headers={tables.tbTeam.headers} rows={tables.tbTeam.rows} compact />}
       {!isUrine &&
         tables.tbGrades.map((table) => <ResultTable key={table.name} title={table.name.replaceAll('_', ' ')} description={teamDescription} headers={table.headers} rows={table.rows} compact />)}
       <ResultTable title="C. 교사용 안내표" description={teacherDescription} headers={tables.teacher.headers} rows={tables.teacher.rows} />
@@ -1850,10 +1852,10 @@ function ResultsPanel({
       {!isUrine && <TbUltraCompactNoticeTable assignments={data.assignments} settings={data.settings} description={ultraCompactDescription} />}
       {!isUrine && unassignedTbRows.length > 0 && (
         <div className="card table-wrap">
-          <h2>미배정 호출 단위</h2>
+          <h2>미배정 수업 장소</h2>
           <table>
             <thead>
-              <tr>{['학년', '호출 단위', '사유', '필요한 확인', '가능한 후보 시간 수'].map((h) => <th key={h}>{h}</th>)}</tr>
+              <tr>{['학년', '수업 장소', '사유', '필요한 확인', '가능한 후보 시간 수'].map((h) => <th key={h}>{h}</th>)}</tr>
             </thead>
             <tbody>
               {unassignedTbRows.map((row) => (
@@ -1873,7 +1875,7 @@ function ResultsPanel({
         <h2>{isUrine ? 'E. 수동 확인 필요 목록' : 'D. 수동 확인 필요 목록'}</h2>
         <table>
           <thead>
-            <tr>{(isUrine ? ['항목명', '사유', '필요한 확인', '비고'] : ['학년', '호출 단위', '교시', '수업명', '교과교사', '실제 수업 장소', '포함 학년', '포함 학급', '후보 시간 수', '제외된 후보 수', '사유', '필요한 확인']).map((h) => <th key={h}>{h}</th>)}</tr>
+            <tr>{(isUrine ? ['항목명', '사유', '필요한 확인', '비고'] : ['학년', '수업 장소', '교시', '수업명', '교과교사', '현재 수업 장소', '포함 학년', '포함 학급', '후보 시간 수', '제외된 후보 수', '사유', '필요한 확인']).map((h) => <th key={h}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {manualRows.length ? manualRows.map((row, index) => (
@@ -1887,7 +1889,7 @@ function ResultsPanel({
               ) : (
                 <tr key={`${row.name}-${index}`}>
                   <td>{row.grade}</td>
-                  <td>{row.unitName || row.name}</td>
+                  <td>{row.actualRoom || row.unitName || row.name}</td>
                   <td>{row.period}</td>
                   <td>{row.subject}</td>
                   <td>{row.teacher}</td>
@@ -2171,7 +2173,7 @@ function TbTwoColumnPrintTable({ table, settings, description }: { table: Return
           <button onClick={() => exportTableToCsv(table)}><Download size={17} /> 2단표 CSV 다운로드</button>
         </div>
       </div>
-      <h3 className="two-column-title">2·3학년 결핵검진 시간표</h3>
+      <h3 className="two-column-title">2·3학년 결핵검진 장소별 호출 시간표</h3>
       <div className="two-column-table-wrap">
         <table className="two-column-table">
           <thead>
@@ -2181,15 +2183,15 @@ function TbTwoColumnPrintTable({ table, settings, description }: { table: Return
             </tr>
             <tr>
               <th>호출 시간</th>
-              <th>검진 예상 시간</th>
-              <th>호출 단위</th>
               <th>현재 수업 장소</th>
+              <th>수업명</th>
               <th>교과교사</th>
+              <th>비고</th>
               <th>호출 시간</th>
-              <th>검진 예상 시간</th>
-              <th>호출 단위</th>
               <th>현재 수업 장소</th>
+              <th>수업명</th>
               <th>교과교사</th>
+              <th>비고</th>
             </tr>
           </thead>
           <tbody>
@@ -2233,9 +2235,9 @@ function TbNoticeVerticalTable({ table, settings, description }: { table: Return
         </div>
       </div>
       <div className="tb-notice-sheet">
-        <h3>2·3학년 결핵검진 시간표</h3>
+        <h3>2·3학년 결핵검진 장소별 호출 시간표</h3>
         <p className="table-description">{tbScheduleSummary(settings)}</p>
-        <p className="table-description">현재 수업 장소는 호출 전 학생 위치 확인용 참고자료입니다. 이동수업·선택과목·혼합수업의 경우 실제 운영 상황에 따라 호출 위치와 시간이 달라질 수 있습니다.</p>
+        <p className="table-description">본 시간표는 학급별 호출표가 아니라, 해당 시간 학생들이 수업 중인 교실·장소 기준 호출표입니다. 여러 학급 또는 여러 학년이 섞여 있는 수업은 검진팀이 명렬표를 확인하며 진행합니다.</p>
         {sections.map((section) => <TbNoticeSection key={section.grade} title={section.title} rows={section.rows} />)}
       </div>
     </div>
@@ -2250,10 +2252,10 @@ function TbNoticeSection({ title, rows }: { title: string; rows: string[][] }) {
         <thead>
           <tr>
             <th>호출 시간</th>
-            <th>검진 예상 시간</th>
-            <th>호출 단위</th>
             <th>현재 수업 장소</th>
+            <th>수업명</th>
             <th>교과교사</th>
+            <th>비고</th>
           </tr>
         </thead>
         <tbody>
@@ -2278,7 +2280,7 @@ function TbUltraCompactNoticeTable({ assignments, settings, description }: { ass
   const rows = assignments
     .filter((item) => item.order)
     .sort((a, b) => (a.callTime || a.scheduledTime || '').localeCompare(b.callTime || b.scheduledTime || '') || a.grade.localeCompare(b.grade, 'ko', { numeric: true }))
-    .map((item) => [`${item.grade}학년`, item.callTime ?? '', tbCallUnit(item), item.examVenue || settings.examVenue]);
+    .map((item) => [`${item.grade}학년`, item.callTime ?? '', formatCurrentClassroom(item), item.examVenue || settings.examVenue]);
   const printUltraCompactOnly = () => {
     document.body.classList.add('print-tb-ultra-only');
     window.setTimeout(() => window.print(), 0);
@@ -2294,17 +2296,17 @@ function TbUltraCompactNoticeTable({ assignments, settings, description }: { ass
         </div>
         <div className="actions no-print">
           <button onClick={printUltraCompactOnly}><Printer size={17} /> 초압축표 인쇄</button>
-          <button onClick={() => exportTableToCsv({ name: '결핵검진_초압축_공지표', headers: ['학년', '호출 시간', '호출 단위', '검진 장소'], rows })}><Download size={17} /> 초압축 CSV</button>
+          <button onClick={() => exportTableToCsv({ name: '결핵검진_초압축_장소별_공지표', headers: ['학년', '호출 시간', '현재 수업 장소', '검진 장소'], rows })}><Download size={17} /> 초압축 CSV</button>
         </div>
       </div>
       <div className="tb-notice-sheet ultra">
-        <h3>2·3학년 결핵검진 호출 시간표</h3>
+        <h3>2·3학년 결핵검진 장소별 호출 시간표</h3>
         <table className="urine-notice-table ultra">
           <thead>
             <tr>
               <th>학년</th>
               <th>호출 시간</th>
-              <th>호출 단위</th>
+              <th>현재 수업 장소</th>
               <th>검진 장소</th>
             </tr>
           </thead>
@@ -2326,10 +2328,6 @@ function TbUltraCompactNoticeTable({ assignments, settings, description }: { ass
   );
 }
 
-function tbCallUnit(item: ScheduleAssignment) {
-  return item.unitName || item.homeRoomName?.replace(/교실$/, '') || item.locationName.replace(/교실$/, '');
-}
-
 function getTbGradeBlockStart(settings: ExamSettings, grade: string) {
   if (!settings.useGradeTimeBlocks) return settings.startTime;
   const block = calculateGradeTimeBlocks(settings, settings.gradeTimeMode).find((item) => item.grade === grade);
@@ -2339,7 +2337,7 @@ function getTbGradeBlockStart(settings: ExamSettings, grade: string) {
 function exportTbNoticeRowsToCsv(name: string, grade2Rows: string[][], grade3Rows: string[][]) {
   exportTableToCsv({
     name,
-    headers: ['학년', '호출 시간', '검진 예상 시간', '호출 단위', '현재 수업 장소', '교과교사'],
+    headers: ['학년', '호출 시간', '현재 수업 장소', '수업명', '교과교사', '비고'],
     rows: [
       ...grade2Rows.map((row) => ['2학년', ...row]),
       ...grade3Rows.map((row) => ['3학년', ...row]),
@@ -2492,13 +2490,13 @@ function getModeCopy(examType: ExamType) {
   if (examType === 'tb') {
     return {
       shortLabel: '결핵검진',
-      sidebarDetail: '호출형 / 검진 장소 이동 기준',
-      title: '검진 장소 이동을 위한 호출 시간표 자동배정',
-      unitMenu: '호출 단위',
-      unitLabel: '호출 단위',
+      sidebarDetail: '호출형 / 현재 수업 장소 기준',
+      title: '현재 수업 장소 기준 결핵검진 호출 시간표 자동배정',
+      unitMenu: '수업 장소',
+      unitLabel: '수업 장소',
       dateLabel: '검진일',
       gradeLabel: '검진 대상 학년',
-      totalLabel: '전체 호출 단위 수',
+      totalLabel: '전체 수업 장소 수',
       blockedLabel: '호출 불가 시간 충돌 수',
       visitabilityLabel: '호출 가능 여부',
     };
@@ -2559,7 +2557,7 @@ function validateBeforeSchedule(data: AppData) {
   }
 
   if (settings.examType === 'tb' && targetCount === 0) {
-    messages.push('결핵검진 자동배정에 사용할 호출 단위가 없습니다.');
+    messages.push('결핵검진 자동배정에 사용할 수업 장소가 없습니다.');
   }
 
   return messages;
