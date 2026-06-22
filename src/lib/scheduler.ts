@@ -12,6 +12,7 @@ import type {
   VenueRestrictionWeekday,
   VisitLocation,
 } from '../types';
+import { getEffectiveGradeTimeBlocks, getGradeTimeModeLabel, isCombinedGradeTimeMode } from './gradeTime';
 import { parseSubjectCell } from './subjectParser';
 
 const SECOND_FLOOR_LECTURE_ROOM_NOTE = '2층 종합강의실 수업 / 화장실 이동 안내 필요';
@@ -725,9 +726,28 @@ export function makeSchedule(data: AppData): { judgements: PeriodJudgement[]; as
         }),
       );
     }
-  } else if (settings.examType === 'tb' && settings.useGradeTimeBlocks) {
+  } else if (settings.examType === 'tb' && settings.useGradeTimeBlocks && settings.gradeTimeMode !== 'ALL_GRADES_FULL_RANGE') {
+    const effectiveBlocks = getEffectiveGradeTimeBlocks(settings);
+    if (isCombinedGradeTimeMode(settings.gradeTimeMode)) {
+      const block = effectiveBlocks[0];
+      assignments.push(
+        ...scheduleCandidateGroup({
+          candidates,
+          settings,
+          timetableMap,
+          manualOverrides,
+          slotOptions: {
+            startTime: block?.startTime ?? settings.startTime,
+            endTime: block?.endTime ?? settings.endTime,
+            lineCount: settings.teamCount,
+          },
+          lineName: getGradeTimeModeLabel(settings.gradeTimeMode),
+          timeBlockLabel: block ? `${getGradeTimeModeLabel(settings.gradeTimeMode)} ${block.startTime}~${block.endTime}` : getGradeTimeModeLabel(settings.gradeTimeMode),
+        }),
+      );
+    } else {
     for (const grade of getGrades(candidates)) {
-      const block = settings.gradeTimeBlocks.find((item) => item.grade === grade);
+      const block = effectiveBlocks.find((item) => item.grade === grade);
       assignments.push(
         ...scheduleCandidateGroup({
           candidates: candidates.filter((item) => item.location.grade === grade),
@@ -743,6 +763,7 @@ export function makeSchedule(data: AppData): { judgements: PeriodJudgement[]; as
           timeBlockLabel: block ? `${block.label} ${block.startTime}~${block.endTime}` : `${grade}학년`,
         }),
       );
+    }
     }
   } else {
     assignments.push(

@@ -119,6 +119,7 @@ const settings: ExamSettings = {
   maxUnitsPerCall: 1,
   allowWaiting: false,
   useGradeTimeBlocks: true,
+  gradeTimeMode: 'G2_AM_G3_PM' as const,
   gradeTimeBlocks: [
     { grade: '2', label: '2학년 오전', startTime: '08:10', endTime: '11:00' },
     { grade: '3', label: '3학년 오후', startTime: '12:10', endTime: '16:00' },
@@ -269,6 +270,7 @@ export function createDefaultData(): AppData {
       teamCount: 1,
       maxUnitsPerCall: 1,
       useGradeTimeBlocks: true,
+      gradeTimeMode: 'G2_AM_G3_PM' as const,
       gradeTimeBlocks: [
         { grade: '2', label: '2학년 오전', startTime: '08:10', endTime: '11:00' },
         { grade: '3', label: '3학년 오후', startTime: '12:10', endTime: '16:00' },

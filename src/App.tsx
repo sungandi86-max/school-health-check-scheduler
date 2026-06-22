@@ -7,6 +7,7 @@ import type {
   ExamSettings,
   ExamTemplate,
   ExamType,
+  GradeTimeMode,
   LocationCategory,
   ManualOverride,
   RestrictedVenue,
@@ -53,6 +54,7 @@ import {
 import { parseSubjectCell } from './lib/subjectParser';
 import { parseRestrictedVenueWorkbook } from './lib/restrictedVenueParser';
 import { parseRoomMappingWorkbook } from './lib/roomMappingParser';
+import { calculateGradeTimeBlocks, GRADE_TIME_MODE_OPTIONS, getEffectiveGradeTimeBlocks, getGradeTimeModeLabel } from './lib/gradeTime';
 import { AppFooter } from './components/common/AppFooter';
 import { OtterMascot } from './components/common/OtterMascot';
 import { CommonHelp } from './components/help/CommonHelp';
@@ -117,7 +119,10 @@ export function App() {
   }, [data, manualRows.length]);
 
   const setSettings = (settings: ExamSettings) => setData((prev) => ({ ...prev, settings, needsReschedule: true }));
-  const guideText = getGuideText(data.settings.examType);
+  const guideText =
+    data.settings.examType === 'tb'
+      ? `${getGuideText(data.settings.examType)}\n${tbGradeTimeGuideSentence(data.settings)}`
+      : getGuideText(data.settings.examType);
   const mode = getModeCopy(data.settings.examType);
   const startFreshExamType = (examType: ExamType) => {
     const fresh = createDefaultData();
@@ -690,6 +695,15 @@ function SettingsPanel({
       'gradeTimeBlocks',
       settings.gradeTimeBlocks.map((block) => (block.grade === grade ? { ...block, ...patch } : block)),
     );
+  const isCustomGradeTime = settings.gradeTimeMode === 'CUSTOM_BY_GRADE';
+  const displayedGradeTimeBlocks = settings.useGradeTimeBlocks ? calculateGradeTimeBlocks(settings) : calculateGradeTimeBlocks(settings, 'ALL_GRADES_FULL_RANGE');
+  const updateGradeTimeMode = (mode: GradeTimeMode) => {
+    const nextSettings = { ...settings, gradeTimeMode: mode };
+    setSettings({
+      ...nextSettings,
+      gradeTimeBlocks: calculateGradeTimeBlocks(nextSettings, mode),
+    });
+  };
   const saveSchoolDefaults = () =>
     setData((prev) => ({ ...prev, schoolDefaults: { daySchedule: structuredClone(settings.daySchedule) } }));
   const loadSchoolDefaults = () => update('daySchedule', structuredClone(data.schoolDefaults.daySchedule));
@@ -777,12 +791,30 @@ function SettingsPanel({
                 <input type="checkbox" checked={settings.useGradeTimeBlocks} onChange={(event) => update('useGradeTimeBlocks', event.target.checked)} /> 사용
               </label>
             </Field>
-            {settings.gradeTimeBlocks.map((block) => (
+            {settings.useGradeTimeBlocks && (
+              <Field label="학년별 시간 배정 방식">
+                <select value={settings.gradeTimeMode} onChange={(event) => updateGradeTimeMode(event.target.value as GradeTimeMode)}>
+                  {GRADE_TIME_MODE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+                <span className="field-note">현재 방식: {getGradeTimeModeLabel(settings.gradeTimeMode)}</span>
+              </Field>
+            )}
+            {settings.useGradeTimeBlocks && !isCustomGradeTime && (
+              <div className="form-help">
+                자동 계산된 구간: {displayedGradeTimeBlocks.map((block) => `${block.grade}학년 ${block.label} ${block.startTime}~${block.endTime}`).join(' / ')}
+              </div>
+            )}
+            {settings.useGradeTimeBlocks && settings.gradeTimeMode === 'ALL_GRADES_FULL_RANGE' && (
+              <div className="form-help">학년별 시간 구간을 강제하지 않고 업체 검진 가능 시간 전체에서 자동배정합니다.</div>
+            )}
+            {displayedGradeTimeBlocks.map((block) => (
               <Field key={`tb-block-${block.grade}`} label={`${block.grade}학년 검진 가능 시간`}>
                 <div className="inline-fields wide">
-                  <input value={block.label} onChange={(event) => updateGradeTimeBlock(block.grade, { label: event.target.value })} />
-                  <input type="time" value={block.startTime} onChange={(event) => updateGradeTimeBlock(block.grade, { startTime: event.target.value })} />
-                  <input type="time" value={block.endTime} onChange={(event) => updateGradeTimeBlock(block.grade, { endTime: event.target.value })} />
+                  <input value={block.label} disabled={!isCustomGradeTime} onChange={(event) => updateGradeTimeBlock(block.grade, { label: event.target.value })} />
+                  <input type="time" value={block.startTime} disabled={!isCustomGradeTime} onChange={(event) => updateGradeTimeBlock(block.grade, { startTime: event.target.value })} />
+                  <input type="time" value={block.endTime} disabled={!isCustomGradeTime} onChange={(event) => updateGradeTimeBlock(block.grade, { endTime: event.target.value })} />
                 </div>
               </Field>
             ))}
@@ -2159,14 +2191,27 @@ function exportTbNoticeRowsToCsv(name: string, grade2Rows: string[][], grade3Row
 }
 
 function tbScheduleSummary(settings: ExamSettings) {
-  const grade2 = settings.gradeTimeBlocks.find((item) => item.grade === '2');
-  const grade3 = settings.gradeTimeBlocks.find((item) => item.grade === '3');
+  const effectiveBlocks = getEffectiveGradeTimeBlocks(settings);
+  const grade2 = effectiveBlocks.find((item) => item.grade === '2');
+  const grade3 = effectiveBlocks.find((item) => item.grade === '3');
   return [
+    `학년별 운영 방식: ${settings.useGradeTimeBlocks ? getGradeTimeModeLabel(settings.gradeTimeMode) : '학년 구분 없이 전체 시간 사용'}`,
     grade2 ? `2학년 검진 시간 구간: ${grade2.startTime}~${grade2.endTime}` : '',
     grade3 ? `3학년 검진 시간 구간: ${grade3.startTime}~${grade3.endTime}` : '',
     `검진 장소: ${settings.examVenue || '-'}`,
     `이동 소요시간: ${settings.travelMinutes || 0}분`,
   ].filter(Boolean).join(' / ');
+}
+
+function tbGradeTimeGuideSentence(settings: ExamSettings) {
+  if (!settings.useGradeTimeBlocks || settings.gradeTimeMode === 'ALL_GRADES_FULL_RANGE') {
+    return '이번 결핵검진은 학년 구분 없이 업체 검진 가능 시간 전체 안에서 자동배정하여 운영합니다.';
+  }
+  const modeLabel = getGradeTimeModeLabel(settings.gradeTimeMode);
+  const blocks = getEffectiveGradeTimeBlocks(settings)
+    .map((block) => `${block.grade}학년 ${block.startTime}~${block.endTime}`)
+    .join(', ');
+  return `이번 결핵검진은 ${modeLabel} 방식으로 운영합니다.${blocks ? ` (${blocks})` : ''}`;
 }
 
 function ResultTable({
@@ -2411,12 +2456,13 @@ function normalizeDashboardVisitLocation(value: string) {
 
 function createGradeStats(data: AppData) {
   const grades = ['2', '3'];
+  const effectiveBlocks = getEffectiveGradeTimeBlocks(data.settings);
   return grades.map((grade) => {
     const count = data.locations.filter((item) => item.grade === grade && item.isVisitable && item.includeInAuto).length;
     const done = data.assignments.filter((item) => item.grade === grade && item.order).length;
     const lines = Math.max(1, data.settings.examType === 'urine' ? data.settings.teamsByGrade[grade] ?? 1 : data.settings.teamCount || 1);
     const estimatedMinutes = Math.ceil((count * data.settings.durationMinutes) / lines);
-    const block = data.settings.gradeTimeBlocks.find((item) => item.grade === grade);
+    const block = effectiveBlocks.find((item) => item.grade === grade);
     const availableMinutes =
       data.settings.examType === 'tb' && data.settings.useGradeTimeBlocks && block
         ? minutesBetween(block.startTime, block.endTime)

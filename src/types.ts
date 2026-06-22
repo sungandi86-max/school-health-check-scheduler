@@ -5,6 +5,7 @@ export type ExamType = 'urine' | 'tb';
 export type DayScheduleKind = 'excluded' | 'period';
 export type UrineParallelMode = 'sequential' | 'grade' | 'team';
 export type UrineMixedGradeHandling = 'allow-caution' | 'manual-confirm' | 'exclude';
+export type GradeTimeMode = 'G2_AM_G3_PM' | 'G3_AM_G2_PM' | 'BOTH_AM' | 'BOTH_PM' | 'CUSTOM_BY_GRADE' | 'ALL_GRADES_FULL_RANGE';
 export type VenueRestrictionMode = '가능' | '주의' | '불가';
 export type VenueRestrictionWeekday = 'auto' | '월' | '화' | '수' | '목' | '금';
 export type UrineExamAvailability = VenueRestrictionMode;
@@ -45,6 +46,7 @@ export interface ExamSettings {
   maxUnitsPerCall: number;
   allowWaiting: boolean;
   useGradeTimeBlocks: boolean;
+  gradeTimeMode: GradeTimeMode;
   gradeTimeBlocks: GradeTimeBlock[];
   includeBreaks: boolean;
   allowCrossPeriod: boolean;

@@ -181,7 +181,14 @@ function normalizeSettings(settings: AppData['settings'], fallback: AppData['set
   settings.teamsByGrade = settings.teamsByGrade ?? fallback.teamsByGrade;
   settings.gradeStartTimes = settings.gradeStartTimes ?? fallback.gradeStartTimes;
   settings.useGradeTimeBlocks = typeof settings.useGradeTimeBlocks === 'boolean' ? settings.useGradeTimeBlocks : fallback.useGradeTimeBlocks;
+  settings.gradeTimeMode = normalizeGradeTimeMode(settings.gradeTimeMode, fallback.gradeTimeMode);
   settings.gradeTimeBlocks = Array.isArray(settings.gradeTimeBlocks) ? settings.gradeTimeBlocks : fallback.gradeTimeBlocks;
+}
+
+function normalizeGradeTimeMode(value: unknown, fallback: AppData['settings']['gradeTimeMode']) {
+  return ['G2_AM_G3_PM', 'G3_AM_G2_PM', 'BOTH_AM', 'BOTH_PM', 'CUSTOM_BY_GRADE', 'ALL_GRADES_FULL_RANGE'].includes(String(value))
+    ? (value as AppData['settings']['gradeTimeMode'])
+    : fallback;
 }
 
 function ensureRequiredBlockedKeywords(settings: AppData['settings']) {
