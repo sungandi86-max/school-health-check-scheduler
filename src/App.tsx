@@ -389,7 +389,7 @@ export function App() {
                   ? [
                       guideText,
                       '',
-                      ...tables.teacher.rows.map((row) => `${row[0]}학년 / 호출 ${row[1]} / 검진 ${row[2]} / ${row[3]} / ${row[4]}`),
+                      ...tables.teacher.rows.map((row) => `${row[0]}학년 / 호출 ${row[1]} / 검진 ${row[2]} / ${row[3]} / ${row[4]} / 실제 수업 장소 ${row[8] || '원학급'}`),
                     ].join('\n')
                   : tables.teacher.rows.map((row) => `${row[0]} ${row[1]} ${row[3]}`).join('\n'),
                 '교사용 안내 문구를 복사했습니다.',
@@ -1341,6 +1341,10 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
 function DivisionsPanel({ data, setData }: { data: AppData; setData: React.Dispatch<React.SetStateAction<AppData>> }) {
   const roomMappingFileRef = useRef<HTMLInputElement>(null);
   const [mappingWarnings, setMappingWarnings] = useState<string[]>([]);
+  const isTb = data.settings.examType === 'tb';
+  const roomMappingDescription = isTb
+    ? '이동수업이나 선택과목 수업은 원래 학급 교실과 실제 수업 교실이 다를 수 있습니다. 분반자료를 업로드하면 해당 시간에 학생들을 호출할 수 있는지, 혼합학년 수업인지, 실제 수업 장소 확인이 필요한지를 더 정확히 판정할 수 있습니다.'
+    : '이동수업이나 선택과목 수업은 원래 학급 교실과 실제 수업 교실이 다를 수 있습니다. 분반자료를 업로드하면 실제 수업 교실과 혼합학년 여부를 기준으로 검사팀이 방문할 장소를 더 정확히 확인할 수 있습니다.';
   const update = (index: number, patch: Partial<SubjectDivision>) =>
     setData((prev) => ({ ...prev, divisions: prev.divisions.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)), needsReschedule: true }));
   const updateRoomMapping = (index: number, patch: Partial<RoomMapping>) =>
@@ -1395,17 +1399,12 @@ function DivisionsPanel({ data, setData }: { data: AppData; setData: React.Dispa
           </table>
         </div>
       </div>
-      {data.settings.examType === 'urine' && (
+      {(data.settings.examType === 'urine' || data.settings.examType === 'tb') && (
         <div className="card stack">
           <div className="section-title">
             <div>
               <h2>분반자료 업로드 · 실제 수업 교실 매핑</h2>
-              <p className="table-description">
-                이동수업이나 선택과목 수업은 컴시간알리미상 표시 교실과 실제 수업 교실이 다를 수 있습니다.
-                분반자료를 업로드하면 실제 수업 교실과 혼합학년 여부를 기준으로 자동배정 가능 여부를 더 정확하게 판정합니다.
-                소변검사에서는 여러 학년이 섞인 수업을 자동배정에서 제외하고, 결핵검진에서는 수동확인 목록에 표시합니다.
-                같은 학년 안에서 여러 학급이 섞인 수업은 소변검사에서 주의로 표시됩니다.
-              </p>
+              <p className="table-description">{roomMappingDescription}</p>
             </div>
             <div className="actions">
               <button onClick={() => roomMappingFileRef.current?.click()}><FileInput size={17} /> 분반자료 업로드</button>
@@ -1453,7 +1452,7 @@ function DivisionsPanel({ data, setData }: { data: AppData; setData: React.Dispa
               <table>
                 <thead>
                   <tr>
-                    {['학년', '과목명', '분반명', '컴시간 표시 교실', '실제 수업 교실', '층', '학생 화장실 접근', '포함 학년', '포함 학급', '혼합 여부', '소변검사 판정', '사유'].map((header) => <th key={header}>{header}</th>)}
+                    {['학년', '과목명', '분반명', '컴시간 표시 교실', '실제 수업 교실', '층', '학생 화장실 접근', '포함 학년', '포함 학급', '혼합 여부', isTb ? '결핵검진 참고 판정' : '소변검사 판정', '사유'].map((header) => <th key={header}>{header}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -1701,17 +1700,32 @@ function ResultsPanel({
         <h2>{isUrine ? 'E. 수동 확인 필요 목록' : 'D. 수동 확인 필요 목록'}</h2>
         <table>
           <thead>
-            <tr>{['항목명', '사유', '필요한 확인', '비고'].map((h) => <th key={h}>{h}</th>)}</tr>
+            <tr>{(isUrine ? ['항목명', '사유', '필요한 확인', '비고'] : ['학년', '호출 단위', '교시', '수업명', '교과교사', '실제 수업 장소', '포함 학년', '포함 학급', '사유', '필요한 확인']).map((h) => <th key={h}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {manualRows.length ? manualRows.map((row, index) => (
-              <tr key={`${row.name}-${index}`}>
-                <td>{row.name}</td>
-                <td>{row.reason}</td>
-                <td>{row.required}</td>
-                <td>{[row.type, row.note].filter(Boolean).join(' / ')}</td>
-              </tr>
-            )) : <tr><td colSpan={4} className="empty">수동 확인 필요 항목이 없습니다.</td></tr>}
+              isUrine ? (
+                <tr key={`${row.name}-${index}`}>
+                  <td>{row.name}</td>
+                  <td>{row.reason}</td>
+                  <td>{row.required}</td>
+                  <td>{[row.type, row.note].filter(Boolean).join(' / ')}</td>
+                </tr>
+              ) : (
+                <tr key={`${row.name}-${index}`}>
+                  <td>{row.grade}</td>
+                  <td>{row.unitName || row.name}</td>
+                  <td>{row.period}</td>
+                  <td>{row.subject}</td>
+                  <td>{row.teacher}</td>
+                  <td>{row.actualRoom}</td>
+                  <td>{row.involvedGrades}</td>
+                  <td>{row.involvedClasses}</td>
+                  <td>{row.reason}</td>
+                  <td>{row.required}</td>
+                </tr>
+              )
+            )) : <tr><td colSpan={isUrine ? 4 : 10} className="empty">수동 확인 필요 항목이 없습니다.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -2081,7 +2095,7 @@ function TbUltraCompactNoticeTable({ assignments, settings, description }: { ass
   const rows = assignments
     .filter((item) => item.order)
     .sort((a, b) => (a.callTime || a.scheduledTime || '').localeCompare(b.callTime || b.scheduledTime || '') || a.grade.localeCompare(b.grade, 'ko', { numeric: true }))
-    .map((item) => [`${item.grade}학년`, item.callTime ?? '', formatVisitLocation(item), item.examVenue || settings.examVenue]);
+    .map((item) => [`${item.grade}학년`, item.callTime ?? '', tbCallUnit(item), item.examVenue || settings.examVenue]);
   const printUltraCompactOnly = () => {
     document.body.classList.add('print-tb-ultra-only');
     window.setTimeout(() => window.print(), 0);
@@ -2127,6 +2141,10 @@ function TbUltraCompactNoticeTable({ assignments, settings, description }: { ass
       </div>
     </div>
   );
+}
+
+function tbCallUnit(item: ScheduleAssignment) {
+  return item.unitName || item.homeRoomName?.replace(/교실$/, '') || item.locationName.replace(/교실$/, '');
 }
 
 function exportTbNoticeRowsToCsv(name: string, grade2Rows: string[][], grade3Rows: string[][]) {

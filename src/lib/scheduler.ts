@@ -18,6 +18,7 @@ const SECOND_FLOOR_LECTURE_ROOM_NOTE = '2층 종합강의실 수업 / 화장실 
 const MIXED_GRADE_NOTE = '혼합학년 수업 / 명렬표 확인 필요';
 const LOW_CONFIDENCE_ROOM_NOTE = '실제 수업 장소 확인 필요';
 const DUPLICATE_VISIT_LOCATION_NOTE = '동일한 방문 장소가 여러 번 배정되어 수동 확인 필요';
+const TB_ROOM_MAPPING_CONFIRM_NOTE = '실제 수업 교실 매칭 불명확 / 수동 확인 필요';
 
 function hasKeyword(subject: string, keywords: string[]) {
   const normalized = subject.replace(/\s/g, '').toLowerCase();
@@ -100,6 +101,21 @@ function isSecondFloorLectureRoomJudgement(judgement?: PeriodJudgement) {
     judgement.restrictedVenueReason === SECOND_FLOOR_LECTURE_ROOM_NOTE ||
     judgement.reason.includes(SECOND_FLOOR_LECTURE_ROOM_NOTE)
   );
+}
+
+function isDifferentActualRoom(location: VisitLocation, actualRoom?: string) {
+  if (!actualRoom) return false;
+  return normalizeVisitLocationKey(actualRoom) !== normalizeVisitLocationKey(location.displayName);
+}
+
+function tbRoomMappingReason(location: VisitLocation, roomMapping: RoomMapping, actualRoom?: string) {
+  return joinNotes(
+    roomMapping.isMixedClass ? '같은 학년 내 여러 학급 혼합 수업' : undefined,
+    isDifferentActualRoom(location, actualRoom) ? '이동수업 / 실제 수업 장소 확인 필요' : undefined,
+    isSecondFloorLectureRoomName(actualRoom) ? SECOND_FLOOR_LECTURE_ROOM_NOTE : undefined,
+    roomMapping.divisionName ? '선택과목 수업 / 교과교사 확인 필요' : undefined,
+    roomMapping.reason,
+  ) || '분반자료 기반 실제 수업 정보 확인 필요';
 }
 
 function createAssignmentNote(manual: ManualOverride | undefined, judgement: PeriodJudgement | undefined) {
@@ -341,6 +357,8 @@ export function judgePeriod(
       actualRoom: confidentActualRoom,
       roomMappingReason: roomMapping?.mixedReason || '여러 학년 혼합 수업',
       roomMappingConfidence,
+      involvedGrades: roomMapping?.involvedGrades,
+      involvedClasses: roomMapping?.involvedClasses,
       comciganRoom: roomMapping?.comciganRoom,
     };
   }
@@ -352,6 +370,38 @@ export function judgePeriod(
   }
   if (hasKeyword(subject, settings.blockedKeywords)) {
     return { locationId: location.id, period, subject, status: '불가', reason: `검사 불가 키워드 포함: ${subject}` };
+  }
+  if (settings.examType === 'tb' && roomMapping && roomMappingConfidence === 'low') {
+    return {
+      locationId: location.id,
+      period,
+      subject,
+      teacher,
+      status: '수동확인',
+      reason: TB_ROOM_MAPPING_CONFIRM_NOTE,
+      roomMappingReason: TB_ROOM_MAPPING_CONFIRM_NOTE,
+      roomMappingConfidence,
+      involvedGrades: roomMapping.involvedGrades,
+      involvedClasses: roomMapping.involvedClasses,
+      comciganRoom: roomMapping.comciganRoom,
+    };
+  }
+  if (settings.examType === 'tb' && roomMapping) {
+    const reason = tbRoomMappingReason(location, roomMapping, confidentActualRoom);
+    return {
+      locationId: location.id,
+      period,
+      subject,
+      teacher,
+      status: '주의',
+      reason,
+      actualRoom: confidentActualRoom,
+      roomMappingReason: reason,
+      roomMappingConfidence,
+      involvedGrades: roomMapping.involvedGrades,
+      involvedClasses: roomMapping.involvedClasses,
+      comciganRoom: roomMapping.comciganRoom,
+    };
   }
   if (settings.examType === 'urine' && isSecondFloorLectureRoomSource(roomMapping, restriction)) {
     const reason = joinNotes(SECOND_FLOOR_LECTURE_ROOM_NOTE, isMixedGrade ? MIXED_GRADE_NOTE : undefined);
@@ -550,11 +600,14 @@ function buildAssignment(
     actualRoom: actualRoomName ?? judgement?.actualRoom,
     roomMappingReason: judgement?.roomMappingReason,
     roomMappingConfidence: judgement?.roomMappingConfidence,
+    involvedGrades: judgement?.involvedGrades,
+    involvedClasses: judgement?.involvedClasses,
     comciganRoom: judgement?.comciganRoom,
   };
 }
 
 export function createManualConfirmRows(divisions: SubjectDivision[], assignments: ScheduleAssignment[], judgements: PeriodJudgement[]) {
+  const assignmentMap = new Map(assignments.map((item) => [item.locationId, item]));
   const divisionRows = divisions
     .filter((item) => !item.actualLocationId || item.handling === '자동제외')
     .map((item) => ({
@@ -564,6 +617,14 @@ export function createManualConfirmRows(divisions: SubjectDivision[], assignment
       required: '실제 수업 장소 확인 필요',
       actualLocation: item.actualLocationId,
       note: item.notes,
+      grade: item.grade,
+      unitName: item.name,
+      period: '',
+      subject: '',
+      teacher: '',
+      actualRoom: item.actualLocationId,
+      involvedGrades: '',
+      involvedClasses: '',
     }));
 
   const failedRows = assignments
@@ -575,16 +636,37 @@ export function createManualConfirmRows(divisions: SubjectDivision[], assignment
       required: '다른 교시 또는 현장 수동 확인 필요',
       actualLocation: item.displayVisitLocation || item.locationId,
       note: item.note,
+      grade: item.grade,
+      unitName: item.unitName || item.locationName,
+      period: item.period ? `${item.period}교시` : '',
+      subject: item.subject,
+      teacher: item.teacher ?? '',
+      actualRoom: normalizeVisitRoomName(item.actualRoomName || item.actualRoom || ''),
+      involvedGrades: (item.involvedGrades ?? []).join(', '),
+      involvedClasses: (item.involvedClasses ?? []).join(', '),
     }));
 
   const blockedRows = judgements
-    .filter((item) => item.status === '불가' || (item.status === '수동확인' && item.actualRoom))
+    .filter((item) => item.status === '불가' || item.status === '수동확인')
     .map((item) => ({
+      ...(() => {
+        const assignment = assignmentMap.get(item.locationId);
+        return {
+          grade: assignment?.grade ?? '',
+          unitName: assignment?.unitName ?? item.locationId,
+        };
+      })(),
       name: item.locationId,
       type: item.status === '수동확인' ? '혼합수업 확인' : item.actualRoom ? '실제 수업 교실' : item.restrictedVenueName ? '장소 제한' : '검사 불가',
       reason: item.reason,
       required: item.status === '수동확인' ? '호출 또는 검사 단위 확인 필요' : '다른 교시 배정 필요',
       actualLocation: item.locationId,
+      period: `${item.period}교시`,
+      subject: item.subject,
+      teacher: item.teacher ?? '',
+      actualRoom: normalizeVisitRoomName(item.actualRoom || item.restrictedVenueName || ''),
+      involvedGrades: (item.involvedGrades ?? []).join(', '),
+      involvedClasses: (item.involvedClasses ?? []).join(', '),
       note: [
         `${item.period}교시`,
         item.subject,

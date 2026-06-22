@@ -93,6 +93,8 @@ export interface PeriodJudgement {
   actualRoom?: string;
   roomMappingReason?: string;
   roomMappingConfidence?: 'high' | 'medium' | 'low';
+  involvedGrades?: string[];
+  involvedClasses?: string[];
   comciganRoom?: string;
 }
 
@@ -127,6 +129,8 @@ export interface ScheduleAssignment {
   actualRoom?: string;
   roomMappingReason?: string;
   roomMappingConfidence?: 'high' | 'medium' | 'low';
+  involvedGrades?: string[];
+  involvedClasses?: string[];
   duplicateWarning?: string;
   comciganRoom?: string;
 }
