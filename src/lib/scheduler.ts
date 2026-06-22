@@ -208,8 +208,9 @@ function getAssignableSlots(
     if (item.kind !== 'period' || !item.period || !item.assignable || !settings.availablePeriods.includes(item.period)) continue;
     const start = Math.max(timeToMinutes(item.startTime), globalStart);
     const end = Math.min(timeToMinutes(item.endTime), globalEnd);
-    const latestStart = settings.allowCrossPeriod ? end : end - settings.durationMinutes;
-    for (let current = start; current <= latestStart; current += settings.durationMinutes) {
+    const latestStart = settings.examType === 'tb' ? end - 1 : settings.allowCrossPeriod ? end : end - settings.durationMinutes;
+    const stepMinutes = settings.examType === 'tb' ? 1 : settings.durationMinutes;
+    for (let current = start; current <= latestStart; current += stepMinutes) {
       if (current < globalStart || current + settings.durationMinutes > globalEnd) continue;
       if (overlapsExcludedTime(current, current + settings.durationMinutes, settings.excludedTimes)) continue;
       if (overlapsNonAssignableSchedule(current, current + settings.durationMinutes, settings)) continue;
@@ -978,6 +979,50 @@ function markUsedDurationSlots(usedSlots: Set<number>, slots: Slot[], startIndex
   }
 }
 
+function getTbSlotEndLimit(settings: ExamSettings, slotOptions: { endTime?: string }) {
+  return Math.min(timeToMinutes(settings.endTime), timeToMinutes(slotOptions.endTime ?? settings.endTime));
+}
+
+function getTbPreviousEnd(assignments: ScheduleAssignment[], fallbackStart: string) {
+  return assignments
+    .filter((item) => item.order && item.scheduledTime)
+    .reduce((latest, item) => Math.max(latest, timeToMinutes(item.scheduledTime || fallbackStart) + Math.max(1, item.estimatedDurationMinutes ?? 0)), timeToMinutes(fallbackStart));
+}
+
+function createTbFailureDebug({
+  location,
+  previousEnd,
+  expectedStart,
+  expectedEnd,
+  gradeEnd,
+  duration,
+  settings,
+  mixedExtra,
+  reason,
+}: {
+  location: VisitLocation;
+  previousEnd: number;
+  expectedStart: number;
+  expectedEnd: number;
+  gradeEnd: number;
+  duration: number;
+  settings: ExamSettings;
+  mixedExtra: number;
+  reason: string;
+}) {
+  return [
+    reason,
+    `학급: ${location.displayName}`,
+    `직전 종료 시간: ${minutesToTime(previousEnd)}`,
+    `예상 시작 시간: ${minutesToTime(expectedStart)}`,
+    `예상 종료 시간: ${minutesToTime(expectedEnd)}`,
+    `학년별 종료 제한 시간: ${minutesToTime(gradeEnd)}`,
+    `적용된 검진 소요시간: ${duration}분`,
+    `적용된 이동 소요시간: ${Math.max(0, settings.travelMinutes || 0)}분`,
+    `적용된 혼합수업 추가시간: ${mixedExtra}분`,
+  ].join(' / ');
+}
+
 function applyTbCumulativeDurations(assignments: ScheduleAssignment[], settings: ExamSettings, startTime?: string, lineCount = 1) {
   if (settings.examType !== 'tb') return;
   const ordered = assignments
@@ -1064,6 +1109,7 @@ function scheduleCandidateGroup({
     let selected:
       | { slot: Slot | undefined; slotIndex: number; judgement: PeriodJudgement | undefined; duplicate: boolean }
       | undefined;
+    let tbRejectedDebug = '';
 
     if (manual?.scheduledTime) {
       const judgement = preferred ?? valid[0];
@@ -1078,6 +1124,27 @@ function scheduleCandidateGroup({
           .sort((a, b) => tbJudgementPriority(a, settings) - tbJudgementPriority(b, settings));
         const judgement = preferred ?? matching[0] ?? (settings.examType === 'tb' ? createTbFallbackJudgement(location, row, slot.period) : undefined);
         if (!judgement) continue;
+        if (settings.examType === 'tb') {
+          const duration = getTbEstimatedDuration(settings, judgement);
+          const slotStart = timeToMinutes(slot.time);
+          const slotEnd = slotStart + duration;
+          const gradeEnd = getTbSlotEndLimit(settings, slotOptions);
+          if (slotEnd > gradeEnd || overlapsExcludedTime(slotStart, slotEnd, settings.excludedTimes)) {
+            const previousEnd = getTbPreviousEnd(assignments, slotOptions.startTime || settings.startTime);
+            tbRejectedDebug = createTbFailureDebug({
+              location,
+              previousEnd,
+              expectedStart: slotStart,
+              expectedEnd: slotEnd,
+              gradeEnd,
+              duration,
+              settings,
+              mixedExtra: Math.max(0, duration - settings.durationMinutes),
+              reason: slotEnd > gradeEnd ? '학년별 검진 가능 시간 구간 안에 배정 불가' : '제외 시간과 충돌',
+            });
+            continue;
+          }
+        }
         const preview = buildAssignment(location, row, judgement, null, slot.time, manual, { lineName, timeBlockLabel });
         const duplicate = !canAssign(preview);
         selected = { slot, slotIndex: index, judgement, duplicate };
@@ -1106,7 +1173,28 @@ function scheduleCandidateGroup({
     if (!judgement) {
       assignment.failedReason = '검사 가능한 교시가 없음';
     } else if (!slot && !manual?.scheduledTime) {
-      assignment.failedReason = settings.examType === 'tb' ? '학년별 검진 가능 시간 구간 안에 배정 불가' : '해당 학년 라인 시간 안에 배정 불가';
+      if (settings.examType === 'tb') {
+        const duration = getTbEstimatedDuration(settings, judgement);
+        const previousEnd = getTbPreviousEnd(assignments, slotOptions.startTime || settings.startTime);
+        const expectedStart = Math.max(previousEnd, timeToMinutes(slotOptions.startTime || settings.startTime));
+        const expectedEnd = expectedStart + duration;
+        const gradeEnd = getTbSlotEndLimit(settings, slotOptions);
+        assignment.failedReason =
+          tbRejectedDebug ||
+          createTbFailureDebug({
+            location,
+            previousEnd,
+            expectedStart,
+            expectedEnd,
+            gradeEnd,
+            duration,
+            settings,
+            mixedExtra: Math.max(0, duration - settings.durationMinutes),
+            reason: '학년별 검진 가능 시간 구간 안에 배정 불가',
+          });
+      } else {
+        assignment.failedReason = '해당 학년 라인 시간 안에 배정 불가';
+      }
     } else if (selected?.duplicate) {
       assignment.failedReason = DUPLICATE_VISIT_LOCATION_NOTE;
       assignment.duplicateWarning = duplicateWarningText(assignment, assignments);
