@@ -89,8 +89,17 @@ export const TB_GUIDE_TEXT =
   '각 교과 선생님들께서는 해당 시간에 검진 대상 학급 학생들이 이동 후 복귀할 수 있도록 안내 부탁드립니다.\n\n' +
   '미검 학생은 추후 보건실에서 확인하여 별도 안내하겠습니다.';
 
+export const TB_CLASS_MOVEMENT_GUIDE_TEXT =
+  '안녕하세요. 보건실입니다.\n\n' +
+  '2·3학년 결핵검진 시간표를 안내드립니다.\n\n' +
+  '결핵검진은 현재 수업 장소를 기준으로 학생을 찾아가는 방식이 아니라, 안내된 시간에 해당 학급 학생들이 검진 장소로 이동하여 검사받는 방식으로 진행됩니다.\n\n' +
+  '선택과목·분반수업 중인 경우에도 해당 시간에 지정된 검진 대상 학급 학생만 검진 장소로 이동하면 됩니다. 이미 검진을 완료한 학생은 이후 다른 수업 장소에 있더라도 다시 이동하지 않습니다.\n\n' +
+  '검진 장소에서는 학급별 명렬표를 기준으로 검진 완료 여부를 확인하겠습니다.\n\n' +
+  '각 교과 선생님들께서는 해당 시간에 검진 대상 학급 학생들이 이동 후 복귀할 수 있도록 안내 부탁드립니다.\n\n' +
+  '미검 학생은 추후 보건실에서 확인하여 별도 안내하겠습니다.';
+
 export function getGuideText(examType: ExamSettings['examType']) {
-  return examType === 'tb' ? TB_GUIDE_TEXT : URINE_GUIDE_TEXT;
+  return examType === 'tb' ? TB_CLASS_MOVEMENT_GUIDE_TEXT : URINE_GUIDE_TEXT;
 }
 
 const settings: ExamSettings = {

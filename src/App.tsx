@@ -40,7 +40,6 @@ import {
   createTbTwoColumnTable,
   downloadJsonBackup,
   exportTableToCsv,
-  formatCurrentClassroom,
   formatVisitLocation,
 } from './lib/csv';
 import { makeSchedule, createManualConfirmRows } from './lib/scheduler';
@@ -407,7 +406,7 @@ export function App() {
                   ? [
                       guideText,
                       '',
-                      ...tables.teacher.rows.map((row) => `${row[0]} / ${row[1]} / ${row[2]} / 참고 수업 장소 ${row[3]} / ${row[5]}`),
+                      ...tables.teacher.rows.map((row) => `${row[0]} / ${row[1]} / ${row[2]} / ${row[3]} / ${row[4]}`),
                     ].join('\n')
                   : tables.teacher.rows.map((row) => `${row[0]} ${row[1]} ${row[3]}`).join('\n'),
                 '교사용 안내 문구를 복사했습니다.',
@@ -542,7 +541,7 @@ function Dashboard({
       {dashboard.gradeStats.some((stat) => !stat.fits) && (
         <div className="warning-banner">
           {data.settings.examType === 'tb'
-            ? '해당 학년의 검진 가능 시간 안에 모든 수업 장소를 배정하기 어려울 수 있습니다. 학년별 시간 구간, 장소당 소요시간, 검진 라인 수를 조정해 주세요.'
+            ? '해당 학년의 검진 가능 시간 안에 모든 검진 대상 학급을 배정하기 어려울 수 있습니다. 학년별 시간 구간, 학급당 소요시간, 검진 라인 수를 조정해 주세요.'
             : '해당 학년 라인의 검사 가능 시간 안에 모든 방문 장소를 배정하기 어려울 수 있습니다. 학년별 시작 시간, 장소당 소요시간, 검사팀 수, 검사 가능 교시를 조정해 주세요.'}
         </div>
       )}
@@ -806,7 +805,7 @@ function SettingsPanel({
           </select>
           <span className="field-note">
             {settings.operationMode === 'move'
-              ? '결핵검진·건강검진처럼 학생이 검진 장소로 이동하는 방식입니다. 수업 장소와 분반자료는 참고자료입니다.'
+              ? '결핵검진·건강검진처럼 학생이 검진 장소로 이동하는 방식입니다. 수업 장소 자료는 자동배정 보조 자료로만 사용하고 출력표에는 표시하지 않습니다.'
               : '소변검사처럼 검사자가 교실·수업 장소를 방문하는 방식입니다. 현재 수업 장소가 중요합니다.'}
           </span>
         </Field>
@@ -1494,10 +1493,10 @@ function DivisionsPanel({ data, setData }: { data: AppData; setData: React.Dispa
   const [mappingWarnings, setMappingWarnings] = useState<string[]>([]);
   const isTb = data.settings.examType === 'tb';
   const rawRoomMappingDescription = isTb
-    ? '이동수업이나 선택과목 수업은 원래 학급 교실과 실제 수업 교실이 다를 수 있습니다. 분반자료는 검진 대상 학급 학생이 어느 수업에 있는지 참고하기 위한 보조 자료입니다.'
+    ? '선택과목·분반수업 중이어도 결핵검진은 검진 대상 학급 학생만 정해진 시간에 이동합니다. 분반자료는 혼합수업을 최대한 피하기 위한 보조 자료입니다.'
     : '이동수업이나 선택과목 수업은 원래 학급 교실과 실제 수업 교실이 다를 수 있습니다. 분반자료를 업로드하면 실제 수업 교실과 혼합학년 여부를 기준으로 검사팀이 방문할 장소를 더 정확히 확인할 수 있습니다.';
   const roomMappingDescription = isTb
-    ? '결핵검진은 검진 대상 학급 학생이 검진 장소로 이동하는 이동형 검진입니다. 분반자료와 실제 수업 장소는 혼합수업을 최대한 피하거나 이동 안내 문구를 만들기 위한 참고자료로만 사용합니다.'
+    ? '결핵검진은 현재 수업 장소 기준이 아니라 검진 대상 학급 기준으로 진행됩니다. 수업 장소 자료는 자동배정 보조 자료로만 활용하고 출력표에는 표시하지 않습니다.'
     : rawRoomMappingDescription;
   const update = (index: number, patch: Partial<SubjectDivision>) =>
     setData((prev) => ({ ...prev, divisions: prev.divisions.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)), needsReschedule: true }));
@@ -1557,7 +1556,7 @@ function DivisionsPanel({ data, setData }: { data: AppData; setData: React.Dispa
         <div className="card stack">
           <div className="section-title">
             <div>
-              <h2>{isTb ? '분반자료 업로드 · 참고 수업 장소 매핑' : '분반자료 업로드 · 실제 수업 교실 매핑'}</h2>
+              <h2>{isTb ? '분반자료 업로드 · 혼합수업 참고자료' : '분반자료 업로드 · 실제 수업 교실 매핑'}</h2>
               <p className="table-description">{roomMappingDescription}</p>
             </div>
             <div className="actions">
@@ -1734,8 +1733,10 @@ function ResultsPanel({
 전체 자동 배정표는 보건교사용 검토표이며, 실제 공유용 자료는 검진팀용 간단표와 교사용 안내표를 사용해 주세요.
 
 결핵검진은 학생들이 검진 장소로 이동하는 이동형 검진입니다.
-결핵검진은 수업 장소 기준이 아니라 검진 대상 학급 기준으로 진행됩니다.
-선택과목·분반수업은 참고자료로 활용하고, 검진 장소에서는 학급별 명렬표 기준으로 완료 여부를 확인합니다.`;
+결핵검진은 현재 수업 장소 기준이 아니라 검진 대상 학급 기준으로 진행됩니다.
+선택과목·분반수업 중이어도 지정된 검진 대상 학급 학생만 이동하며, 이미 검진을 완료한 학생은 다시 이동하지 않습니다.
+수업 장소 자료는 자동배정 보조 자료로만 활용하고 출력표에는 표시하지 않습니다.
+검진 장소에서는 학급별 명렬표 기준으로 완료 여부를 확인합니다.`;
   const gradeStats = createGradeStats(data);
   const grade2 = gradeStats.find((stat) => stat.grade === '2');
   const grade3 = gradeStats.find((stat) => stat.grade === '3');
@@ -1765,10 +1766,10 @@ function ResultsPanel({
       : Math.ceil((data.locations.filter((item) => item.isVisitable && item.includeInAuto).length * data.settings.durationMinutes) / Math.max(1, data.settings.teamCount || 1));
   const fullDescription = isUrine
     ? '보건교사용 검토표입니다. 검사 라인, 학년, 시간, 수업, 판정, 비고를 전체적으로 확인할 때 사용합니다. 교직원에게 그대로 공유하기보다는 검토용으로 사용해 주세요.'
-    : '보건교사용 검토표입니다. 검진 대상 학급, 검진 시간, 검진 장소, 참고 수업 장소, 혼합수업 여부를 전체적으로 확인할 때 사용합니다.';
+    : '보건교사용 검토표입니다. 검진 대상 학급, 검진 시간, 검진 장소, 이동 방식, 완료 확인 방식, 비고를 전체적으로 확인할 때 사용합니다.';
   const teamDescription = isUrine
     ? '검사팀이 실제 방문 순서를 확인할 때 사용하는 표입니다. 학년별 라인에 따라 교실 방문 순서를 확인할 수 있습니다.'
-    : '검진 대상 학급별 이동 순서를 확인할 때 사용하는 표입니다. 참고 수업 장소는 학생 이동 안내를 돕기 위한 보조 정보입니다.';
+    : '검진 대상 학급별 이동 순서를 확인할 때 사용하는 표입니다. 검진 장소에서는 학급별 명렬표로 완료 여부를 확인합니다.';
   const teacherDescription =
     '담임 및 교과교사에게 공유할 안내용 표입니다. 검사 또는 검진 시간에 학생들이 질서 있게 참여할 수 있도록 협조 요청 문구가 포함됩니다.';
   const twoColumnDescription = isUrine
@@ -1918,7 +1919,7 @@ function ResultsPanel({
         <h2>{isUrine ? 'E. 수동 확인 필요 목록' : 'D. 수동 확인 필요 목록'}</h2>
         <table>
           <thead>
-            <tr>{(isUrine ? ['항목명', '사유', '필요한 확인', '비고'] : ['학년', '검진 대상 학급', '교시', '수업명', '교과교사', '참고 수업 장소', '포함 학년', '포함 학급', '후보 시간 수', '제외된 후보 수', '사유', '필요한 확인']).map((h) => <th key={h}>{h}</th>)}</tr>
+            <tr>{(isUrine ? ['항목명', '사유', '필요한 확인', '비고'] : ['학년', '검진 대상 학급', '교시', '수업명', '교과교사', '판정 자료', '포함 학년', '포함 학급', '후보 시간 수', '제외된 후보 수', '사유', '필요한 확인']).map((h) => <th key={h}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {manualRows.length ? manualRows.map((row, index) => (
@@ -1936,7 +1937,7 @@ function ResultsPanel({
                   <td>{row.period}</td>
                   <td>{row.subject}</td>
                   <td>{row.teacher}</td>
-                  <td>{row.actualRoom}</td>
+                  <td>{row.type}</td>
                   <td>{row.involvedGrades}</td>
                   <td>{row.involvedClasses}</td>
                   <td>{row.candidateCount}</td>
@@ -1954,7 +1955,7 @@ function ResultsPanel({
         <ul className="basis-list">
           <li>나이스 시간표: 기준 자료</li>
           <li>교무부 분반 확인 자료: 기준 자료</li>
-          <li>실제 수업 장소: 제보 시 수정 반영</li>
+          <li>수업 장소 자료: 자동배정 보조 자료로만 활용하며 결핵검진 출력표에는 표시하지 않음</li>
           <li>담당교사명: 참고 정보</li>
           <li>미검 학생: 검진 후 별도 확인</li>
           <li>수행평가 일정은 교과 평가 운영 사항이므로 자동배정 기준에는 포함하지 않습니다. 검진·검사 일정은 외부기관 일정에 따라 진행되며, 평가 일정은 교과에서 사전 조정이 필요한 항목입니다.</li>
@@ -2267,13 +2268,13 @@ function TbTwoColumnPrintTable({ table, settings, description }: { table: Return
               <th>검진 시간</th>
               <th>검진 대상 학급</th>
               <th>검진 장소</th>
-              <th>참고 수업 장소</th>
-              <th>이동 안내</th>
+              <th>이동 방식</th>
+              <th>완료 확인 방식</th>
               <th>검진 시간</th>
               <th>검진 대상 학급</th>
               <th>검진 장소</th>
-              <th>참고 수업 장소</th>
-              <th>이동 안내</th>
+              <th>이동 방식</th>
+              <th>완료 확인 방식</th>
             </tr>
           </thead>
           <tbody>
@@ -2319,7 +2320,7 @@ function TbNoticeVerticalTable({ table, settings, description }: { table: Return
       <div className="tb-notice-sheet">
         <h3>2·3학년 결핵검진 학급별 이동 시간표</h3>
         <p className="table-description">{tbScheduleSummary(settings)}</p>
-        <p className="table-description">결핵검진은 수업 장소 기준이 아니라 검진 대상 학급 기준으로 진행됩니다. 참고 수업 장소는 학생 이동 안내를 돕기 위한 보조 정보입니다.</p>
+        <p className="table-description">결핵검진은 현재 수업 장소 기준이 아니라 검진 대상 학급 기준으로 진행됩니다. 안내된 시간에 해당 학급 학생들이 검진 장소로 이동하고, 검진 장소에서는 학급별 명렬표로 완료 여부를 확인합니다. 수업 장소 자료는 자동배정 보조 자료로만 활용하며 출력표에는 표시하지 않습니다.</p>
         {sections.map((section) => <TbNoticeSection key={section.grade} title={section.title} rows={section.rows} />)}
       </div>
     </div>
@@ -2336,8 +2337,8 @@ function TbNoticeSection({ title, rows }: { title: string; rows: string[][] }) {
             <th>검진 시간</th>
             <th>검진 대상 학급</th>
             <th>검진 장소</th>
-            <th>참고 수업 장소</th>
-            <th>이동 안내</th>
+            <th>이동 방식</th>
+            <th>완료 확인 방식</th>
           </tr>
         </thead>
         <tbody>
@@ -2431,7 +2432,7 @@ function getTbGradeBlockStart(settings: ExamSettings, grade: string) {
 function exportTbNoticeRowsToCsv(name: string, grade2Rows: string[][], grade3Rows: string[][]) {
   exportTableToCsv({
     name,
-    headers: ['학년', '검진 시간', '검진 대상 학급', '검진 장소', '참고 수업 장소', '이동 안내'],
+    headers: ['학년', '검진 시간', '검진 대상 학급', '검진 장소', '이동 방식', '완료 확인 방식'],
     rows: [
       ...grade2Rows.map((row) => ['2학년', ...row]),
       ...grade3Rows.map((row) => ['3학년', ...row]),
@@ -2651,7 +2652,7 @@ function validateBeforeSchedule(data: AppData) {
   }
 
   if (settings.examType === 'tb' && targetCount === 0) {
-    messages.push('결핵검진 자동배정에 사용할 수업 장소가 없습니다.');
+    messages.push('결핵검진 자동배정에 사용할 검진 대상 학급이 없습니다.');
   }
 
   return messages;
