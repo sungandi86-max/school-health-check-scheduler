@@ -380,10 +380,10 @@ export function judgePeriod(
       period,
       subject,
       teacher,
-      status: '수동확인',
-      reason: '여러 학년 혼합 수업으로 호출 단위 확인 필요',
+      status: '주의',
+      reason: '혼합학년 수업 / 호출 시 명렬표 확인 필요',
       actualRoom: confidentActualRoom,
-      roomMappingReason: roomMapping?.mixedReason || '여러 학년 혼합 수업',
+      roomMappingReason: roomMapping?.mixedReason || '혼합학년 수업 / 호출 시 명렬표 확인 필요',
       roomMappingConfidence,
       involvedGrades: roomMapping?.involvedGrades,
       involvedClasses: roomMapping?.involvedClasses,
@@ -391,6 +391,9 @@ export function judgePeriod(
     };
   }
   if (!location.isVisitable) {
+    if (settings.examType === 'tb') {
+      return { locationId: location.id, period, subject, teacher, status: '주의', reason: '호출 단위 방문 가능 여부 참고 / 호출 가능' };
+    }
     return { locationId: location.id, period, subject, status: '불가', reason: '실제 방문 가능 여부가 불가능' };
   }
   if (!location.includeInAuto) {
@@ -405,7 +408,7 @@ export function judgePeriod(
       period,
       subject,
       teacher,
-      status: '수동확인',
+      status: '주의',
       reason: TB_ROOM_MAPPING_CONFIRM_NOTE,
       roomMappingReason: TB_ROOM_MAPPING_CONFIRM_NOTE,
       roomMappingConfidence,
@@ -675,7 +678,10 @@ export function createManualConfirmRows(divisions: SubjectDivision[], assignment
     }));
 
   const blockedRows = judgements
-    .filter((item) => item.status === '불가' || item.status === '수동확인')
+    .filter((item) => {
+      const assigned = assignmentMap.get(item.locationId);
+      return !assigned?.order && (item.status === '불가' || item.status === '수동확인');
+    })
     .map((item) => ({
       ...(() => {
         const assignment = assignmentMap.get(item.locationId);
@@ -726,7 +732,7 @@ export function makeSchedule(data: AppData): { judgements: PeriodJudgement[]; as
   const assignments: ScheduleAssignment[] = [];
 
   const candidates = locations
-    .filter((location) => location.includeInAuto && location.isVisitable)
+    .filter((location) => location.includeInAuto && (settings.examType === 'tb' || location.isVisitable))
     .sort(sortDisplay)
     .map((location) => {
       const valid = judgements.filter(

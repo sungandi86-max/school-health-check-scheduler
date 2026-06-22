@@ -96,7 +96,7 @@ export function App() {
   );
 
   const dashboard = useMemo(() => {
-    const totalCandidates = data.locations.filter((item) => item.isVisitable && item.includeInAuto).length;
+    const totalCandidates = data.locations.filter((item) => item.includeInAuto && (data.settings.examType === 'tb' || item.isVisitable)).length;
     const lineCount = Math.max(1, data.settings.teamCount || 1);
     const vendorMinutes = minutesBetween(data.settings.startTime, data.settings.endTime);
     const gradeStats = createGradeStats(data);
@@ -108,6 +108,9 @@ export function App() {
     return {
       totalCandidates,
       done: data.assignments.filter((item) => item.order).length,
+      unassigned: data.settings.examType === 'tb' ? data.assignments.filter((item) => !item.order).length : 0,
+      timeShortage: data.settings.examType === 'tb' ? data.assignments.filter((item) => !item.order && (item.failedReason?.includes('배정 불가') || item.failedReason?.includes('시간'))).length : 0,
+      filteredOut: data.settings.examType === 'tb' ? data.assignments.filter((item) => !item.order && (item.failedReason?.includes('교시') || item.failedReason?.includes('키워드'))).length : 0,
       manual: manualRows.length,
       blocked: data.judgements.filter((item) => item.status === '불가').length,
       estimatedMinutes,
@@ -443,6 +446,9 @@ function Dashboard({
   dashboard: {
     totalCandidates: number;
     done: number;
+    unassigned: number;
+    timeShortage: number;
+    filteredOut: number;
     manual: number;
     blocked: number;
     estimatedMinutes: number;
@@ -496,6 +502,9 @@ function Dashboard({
         {data.settings.examType === 'tb' &&
           dashboard.gradeStats.map((stat) => <Metric key={`${stat.grade}-done`} label={`${stat.grade}학년 배정 완료 수`} value={stat.done} />)}
         <Metric label="수동 확인 필요 수" value={dashboard.manual} />
+        {data.settings.examType === 'tb' && <Metric label="미배정 호출 단위 수" value={dashboard.unassigned} />}
+        {data.settings.examType === 'tb' && <Metric label="시간 부족 미배정 수" value={dashboard.timeShortage} />}
+        {data.settings.examType === 'tb' && <Metric label="조건 필터 미배정 수" value={dashboard.filteredOut} />}
         <Metric label={mode.blockedLabel} value={dashboard.blocked} />
         <Metric label="업체 검사 가능 시간" value={`${data.settings.startTime}~${data.settings.endTime}`} />
         <Metric label="단위당 소요시간" value={`${data.settings.durationMinutes}분`} />
@@ -1637,6 +1646,17 @@ function ResultsPanel({
   const grade2 = gradeStats.find((stat) => stat.grade === '2');
   const grade3 = gradeStats.find((stat) => stat.grade === '3');
   const assigned = data.assignments.filter((item) => item.order);
+  const unassignedTbRows = isUrine ? [] : data.assignments.filter((item) => !item.order);
+  const timeShortageCount = unassignedTbRows.filter((item) => item.failedReason?.includes('배정 불가') || item.failedReason?.includes('시간')).length;
+  const filteredOutCount = unassignedTbRows.filter((item) => item.failedReason?.includes('교시') || item.failedReason?.includes('키워드')).length;
+  const candidateCountByLocation = new Map<string, number>();
+  if (!isUrine) {
+    for (const judgement of data.judgements) {
+      if (judgement.status === '가능' || judgement.status === '주의') {
+        candidateCountByLocation.set(judgement.locationId, (candidateCountByLocation.get(judgement.locationId) ?? 0) + 1);
+      }
+    }
+  }
   const assignedGrade2 = assigned.filter((item) => item.grade === '2').length;
   const assignedGrade3 = assigned.filter((item) => item.grade === '3').length;
   const blockedCount = data.judgements.filter((item) => item.status === '불가').length;
@@ -1686,6 +1706,9 @@ function ResultsPanel({
         <Metric label="2학년 배정 수" value={assignedGrade2} />
         <Metric label="3학년 배정 수" value={assignedGrade3} />
         <Metric label="수동 확인 필요 수" value={manualRows.length} />
+        {!isUrine && <Metric label="미배정 호출 단위 수" value={unassignedTbRows.length} />}
+        {!isUrine && <Metric label="시간 부족 미배정 수" value={timeShortageCount} />}
+        {!isUrine && <Metric label="조건 필터 미배정 수" value={filteredOutCount} />}
         <Metric label={isUrine ? '검사 불가 충돌 수' : '호출 불가 충돌 수'} value={blockedCount} />
         {isUrine ? (
           <>
@@ -1762,6 +1785,27 @@ function ResultsPanel({
       {!isUrine && <TbTwoColumnPrintTable table={tables.tbTwoColumn} settings={data.settings} description={twoColumnDescription} />}
       {!isUrine && <TbNoticeVerticalTable table={tables.tbTwoColumn} settings={data.settings} description={noticeDescription} />}
       {!isUrine && <TbUltraCompactNoticeTable assignments={data.assignments} settings={data.settings} description={ultraCompactDescription} />}
+      {!isUrine && unassignedTbRows.length > 0 && (
+        <div className="card table-wrap">
+          <h2>미배정 호출 단위</h2>
+          <table>
+            <thead>
+              <tr>{['학년', '호출 단위', '사유', '필요한 확인', '가능한 후보 시간 수'].map((h) => <th key={h}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {unassignedTbRows.map((row) => (
+                <tr key={`unassigned-${row.locationId}`}>
+                  <td>{row.grade}</td>
+                  <td>{row.unitName || row.locationName}</td>
+                  <td>{row.failedReason || '배정 시간 없음'}</td>
+                  <td>호출 가능 시간 또는 수동 배정 확인 필요</td>
+                  <td>{candidateCountByLocation.get(row.locationId) ?? 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       <div className="card table-wrap">
         <h2>{isUrine ? 'E. 수동 확인 필요 목록' : 'D. 수동 확인 필요 목록'}</h2>
         <table>
@@ -2492,7 +2536,7 @@ function createGradeStats(data: AppData) {
   const grades = ['2', '3'];
   const effectiveBlocks = getEffectiveGradeTimeBlocks(data.settings);
   return grades.map((grade) => {
-    const count = data.locations.filter((item) => item.grade === grade && item.isVisitable && item.includeInAuto).length;
+    const count = data.locations.filter((item) => item.grade === grade && item.includeInAuto && (data.settings.examType === 'tb' || item.isVisitable)).length;
     const done = data.assignments.filter((item) => item.grade === grade && item.order).length;
     const lines = Math.max(1, data.settings.examType === 'urine' ? data.settings.teamsByGrade[grade] ?? 1 : data.settings.teamCount || 1);
     const estimatedMinutes = Math.ceil((count * data.settings.durationMinutes) / lines);
