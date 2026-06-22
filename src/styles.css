@@ -766,6 +766,15 @@ td select {
   font-size: 13.5px;
   line-height: 1.24;
   word-break: keep-all;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.tb-print-two-column-table .two-column-table th:nth-child(5),
+.tb-print-two-column-table .two-column-table td:nth-child(5),
+.tb-print-two-column-table .two-column-table th:nth-child(10),
+.tb-print-two-column-table .two-column-table td:nth-child(10) {
+  text-align: left;
 }
 
 .tb-compact-two-column {
@@ -801,26 +810,6 @@ td select {
   font-size: 13px;
 }
 
-.tb-print-vertical-table .urine-notice-table th:nth-child(1) {
-  width: 16%;
-}
-
-.tb-print-vertical-table .urine-notice-table th:nth-child(2) {
-  width: 18%;
-}
-
-.tb-print-vertical-table .urine-notice-table th:nth-child(3) {
-  width: 30%;
-}
-
-.tb-print-vertical-table .urine-notice-table th:nth-child(4) {
-  width: 16%;
-}
-
-.tb-print-vertical-table .urine-notice-table th:nth-child(5) {
-  width: 20%;
-}
-
 .tb-notice-sheet.ultra {
   width: min(100%, 520px);
   padding: 12px;
@@ -844,26 +833,52 @@ td select {
   padding: 7px 7px;
   font-size: 14px;
   line-height: 1.25;
+  text-align: center;
+  vertical-align: middle;
+  word-break: keep-all;
 }
 
-.tb-notice-sheet .urine-notice-table th:first-child,
-.tb-notice-sheet .urine-notice-table td:first-child {
-  width: 22%;
+.tb-notice-sheet .urine-notice-table th:nth-child(5),
+.tb-notice-sheet .urine-notice-table td:nth-child(5) {
+  text-align: left;
 }
 
-.tb-notice-sheet .urine-notice-table th:nth-child(2),
-.tb-notice-sheet .urine-notice-table td:nth-child(2) {
-  width: 22%;
+.tb-class-movement-guide {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 12px;
+  padding: 9px 11px;
+  border-color: #b7d7d2;
+  background: #f5fbfa;
+  color: #15364d;
+  font-size: 12.5px;
+  line-height: 1.35;
 }
 
-.tb-notice-sheet .urine-notice-table th:nth-child(3),
-.tb-notice-sheet .urine-notice-table td:nth-child(3) {
-  width: 26%;
+.tb-movement-result-table table {
+  table-layout: fixed;
 }
 
-.tb-notice-sheet .urine-notice-table th:nth-child(4),
-.tb-notice-sheet .urine-notice-table td:nth-child(4) {
-  width: 30%;
+.tb-movement-result-table th,
+.tb-movement-result-table td {
+  text-align: center;
+  vertical-align: middle;
+  word-break: keep-all;
+}
+
+.tb-movement-result-table th:nth-child(5),
+.tb-movement-result-table td:nth-child(5) {
+  text-align: left;
+}
+
+.tb-movement-result-table th:nth-child(6),
+.tb-movement-result-table td:nth-child(6) {
+  text-align: left;
+}
+
+.tb-movement-result-table.with-order th:nth-child(5),
+.tb-movement-result-table.with-order td:nth-child(5) {
+  text-align: center;
 }
 
 .tb-print-ultra-table {
@@ -1407,6 +1422,7 @@ td select {
   body.print-tb-two-column-only .tb-print-two-column-table .two-column-table {
     width: 100%;
     min-width: 0;
+    table-layout: fixed;
   }
 
   body.print-tb-two-column-only .tb-print-two-column-table .two-column-table th,
@@ -1414,6 +1430,14 @@ td select {
     padding: 3.5px 3px;
     font-size: 10.4px;
     line-height: 1.12;
+    text-align: center;
+  }
+
+  body.print-tb-two-column-only .tb-print-two-column-table .two-column-table th:nth-child(5),
+  body.print-tb-two-column-only .tb-print-two-column-table .two-column-table td:nth-child(5),
+  body.print-tb-two-column-only .tb-print-two-column-table .two-column-table th:nth-child(10),
+  body.print-tb-two-column-only .tb-print-two-column-table .two-column-table td:nth-child(10) {
+    text-align: left;
   }
 
   body.print-tb-two-column-only .tb-print-two-column-table .two-column-table .grade-title-row th {
@@ -1476,6 +1500,18 @@ td select {
     font-size: 10.5px;
   }
 
+  body.print-tb-notice-only .tb-class-movement-guide,
+  body.print-tb-two-column-only .tb-class-movement-guide {
+    display: grid;
+    gap: 1px;
+    margin-bottom: 3mm;
+    padding: 2.5mm 3mm;
+    font-size: 9.8px;
+    line-height: 1.22;
+    border: 1px solid #b7d7d2;
+    background: #f8fbfa;
+  }
+
   body.print-tb-notice-only .tb-notice-sheet .urine-notice-section + .urine-notice-section {
     margin-top: 4mm;
   }
@@ -1485,9 +1521,15 @@ td select {
   body.print-tb-notice-only .tb-notice-sheet .urine-notice-table td,
   body.print-tb-ultra-only .tb-notice-sheet .urine-notice-table th,
   body.print-tb-ultra-only .tb-notice-sheet .urine-notice-table td {
-    padding: 4px 5px;
-    font-size: 10.8px;
-    line-height: 1.14;
+    padding: 3.2px 4px;
+    font-size: 10.5px;
+    line-height: 1.12;
+    text-align: center;
+  }
+
+  body.print-tb-notice-only .tb-notice-sheet .urine-notice-table td:nth-child(5),
+  body.print-tb-notice-only .tb-notice-sheet .urine-notice-table th:nth-child(5) {
+    text-align: left;
   }
 
   .urine-notice-header {

@@ -2261,8 +2261,21 @@ function TbTwoColumnPrintTable({ table, settings, description }: { table: Return
         </div>
       </div>
       <h3 className="two-column-title">2·3학년 결핵검진 학급별 이동 시간표</h3>
+      <TbPrintGuide />
       <div className="two-column-table-wrap">
         <table className="two-column-table">
+          <colgroup>
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '7%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '7%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '14%' }} />
+          </colgroup>
           <thead>
             <tr className="grade-title-row">
               <th colSpan={5}>2학년 결핵검진</th>
@@ -2324,17 +2337,7 @@ function TbNoticeVerticalTable({ table, settings, description }: { table: Return
       <div className="tb-notice-sheet">
         <h3>2·3학년 결핵검진 학급별 이동 시간표</h3>
         <p className="table-description">{tbScheduleSummary(settings)}</p>
-        <div className="notice tb-class-movement-guide">
-          결핵검진은 현재 수업 장소 기준이 아니라 검진 대상 학급 기준으로 진행됩니다.
-          <br />
-          안내된 시간에 해당 학급 학생들이 검진 장소로 이동합니다.
-          <br />
-          선택과목·분반수업 중인 경우에도 해당 시간에 지정된 검진 대상 학급 학생만 이동합니다.
-          <br />
-          이미 검진을 완료한 학생은 이후 다른 수업 장소에 있더라도 다시 이동하지 않습니다.
-          <br />
-          검진 장소에서는 학급별 명렬표를 기준으로 완료 여부를 확인합니다.
-        </div>
+        <TbPrintGuide />
         {sections.map((section) => <TbNoticeSection key={section.grade} title={section.title} rows={section.rows} />)}
       </div>
     </div>
@@ -2346,6 +2349,13 @@ function TbNoticeSection({ title, rows }: { title: string; rows: string[][] }) {
     <section className="urine-notice-section">
       <h4>{title}</h4>
       <table className="urine-notice-table">
+        <colgroup>
+          <col style={{ width: '18%' }} />
+          <col style={{ width: '14%' }} />
+          <col style={{ width: '22%' }} />
+          <col style={{ width: '18%' }} />
+          <col style={{ width: '28%' }} />
+        </colgroup>
         <thead>
           <tr>
             <th>검진 시간</th>
@@ -2370,6 +2380,18 @@ function TbNoticeSection({ title, rows }: { title: string; rows: string[][] }) {
         </tbody>
       </table>
     </section>
+  );
+}
+
+function TbPrintGuide() {
+  return (
+    <div className="notice tb-class-movement-guide">
+      <span>결핵검진은 검진 대상 학급 기준으로 진행됩니다.</span>
+      <span>안내된 시간에 해당 학급 학생들이 검진 장소로 이동합니다.</span>
+      <span>선택과목·분반수업 중이어도 해당 시간에 지정된 학급 학생만 이동합니다.</span>
+      <span>이미 검진을 완료한 학생은 이후 다른 수업 장소에 있더라도 다시 이동하지 않습니다.</span>
+      <span>검진 장소에서는 학급별 명렬표를 기준으로 완료 여부를 확인합니다.</span>
+    </div>
   );
 }
 
@@ -2501,11 +2523,46 @@ function ResultTable({
   rows: string[][];
   compact?: boolean;
 }) {
+  const isTbMovementTable =
+    headers.length === 5 &&
+    headers[0].includes('검진 시간') &&
+    headers[1].includes('검진 대상 학급') &&
+    headers[2].includes('검진 장소') &&
+    headers[3].includes('이동 방식') &&
+    headers[4].includes('비고');
+  const isTbMovementTableWithOrder =
+    headers.length === 6 &&
+    headers[0].includes('검진 순서') &&
+    headers[1].includes('검진 시간') &&
+    headers[2].includes('검진 대상 학급') &&
+    headers[3].includes('검진 장소') &&
+    headers[4].includes('이동 방식') &&
+    headers[5].includes('비고');
+  const isTbMovementResultTable = isTbMovementTable || isTbMovementTableWithOrder;
   return (
-    <div className={`card table-wrap ${compact ? 'compact' : ''}`}>
+    <div className={`card table-wrap ${compact ? 'compact' : ''} ${isTbMovementResultTable ? 'tb-movement-result-table' : ''} ${isTbMovementTableWithOrder ? 'with-order' : ''}`}>
       <h2>{title}</h2>
       {description && <p className="table-description">{description}</p>}
       <table>
+        {isTbMovementTable && (
+          <colgroup>
+            <col style={{ width: '18%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '22%' }} />
+            <col style={{ width: '18%' }} />
+            <col style={{ width: '28%' }} />
+          </colgroup>
+        )}
+        {isTbMovementTableWithOrder && (
+          <colgroup>
+            <col style={{ width: '6%' }} />
+            <col style={{ width: '17%' }} />
+            <col style={{ width: '13%' }} />
+            <col style={{ width: '21%' }} />
+            <col style={{ width: '17%' }} />
+            <col style={{ width: '26%' }} />
+          </colgroup>
+        )}
         <thead>
           <tr>{headers.map((header) => <th key={header}>{header}</th>)}</tr>
         </thead>

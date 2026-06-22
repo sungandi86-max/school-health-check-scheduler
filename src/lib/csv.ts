@@ -42,7 +42,7 @@ export function formatCurrentClassroom(item: ScheduleAssignment) {
 }
 
 function tbPlaceNote(item: ScheduleAssignment) {
-  if (item.failedReason) return item.failedReason;
+  if (item.failedReason) return '미배정 목록 확인';
   const hasMixedClass = item.isMixedGrade || item.isMixedClass || (item.mixedClassCount ?? 1) >= 2;
   const hasReferenceSignal = Boolean(
     hasMixedClass ||
@@ -52,11 +52,8 @@ function tbPlaceNote(item: ScheduleAssignment) {
       item.roomMappingReason?.includes('선택') ||
       item.roomMappingReason?.includes('분반'),
   );
-  return joinNotes(
-    hasReferenceSignal ? '선택수업 중이어도 해당 학급 학생만 이동' : undefined,
-    hasReferenceSignal ? '검진 완료자는 재이동 없음' : undefined,
-    '학급별 명렬표 기준 완료 확인',
-  );
+  if (hasReferenceSignal) return '해당 학급만 이동';
+  return '';
 }
 
 function tbExamTimeRange(item: ScheduleAssignment) {
@@ -211,14 +208,16 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
     return {
       name: '결핵검진_자동배정표',
       headers: ['검진 순서', '검진 시간', '검진 대상 학급', '검진 장소', '이동 방식', '비고'],
-      rows: assignments.map((item) => [
-        item.order?.toString() ?? '',
-        tbExamTimeRange(item),
-        unitName(item),
-        item.examVenue || settings.examVenue,
-        tbMoveGuide(item),
-        tbPlaceNote(item),
-      ]),
+      rows: assignments
+        .filter((item) => item.order)
+        .map((item) => [
+          item.order?.toString() ?? '',
+          tbExamTimeRange(item),
+          unitName(item),
+          item.examVenue || settings.examVenue,
+          tbMoveGuide(item),
+          tbPlaceNote(item),
+        ]),
     };
   }
 
