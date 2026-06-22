@@ -173,6 +173,7 @@ function normalizeComprehensiveLectureRoom(value = '') {
 }
 
 function normalizeSettings(settings: AppData['settings'], fallback: AppData['settings']) {
+  const hasStoredGradeTimeMode = typeof settings.gradeTimeMode === 'string';
   settings.urineSimultaneous = typeof settings.urineSimultaneous === 'boolean' ? settings.urineSimultaneous : fallback.urineSimultaneous;
   settings.urineParallelMode = settings.urineParallelMode ?? fallback.urineParallelMode;
   settings.urineMixedGradeHandling = ['allow-caution', 'manual-confirm', 'exclude'].includes(String(settings.urineMixedGradeHandling))
@@ -182,6 +183,7 @@ function normalizeSettings(settings: AppData['settings'], fallback: AppData['set
   settings.gradeStartTimes = settings.gradeStartTimes ?? fallback.gradeStartTimes;
   settings.useGradeTimeBlocks = typeof settings.useGradeTimeBlocks === 'boolean' ? settings.useGradeTimeBlocks : fallback.useGradeTimeBlocks;
   settings.gradeTimeMode = normalizeGradeTimeMode(settings.gradeTimeMode, fallback.gradeTimeMode);
+  if (settings.examType === 'tb' && !hasStoredGradeTimeMode) settings.useGradeTimeBlocks = true;
   settings.gradeTimeBlocks = Array.isArray(settings.gradeTimeBlocks) ? settings.gradeTimeBlocks : fallback.gradeTimeBlocks;
 }
 

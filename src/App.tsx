@@ -1,4 +1,4 @@
-import { ClipboardCopy, Download, FileInput, FileText, Printer, RotateCcw, Sparkles } from 'lucide-react';
+﻿import { ClipboardCopy, Download, FileInput, FileText, Printer, RotateCcw, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   AppData,
@@ -696,7 +696,7 @@ function SettingsPanel({
       settings.gradeTimeBlocks.map((block) => (block.grade === grade ? { ...block, ...patch } : block)),
     );
   const isCustomGradeTime = settings.gradeTimeMode === 'CUSTOM_BY_GRADE';
-  const displayedGradeTimeBlocks = settings.useGradeTimeBlocks ? calculateGradeTimeBlocks(settings) : calculateGradeTimeBlocks(settings, 'ALL_GRADES_FULL_RANGE');
+  const displayedGradeTimeBlocks = settings.useGradeTimeBlocks ? calculateGradeTimeBlocks(settings) : [];
   const updateGradeTimeMode = (mode: GradeTimeMode) => {
     const nextSettings = { ...settings, gradeTimeMode: mode };
     setSettings({
@@ -791,15 +791,18 @@ function SettingsPanel({
                 <input type="checkbox" checked={settings.useGradeTimeBlocks} onChange={(event) => update('useGradeTimeBlocks', event.target.checked)} /> 사용
               </label>
             </Field>
-            {settings.useGradeTimeBlocks && (
+            <>
               <Field label="학년별 시간 배정 방식">
-                <select value={settings.gradeTimeMode} onChange={(event) => updateGradeTimeMode(event.target.value as GradeTimeMode)}>
+                <select value={settings.gradeTimeMode} disabled={!settings.useGradeTimeBlocks} onChange={(event) => updateGradeTimeMode(event.target.value as GradeTimeMode)}>
                   {GRADE_TIME_MODE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
                 <span className="field-note">현재 방식: {getGradeTimeModeLabel(settings.gradeTimeMode)}</span>
               </Field>
+            </>
+            {!settings.useGradeTimeBlocks && (
+              <div className="form-help">학년별 구간을 적용하지 않고 2학년과 3학년 모두 업체 검사 가능 전체 시간 안에서 배정합니다.</div>
             )}
             {settings.useGradeTimeBlocks && !isCustomGradeTime && (
               <div className="form-help">
@@ -2481,3 +2484,4 @@ function createGradeStats(data: AppData) {
     };
   });
 }
+
