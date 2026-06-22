@@ -736,7 +736,8 @@ function SettingsPanel({
       needsReschedule: true,
     }));
   const isCustomGradeTime = settings.gradeTimeMode === 'CUSTOM_BY_GRADE';
-  const displayedGradeTimeBlocks = settings.useGradeTimeBlocks ? calculateGradeTimeBlocks(settings) : [];
+  const effectiveGradeTimeMode: GradeTimeMode = settings.useGradeTimeBlocks ? settings.gradeTimeMode : 'ALL_GRADES_FULL_RANGE';
+  const displayedGradeTimeBlocks = settings.useGradeTimeBlocks ? calculateGradeTimeBlocks(settings, effectiveGradeTimeMode) : [];
   const updateGradeTimeMode = (mode: GradeTimeMode) => {
     setData((prev) => {
       const nextSettings = { ...prev.settings, gradeTimeMode: mode, useGradeTimeBlocks: true };
@@ -750,6 +751,18 @@ function SettingsPanel({
       };
     });
   };
+  const updateUseGradeTimeBlocks = (enabled: boolean) =>
+    setData((prev) => {
+      const nextSettings = { ...prev.settings, useGradeTimeBlocks: enabled };
+      return {
+        ...prev,
+        settings: {
+          ...nextSettings,
+          gradeTimeBlocks: enabled && nextSettings.gradeTimeMode !== 'CUSTOM_BY_GRADE' ? calculateGradeTimeBlocks(nextSettings) : nextSettings.gradeTimeBlocks,
+        },
+        needsReschedule: true,
+      };
+    });
   const saveSchoolDefaults = () =>
     setData((prev) => ({ ...prev, schoolDefaults: { daySchedule: structuredClone(settings.daySchedule) } }));
   const loadSchoolDefaults = () => update('daySchedule', structuredClone(data.schoolDefaults.daySchedule));
@@ -834,17 +847,17 @@ function SettingsPanel({
             </Field>
             <Field label="학년별 시간 구간 사용">
               <label className="toggle">
-                <input type="checkbox" checked={settings.useGradeTimeBlocks} onChange={(event) => update('useGradeTimeBlocks', event.target.checked)} /> 사용
+                <input type="checkbox" checked={settings.useGradeTimeBlocks} onChange={(event) => updateUseGradeTimeBlocks(event.target.checked)} /> 사용
               </label>
             </Field>
             <>
               <Field label="학년별 시간 배정 방식">
-                <select value={settings.gradeTimeMode} disabled={!settings.useGradeTimeBlocks} onChange={(event) => updateGradeTimeMode(event.target.value as GradeTimeMode)}>
+                <select value={effectiveGradeTimeMode} disabled={!settings.useGradeTimeBlocks} onChange={(event) => updateGradeTimeMode(event.target.value as GradeTimeMode)}>
                   {GRADE_TIME_MODE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
-                <span className="field-note">현재 방식: {getGradeTimeModeLabel(settings.gradeTimeMode)}</span>
+                <span className="field-note">현재 방식: {getGradeTimeModeLabel(effectiveGradeTimeMode)}</span>
               </Field>
             </>
             {!settings.useGradeTimeBlocks && (
@@ -2163,6 +2176,10 @@ function TbTwoColumnPrintTable({ table, settings, description }: { table: Return
 function TbNoticeVerticalTable({ table, settings, description }: { table: ReturnType<typeof createTbTwoColumnTable>; settings: ExamSettings; description: string }) {
   const grade2Rows = table.rows.map((row) => row.slice(0, 4)).filter((row) => row.some(Boolean));
   const grade3Rows = table.rows.map((row) => row.slice(4, 8)).filter((row) => row.some(Boolean));
+  const sections = [
+    { grade: '2', title: '2학년 결핵검진', rows: grade2Rows },
+    { grade: '3', title: '3학년 결핵검진', rows: grade3Rows },
+  ].sort((a, b) => getTbGradeBlockStart(settings, a.grade).localeCompare(getTbGradeBlockStart(settings, b.grade)) || a.grade.localeCompare(b.grade, 'ko', { numeric: true }));
   const printNoticeOnly = () => {
     document.body.classList.add('print-tb-notice-only');
     window.setTimeout(() => window.print(), 0);
@@ -2184,8 +2201,7 @@ function TbNoticeVerticalTable({ table, settings, description }: { table: Return
       <div className="tb-notice-sheet">
         <h3>2·3학년 결핵검진 시간표</h3>
         <p className="table-description">{tbScheduleSummary(settings)}</p>
-        <TbNoticeSection title="2학년 결핵검진" rows={grade2Rows} />
-        <TbNoticeSection title="3학년 결핵검진" rows={grade3Rows} />
+        {sections.map((section) => <TbNoticeSection key={section.grade} title={section.title} rows={section.rows} />)}
       </div>
     </div>
   );
@@ -2277,6 +2293,12 @@ function tbCallUnit(item: ScheduleAssignment) {
   return item.unitName || item.homeRoomName?.replace(/교실$/, '') || item.locationName.replace(/교실$/, '');
 }
 
+function getTbGradeBlockStart(settings: ExamSettings, grade: string) {
+  if (!settings.useGradeTimeBlocks) return settings.startTime;
+  const block = calculateGradeTimeBlocks(settings, settings.gradeTimeMode).find((item) => item.grade === grade);
+  return block?.startTime || settings.startTime;
+}
+
 function exportTbNoticeRowsToCsv(name: string, grade2Rows: string[][], grade3Rows: string[][]) {
   exportTableToCsv({
     name,
@@ -2289,11 +2311,12 @@ function exportTbNoticeRowsToCsv(name: string, grade2Rows: string[][], grade3Row
 }
 
 function tbScheduleSummary(settings: ExamSettings) {
-  const effectiveBlocks = getEffectiveGradeTimeBlocks(settings);
+  const effectiveMode: GradeTimeMode = settings.useGradeTimeBlocks ? settings.gradeTimeMode : 'ALL_GRADES_FULL_RANGE';
+  const effectiveBlocks = settings.useGradeTimeBlocks && effectiveMode !== 'ALL_GRADES_FULL_RANGE' ? getEffectiveGradeTimeBlocks(settings) : calculateGradeTimeBlocks(settings, 'ALL_GRADES_FULL_RANGE');
   const grade2 = effectiveBlocks.find((item) => item.grade === '2');
   const grade3 = effectiveBlocks.find((item) => item.grade === '3');
   return [
-    `학년별 운영 방식: ${settings.useGradeTimeBlocks ? getGradeTimeModeLabel(settings.gradeTimeMode) : '학년 구분 없이 전체 시간 사용'}`,
+    `학년별 운영 방식: ${getGradeTimeModeLabel(effectiveMode)}`,
     grade2 ? `2학년 검진 시간 구간: ${grade2.startTime}~${grade2.endTime}` : '',
     grade3 ? `3학년 검진 시간 구간: ${grade3.startTime}~${grade3.endTime}` : '',
     `검진 장소: ${settings.examVenue || '-'}`,
