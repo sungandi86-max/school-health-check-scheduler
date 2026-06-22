@@ -2176,17 +2176,19 @@ function TbTwoColumnPrintTable({ table, settings, description }: { table: Return
         <table className="two-column-table">
           <thead>
             <tr className="grade-title-row">
-              <th colSpan={4}>2학년 결핵검진</th>
-              <th colSpan={4}>3학년 결핵검진</th>
+              <th colSpan={5}>2학년 결핵검진</th>
+              <th colSpan={5}>3학년 결핵검진</th>
             </tr>
             <tr>
               <th>호출 시간</th>
               <th>검진 예상 시간</th>
               <th>호출 단위</th>
+              <th>현재 수업 장소</th>
               <th>교과교사</th>
               <th>호출 시간</th>
               <th>검진 예상 시간</th>
               <th>호출 단위</th>
+              <th>현재 수업 장소</th>
               <th>교과교사</th>
             </tr>
           </thead>
@@ -2196,7 +2198,7 @@ function TbTwoColumnPrintTable({ table, settings, description }: { table: Return
                 {row.map((cell, cellIndex) => <td key={`${index}-${cellIndex}`}>{cell}</td>)}
               </tr>
             )) : (
-              <tr><td colSpan={8} className="empty">2단표로 표시할 결핵검진 배정 결과가 없습니다.</td></tr>
+              <tr><td colSpan={10} className="empty">2단표로 표시할 결핵검진 배정 결과가 없습니다.</td></tr>
             )}
           </tbody>
         </table>
@@ -2206,8 +2208,8 @@ function TbTwoColumnPrintTable({ table, settings, description }: { table: Return
 }
 
 function TbNoticeVerticalTable({ table, settings, description }: { table: ReturnType<typeof createTbTwoColumnTable>; settings: ExamSettings; description: string }) {
-  const grade2Rows = table.rows.map((row) => row.slice(0, 4)).filter((row) => row.some(Boolean));
-  const grade3Rows = table.rows.map((row) => row.slice(4, 8)).filter((row) => row.some(Boolean));
+  const grade2Rows = table.rows.map((row) => row.slice(0, 5)).filter((row) => row.some(Boolean));
+  const grade3Rows = table.rows.map((row) => row.slice(5, 10)).filter((row) => row.some(Boolean));
   const sections = [
     { grade: '2', title: '2학년 결핵검진', rows: grade2Rows },
     { grade: '3', title: '3학년 결핵검진', rows: grade3Rows },
@@ -2233,6 +2235,7 @@ function TbNoticeVerticalTable({ table, settings, description }: { table: Return
       <div className="tb-notice-sheet">
         <h3>2·3학년 결핵검진 시간표</h3>
         <p className="table-description">{tbScheduleSummary(settings)}</p>
+        <p className="table-description">현재 수업 장소는 호출 전 학생 위치 확인용 참고자료입니다. 이동수업·선택과목·혼합수업의 경우 실제 운영 상황에 따라 호출 위치와 시간이 달라질 수 있습니다.</p>
         {sections.map((section) => <TbNoticeSection key={section.grade} title={section.title} rows={section.rows} />)}
       </div>
     </div>
@@ -2249,6 +2252,7 @@ function TbNoticeSection({ title, rows }: { title: string; rows: string[][] }) {
             <th>호출 시간</th>
             <th>검진 예상 시간</th>
             <th>호출 단위</th>
+            <th>현재 수업 장소</th>
             <th>교과교사</th>
           </tr>
         </thead>
@@ -2259,9 +2263,10 @@ function TbNoticeSection({ title, rows }: { title: string; rows: string[][] }) {
               <td>{row[1]}</td>
               <td>{row[2]}</td>
               <td>{row[3]}</td>
+              <td>{row[4]}</td>
             </tr>
           )) : (
-            <tr><td colSpan={4} className="empty">배정 결과가 없습니다.</td></tr>
+            <tr><td colSpan={5} className="empty">배정 결과가 없습니다.</td></tr>
           )}
         </tbody>
       </table>
@@ -2334,7 +2339,7 @@ function getTbGradeBlockStart(settings: ExamSettings, grade: string) {
 function exportTbNoticeRowsToCsv(name: string, grade2Rows: string[][], grade3Rows: string[][]) {
   exportTableToCsv({
     name,
-    headers: ['학년', '호출 시간', '검진 예상 시간', '호출 단위', '교과교사'],
+    headers: ['학년', '호출 시간', '검진 예상 시간', '호출 단위', '현재 수업 장소', '교과교사'],
     rows: [
       ...grade2Rows.map((row) => ['2학년', ...row]),
       ...grade3Rows.map((row) => ['3학년', ...row]),

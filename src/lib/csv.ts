@@ -30,6 +30,17 @@ function visitLocation(item: ScheduleAssignment) {
   return formatVisitLocation(item);
 }
 
+export function formatCurrentClassroom(item: ScheduleAssignment) {
+  return formatVisitLocation({
+    grade: item.grade,
+    locationName: item.homeRoomName || item.locationName,
+    unitName: item.unitName,
+    homeRoomName: item.homeRoomName || item.locationName,
+    actualRoomName: item.actualRoomName,
+    actualRoom: item.actualRoom,
+  });
+}
+
 function unitName(item: ScheduleAssignment) {
   return item.unitName || item.homeRoomName?.replace(/교실$/, '') || item.locationName.replace(/교실$/, '');
 }
@@ -164,7 +175,7 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
   if (settings?.examType === 'tb') {
     return {
       name: '결핵검진_자동배정표',
-      headers: ['순서', '학년', '시간 구간', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '교시', '수업명', '교과교사', '실제 수업 장소', '예상 소요시간', '판정', '수동수정 여부', '컴시간 표시 교실', '실제교실 사유', '비고'],
+      headers: ['순서', '학년', '시간 구간', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '현재 수업 장소', '교시', '수업명', '교과교사', '예상 소요시간', '판정', '수동수정 여부', '컴시간 표시 교실', '실제교실 사유', '비고'],
       rows: assignments.map((item) => [
         item.order?.toString() ?? '',
         item.grade,
@@ -173,10 +184,10 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
         item.examTime ?? item.scheduledTime,
         unitName(item),
         item.examVenue || settings.examVenue,
+        formatCurrentClassroom(item),
         item.period ? `${item.period}교시` : '',
         item.subject,
         item.teacher ?? '',
-        item.actualRoomName || item.actualRoom || '',
         item.estimatedDurationMinutes ? `${item.estimatedDurationMinutes}분` : '',
         item.judgement,
         item.isManual ? '수동수정' : '',
@@ -239,7 +250,7 @@ export function createUrineLineTables(assignments: ScheduleAssignment[]): Export
 export function createTbTeamTable(assignments: ScheduleAssignment[], settings?: ExamSettings): ExportTable {
   return {
     name: '결핵검진_검진팀용_간단표',
-    headers: ['순서', '학년', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '수업명', '교과교사', '실제 수업 장소', '예상 소요시간', '비고'],
+    headers: ['순서', '학년', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '현재 수업 장소', '수업명', '교과교사', '예상 소요시간', '비고'],
     rows: assignments
       .filter((item) => item.order)
       .sort(sortByDisplayTime)
@@ -250,9 +261,9 @@ export function createTbTeamTable(assignments: ScheduleAssignment[], settings?: 
         item.examTime ?? item.scheduledTime,
         unitName(item),
         item.examVenue || settings?.examVenue || '',
+        formatCurrentClassroom(item),
         item.subject,
         item.teacher ?? '',
-        item.actualRoomName || item.actualRoom || '',
         item.estimatedDurationMinutes ? `${item.estimatedDurationMinutes}분` : '',
         displayNote(item),
       ]),
@@ -263,7 +274,7 @@ export function createTbGradeTables(assignments: ScheduleAssignment[], settings?
   const grades = [...new Set(assignments.filter((item) => item.order).map((item) => item.grade))].sort();
   return grades.map((grade) => ({
     name: `결핵검진_${grade}학년_검진팀용_간단표`,
-    headers: ['순서', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '수업명', '교과교사', '실제 수업 장소', '예상 소요시간', '비고'],
+    headers: ['순서', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '현재 수업 장소', '수업명', '교과교사', '예상 소요시간', '비고'],
     rows: assignments
       .filter((item) => item.order && item.grade === grade)
       .sort(sortByDisplayTime)
@@ -273,9 +284,9 @@ export function createTbGradeTables(assignments: ScheduleAssignment[], settings?
         item.examTime ?? item.scheduledTime,
         unitName(item),
         item.examVenue || settings?.examVenue || '',
+        formatCurrentClassroom(item),
         item.subject,
         item.teacher ?? '',
-        item.actualRoomName || item.actualRoom || '',
         item.estimatedDurationMinutes ? `${item.estimatedDurationMinutes}분` : '',
         displayNote(item),
       ]),
@@ -289,15 +300,17 @@ export function createTbTwoColumnTable(assignments: ScheduleAssignment[], settin
 
   return {
     name: '결핵검진_학년별_2단표',
-    headers: ['2학년 호출 시간', '2학년 검진 예상 시간', '2학년 호출 단위', '2학년 교과교사', '3학년 호출 시간', '3학년 검진 예상 시간', '3학년 호출 단위', '3학년 교과교사'],
+    headers: ['2학년 호출 시간', '2학년 검진 예상 시간', '2학년 호출 단위', '2학년 현재 수업 장소', '2학년 교과교사', '3학년 호출 시간', '3학년 검진 예상 시간', '3학년 호출 단위', '3학년 현재 수업 장소', '3학년 교과교사'],
     rows: Array.from({ length: maxRows }, (_, index) => [
       grade2[index]?.callTime ?? '',
       grade2[index]?.examTime ?? '',
       grade2[index]?.unit ?? '',
+      grade2[index]?.currentClassroom ?? '',
       grade2[index]?.teacher ?? '',
       grade3[index]?.callTime ?? '',
       grade3[index]?.examTime ?? '',
       grade3[index]?.unit ?? '',
+      grade3[index]?.currentClassroom ?? '',
       grade3[index]?.teacher ?? '',
     ]),
   };
@@ -312,6 +325,7 @@ function getTbGradeRows(assignments: ScheduleAssignment[], settings: ExamSetting
       examTime: item.examTime ?? item.scheduledTime,
       unit: unitName(item),
       venue: item.examVenue || settings.examVenue,
+      currentClassroom: formatCurrentClassroom(item),
       teacher: item.teacher ?? '',
       subject: item.subject,
     }));
@@ -371,7 +385,7 @@ export function createTeacherTable(assignments: ScheduleAssignment[], settings?:
   if (settings?.examType === 'tb') {
     return {
       name: '결핵검진_교사용_안내표',
-      headers: ['학년', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '해당 교시', '수업명', '교과교사', '실제 수업 장소', '협조 요청 문구'],
+      headers: ['학년', '호출 시간', '검진 예상 시간', '호출 단위', '현재 수업 장소', '해당 교시', '수업명', '교과교사', '비고', '협조 요청 문구'],
       rows: assignments
         .filter((item) => item.order)
         .map((item) => [
@@ -379,11 +393,11 @@ export function createTeacherTable(assignments: ScheduleAssignment[], settings?:
           item.callTime ?? '',
           item.examTime ?? item.scheduledTime,
           unitName(item),
-          item.examVenue || settings.examVenue,
+          formatCurrentClassroom(item),
           item.period ? `${item.period}교시` : '',
           item.subject,
           item.teacher ?? '',
-          item.actualRoomName || item.actualRoom || '',
+          displayNote(item),
           '해당 시간 결핵검진을 위해 학생들이 검진 장소로 이동할 예정입니다. 학생들이 질서 있게 이동하고 검진 후 바로 수업에 복귀할 수 있도록 협조 부탁드립니다.',
         ]),
     };

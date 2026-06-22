@@ -771,7 +771,7 @@ td select {
 }
 
 .tb-compact-two-column .two-column-table {
-  min-width: 1020px;
+  min-width: 1200px;
 }
 
 .tb-print-vertical-table {
@@ -783,11 +783,36 @@ td select {
 }
 
 .tb-notice-sheet {
-  width: min(100%, 840px);
+  width: min(100%, 900px);
   margin: 0 auto;
   border: 1px solid #b7d7d2;
   background: #ffffff;
   padding: 18px 20px;
+}
+
+.tb-print-vertical-table .urine-notice-table {
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.tb-print-vertical-table .urine-notice-table th:nth-child(1) {
+  width: 16%;
+}
+
+.tb-print-vertical-table .urine-notice-table th:nth-child(2) {
+  width: 18%;
+}
+
+.tb-print-vertical-table .urine-notice-table th:nth-child(3) {
+  width: 16%;
+}
+
+.tb-print-vertical-table .urine-notice-table th:nth-child(4) {
+  width: 30%;
+}
+
+.tb-print-vertical-table .urine-notice-table th:nth-child(5) {
+  width: 20%;
 }
 
 .tb-notice-sheet.ultra {

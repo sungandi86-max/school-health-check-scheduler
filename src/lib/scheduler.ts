@@ -967,6 +967,33 @@ function markUsedDurationSlots(usedSlots: Set<number>, slots: Slot[], startIndex
   }
 }
 
+function applyTbCumulativeDurations(assignments: ScheduleAssignment[], settings: ExamSettings, startTime?: string, lineCount = 1) {
+  if (settings.examType !== 'tb') return;
+  const ordered = assignments
+    .filter((item) => item.order && !item.failedReason)
+    .sort((a, b) => timeToMinutes(a.scheduledTime || '23:59') - timeToMinutes(b.scheduledTime || '23:59') || a.unitName.localeCompare(b.unitName, 'ko', { numeric: true }));
+  if (!ordered.length) return;
+
+  const firstTime = ordered.find((item) => item.scheduledTime)?.scheduledTime || startTime || settings.startTime;
+  const lineCursors = Array.from({ length: Math.max(1, lineCount) }, () => timeToMinutes(startTime || firstTime));
+
+  for (const assignment of ordered) {
+    const duration = Math.max(1, assignment.estimatedDurationMinutes ?? settings.durationMinutes);
+    if (assignment.isManual && assignment.scheduledTime) {
+      const manualStart = timeToMinutes(assignment.scheduledTime);
+      const lineIndex = lineCursors.reduce((best, cursor, index) => (cursor < lineCursors[best] ? index : best), 0);
+      lineCursors[lineIndex] = Math.max(lineCursors[lineIndex], manualStart) + duration;
+      enrichExamTimes(assignment, settings);
+      continue;
+    }
+
+    const lineIndex = lineCursors.reduce((best, cursor, index) => (cursor < lineCursors[best] ? index : best), 0);
+    assignment.scheduledTime = minutesToTime(lineCursors[lineIndex]);
+    enrichExamTimes(assignment, settings);
+    lineCursors[lineIndex] += duration;
+  }
+}
+
 function scheduleCandidateGroup({
   candidates,
   settings,
@@ -1060,7 +1087,9 @@ function scheduleCandidateGroup({
     }
     assignment.estimatedDurationMinutes = getTbEstimatedDuration(settings, judgement);
     assignment.hasMixedDurationExtra = Boolean(settings.examType === 'tb' && assignment.estimatedDurationMinutes > settings.durationMinutes);
-    if (assignment.hasMixedDurationExtra) appendNote(assignment, '혼합수업으로 예상 소요시간 추가');
+    if (assignment.hasMixedDurationExtra) {
+      appendNote(assignment, `예상 소요시간 +${assignment.estimatedDurationMinutes - settings.durationMinutes}분`);
+    }
 
     if (!judgement) {
       assignment.failedReason = '검사 가능한 교시가 없음';
@@ -1079,6 +1108,8 @@ function scheduleCandidateGroup({
     enrichExamTimes(assignment, settings);
     assignments.push(assignment);
   }
+
+  applyTbCumulativeDurations(assignments, settings, slotOptions.startTime, slotOptions.lineCount);
 
   return assignments;
 }
