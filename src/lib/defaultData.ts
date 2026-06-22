@@ -91,6 +91,7 @@ export const TB_GUIDE_TEXT =
   '이번 결핵검진은 학년별 시간 구간을 나누어 운영할 수 있습니다.\n' +
   '일부 이동수업·선택과목 수업은 실제 수업 장소와 호출 단위 확인이 필요할 수 있습니다. 해당 경우 수업 담당 선생님께서는 학생들이 호출 시간에 맞춰 이동할 수 있도록 협조 부탁드립니다.\n' +
   '여러 학년이 함께 수업 중인 경우에는 학년별 호출 시간 구간에 맞춰 현장에서 확인 후 진행할 수 있습니다.\n' +
+  '일부 이동수업·선택과목 수업은 여러 학급 또는 여러 학년이 함께 수업 중일 수 있어, 호출 및 명렬표 확인 과정에서 시간이 더 소요될 수 있습니다. 검진 시간은 현장 진행 상황에 따라 변동될 수 있습니다.\n' +
   '점심시간과 조회 시간은 자동 배정에서 제외하였습니다.\n' +
   '체육수업, 컴퓨터수업, 정보수업 등 이동 및 호출이 어려운 시간은 자동 제외하였습니다.\n' +
   '검진일 수행평가는 사전 조정 요청이 된 상태이나, 시간표상 평가 관련 문구가 있을 경우 수동 확인 대상으로 표시합니다.\n' +
@@ -118,6 +119,11 @@ const settings: ExamSettings = {
   examVenue: '검진 장소',
   maxUnitsPerCall: 1,
   allowWaiting: false,
+  tbMixedClassHandling: 'defer',
+  tbSameGradeMixedExtraMinutes: 3,
+  tbMixedGradeExtraMinutes: 5,
+  tbMixedManualClassThreshold: 4,
+  tbMixedUseTwoSlots: false,
   useGradeTimeBlocks: true,
   gradeTimeMode: 'G2_AM_G3_PM' as const,
   gradeTimeBlocks: [
@@ -269,6 +275,11 @@ export function createDefaultData(): AppData {
       travelMinutes: 5,
       teamCount: 1,
       maxUnitsPerCall: 1,
+      tbMixedClassHandling: 'defer' as const,
+      tbSameGradeMixedExtraMinutes: 3,
+      tbMixedGradeExtraMinutes: 5,
+      tbMixedManualClassThreshold: 4,
+      tbMixedUseTwoSlots: false,
       useGradeTimeBlocks: true,
       gradeTimeMode: 'G2_AM_G3_PM' as const,
       gradeTimeBlocks: [

@@ -145,10 +145,32 @@ function tbRoomMappingReason(location: VisitLocation, roomMapping: RoomMapping, 
   ) || '분반자료 기반 실제 수업 정보 확인 필요';
 }
 
+function getMixedClassCount(source?: { involvedClasses?: string[]; isMixedClass?: boolean; isMixedGrade?: boolean }) {
+  const count = source?.involvedClasses?.filter(Boolean).length ?? 0;
+  if (count > 0) return count;
+  return source?.isMixedClass || source?.isMixedGrade ? 2 : 1;
+}
+
+function isLargeTbMixedClass(settings: ExamSettings, source?: { involvedClasses?: string[]; isMixedClass?: boolean; isMixedGrade?: boolean }) {
+  return getMixedClassCount(source) >= Math.max(2, settings.tbMixedManualClassThreshold || 4);
+}
+
+function getTbEstimatedDuration(settings: ExamSettings, judgement?: PeriodJudgement) {
+  let duration = settings.durationMinutes;
+  if (settings.examType !== 'tb' || !judgement) return duration;
+  if (judgement.isMixedGrade) duration += settings.tbMixedGradeExtraMinutes || 0;
+  else if (judgement.isMixedClass) duration += settings.tbSameGradeMixedExtraMinutes || 0;
+  if ((judgement.isMixedClass || judgement.isMixedGrade) && settings.tbMixedUseTwoSlots) {
+    duration = Math.max(duration, settings.durationMinutes * 2);
+  }
+  return Math.max(1, duration);
+}
+
 function createAssignmentNote(manual: ManualOverride | undefined, judgement: PeriodJudgement | undefined) {
   const hasTbComprehensiveNote = Boolean(judgement?.roomMappingReason?.includes(TB_COMPREHENSIVE_LECTURE_ROOM_NOTE));
   const specialNotes = joinNotes(
     hasTbComprehensiveNote ? TB_COMPREHENSIVE_LECTURE_ROOM_NOTE : isSecondFloorLectureRoomJudgement(judgement) ? SECOND_FLOOR_LECTURE_ROOM_NOTE : undefined,
+    judgement?.isMixedClass && !judgement?.isMixedGrade ? '같은 학년 혼합수업 / 호출 인원 확인 필요' : undefined,
     isMixedGradeJudgement(judgement) ? MIXED_GRADE_NOTE : undefined,
     judgement?.roomMappingConfidence === 'low' ? LOW_CONFIDENCE_ROOM_NOTE : undefined,
   );
@@ -375,6 +397,25 @@ export function judgePeriod(
     return { locationId: row?.locationId ?? '', period, subject, status: '수동확인', reason: '방문 장소 목록에 없는 시간표 행' };
   }
   if (settings.examType === 'tb' && isMixedGrade) {
+    if (settings.tbMixedClassHandling === 'manual' || isLargeTbMixedClass(settings, roomMapping)) {
+      return {
+        locationId: location.id,
+        period,
+        subject,
+        teacher,
+        status: '수동확인',
+        reason: '혼합 규모가 커서 호출 단위 확인 필요',
+        actualRoom: confidentActualRoom,
+        roomMappingReason: '혼합 규모가 커서 호출 단위 확인 필요',
+        roomMappingConfidence,
+        involvedGrades: roomMapping?.involvedGrades,
+        involvedClasses: roomMapping?.involvedClasses,
+        mixedClassCount: getMixedClassCount(roomMapping),
+        isMixedGrade: true,
+        isMixedClass: Boolean(roomMapping?.isMixedClass),
+        comciganRoom: roomMapping?.comciganRoom,
+      };
+    }
     return {
       locationId: location.id,
       period,
@@ -387,6 +428,9 @@ export function judgePeriod(
       roomMappingConfidence,
       involvedGrades: roomMapping?.involvedGrades,
       involvedClasses: roomMapping?.involvedClasses,
+      mixedClassCount: getMixedClassCount(roomMapping),
+      isMixedGrade: true,
+      isMixedClass: Boolean(roomMapping?.isMixedClass),
       comciganRoom: roomMapping?.comciganRoom,
     };
   }
@@ -417,10 +461,32 @@ export function judgePeriod(
       roomMappingConfidence,
       involvedGrades: roomMapping.involvedGrades,
       involvedClasses: roomMapping.involvedClasses,
+      mixedClassCount: getMixedClassCount(roomMapping),
+      isMixedGrade: Boolean(roomMapping.isMixedGrade),
+      isMixedClass: Boolean(roomMapping.isMixedClass),
       comciganRoom: roomMapping.comciganRoom,
     };
   }
   if (settings.examType === 'tb' && roomMapping) {
+    if ((roomMapping.isMixedClass || roomMapping.isMixedGrade) && (settings.tbMixedClassHandling === 'manual' || isLargeTbMixedClass(settings, roomMapping))) {
+      return {
+        locationId: location.id,
+        period,
+        subject,
+        teacher,
+        status: '수동확인',
+        reason: '혼합 규모가 커서 호출 단위 확인 필요',
+        actualRoom: confidentActualRoom,
+        roomMappingReason: '혼합 규모가 커서 호출 단위 확인 필요',
+        roomMappingConfidence,
+        involvedGrades: roomMapping.involvedGrades,
+        involvedClasses: roomMapping.involvedClasses,
+        mixedClassCount: getMixedClassCount(roomMapping),
+        isMixedGrade: Boolean(roomMapping.isMixedGrade),
+        isMixedClass: Boolean(roomMapping.isMixedClass),
+        comciganRoom: roomMapping.comciganRoom,
+      };
+    }
     const reason = tbRoomMappingReason(location, roomMapping, confidentActualRoom);
     return {
       locationId: location.id,
@@ -434,6 +500,9 @@ export function judgePeriod(
       roomMappingConfidence,
       involvedGrades: roomMapping.involvedGrades,
       involvedClasses: roomMapping.involvedClasses,
+      mixedClassCount: getMixedClassCount(roomMapping),
+      isMixedGrade: Boolean(roomMapping.isMixedGrade),
+      isMixedClass: Boolean(roomMapping.isMixedClass),
       comciganRoom: roomMapping.comciganRoom,
     };
   }
@@ -636,6 +705,9 @@ function buildAssignment(
     roomMappingConfidence: judgement?.roomMappingConfidence,
     involvedGrades: judgement?.involvedGrades,
     involvedClasses: judgement?.involvedClasses,
+    mixedClassCount: judgement?.mixedClassCount,
+    isMixedGrade: judgement?.isMixedGrade,
+    isMixedClass: judgement?.isMixedClass,
     comciganRoom: judgement?.comciganRoom,
   };
 }
@@ -875,6 +947,26 @@ function lineRank(lineName?: string) {
   return 9;
 }
 
+function tbJudgementPriority(item: PeriodJudgement | undefined, settings: ExamSettings) {
+  if (!item || settings.examType !== 'tb') return 0;
+  if (item.roomMappingReason?.includes('시간표 기반 후보 부족')) return 4;
+  if (item.isMixedGrade) return settings.tbMixedClassHandling === 'defer' ? 3 : 2;
+  if (item.isMixedClass) return settings.tbMixedClassHandling === 'defer' ? 2 : 1;
+  if (item.status === '주의') return 1;
+  return 0;
+}
+
+function markUsedDurationSlots(usedSlots: Set<number>, slots: Slot[], startIndex: number, durationMinutes: number, settings: ExamSettings) {
+  if (startIndex < 0) return;
+  const start = timeToMinutes(slots[startIndex].time);
+  const end = start + Math.max(settings.durationMinutes, durationMinutes);
+  for (let index = startIndex; index < slots.length; index += 1) {
+    const slotTime = timeToMinutes(slots[index].time);
+    if (slotTime >= end) break;
+    usedSlots.add(index);
+  }
+}
+
 function scheduleCandidateGroup({
   candidates,
   settings,
@@ -942,7 +1034,10 @@ function scheduleCandidateGroup({
       for (let index = 0; index < slots.length; index += 1) {
         const slot = slots[index];
         if (usedSlots.has(index) || (manual?.period && slot.period !== manual.period)) continue;
-        const judgement = preferred ?? valid.find((item) => item.period === slot.period) ?? (settings.examType === 'tb' ? createTbFallbackJudgement(location, row, slot.period) : undefined);
+        const matching = valid
+          .filter((item) => item.period === slot.period)
+          .sort((a, b) => tbJudgementPriority(a, settings) - tbJudgementPriority(b, settings));
+        const judgement = preferred ?? matching[0] ?? (settings.examType === 'tb' ? createTbFallbackJudgement(location, row, slot.period) : undefined);
         if (!judgement) continue;
         const preview = buildAssignment(location, row, judgement, null, slot.time, manual, { lineName, timeBlockLabel });
         const duplicate = !canAssign(preview);
@@ -963,6 +1058,9 @@ function scheduleCandidateGroup({
       assignment.isFallback = true;
       appendNote(assignment, '시간표 기반 후보 부족 / 현장 확인 필요');
     }
+    assignment.estimatedDurationMinutes = getTbEstimatedDuration(settings, judgement);
+    assignment.hasMixedDurationExtra = Boolean(settings.examType === 'tb' && assignment.estimatedDurationMinutes > settings.durationMinutes);
+    if (assignment.hasMixedDurationExtra) appendNote(assignment, '혼합수업으로 예상 소요시간 추가');
 
     if (!judgement) {
       assignment.failedReason = '검사 가능한 교시가 없음';
@@ -974,7 +1072,7 @@ function scheduleCandidateGroup({
       appendNote(assignment, DUPLICATE_VISIT_LOCATION_NOTE);
     } else {
       assignment.order = assignments.filter((item) => item.order).length + 1;
-      if (slotIndex >= 0) usedSlots.add(slotIndex);
+      if (slotIndex >= 0) markUsedDurationSlots(usedSlots, slots, slotIndex, assignment.estimatedDurationMinutes ?? settings.durationMinutes, settings);
       markAssigned(assignment);
     }
     if (slot?.isBreak) appendNote(assignment, '쉬는 시간 포함');

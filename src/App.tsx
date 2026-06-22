@@ -111,6 +111,8 @@ export function App() {
       cautionDone: data.settings.examType === 'tb' ? data.assignments.filter((item) => item.order && item.judgement === '주의').length : 0,
       mixedGradeDone: data.settings.examType === 'tb' ? data.assignments.filter((item) => item.order && (item.roomMappingReason?.includes('혼합학년') || item.note.includes('혼합학년'))).length : 0,
       fallbackDone: data.settings.examType === 'tb' ? data.assignments.filter((item) => item.order && item.isFallback).length : 0,
+      mixedDurationDone: data.settings.examType === 'tb' ? data.assignments.filter((item) => item.order && item.hasMixedDurationExtra).length : 0,
+      mixedManual: data.settings.examType === 'tb' ? manualRows.filter((item) => String(item.reason).includes('혼합')).length : 0,
       unassigned: data.settings.examType === 'tb' ? data.assignments.filter((item) => !item.order).length : 0,
       timeShortage: data.settings.examType === 'tb' ? data.assignments.filter((item) => !item.order && (item.failedReason?.includes('배정 불가') || item.failedReason?.includes('시간'))).length : 0,
       filteredOut: data.settings.examType === 'tb' ? data.assignments.filter((item) => !item.order && (item.failedReason?.includes('교시') || item.failedReason?.includes('키워드'))).length : 0,
@@ -452,6 +454,8 @@ function Dashboard({
     cautionDone: number;
     mixedGradeDone: number;
     fallbackDone: number;
+    mixedDurationDone: number;
+    mixedManual: number;
     unassigned: number;
     timeShortage: number;
     filteredOut: number;
@@ -508,6 +512,8 @@ function Dashboard({
         {data.settings.examType === 'tb' && <Metric label="주의 배정 수" value={dashboard.cautionDone} />}
         {data.settings.examType === 'tb' && <Metric label="혼합학년 포함 배정 수" value={dashboard.mixedGradeDone} />}
         {data.settings.examType === 'tb' && <Metric label="fallback 배정 수" value={dashboard.fallbackDone} />}
+        {data.settings.examType === 'tb' && <Metric label="추가 소요시간 적용 수" value={dashboard.mixedDurationDone} />}
+        {data.settings.examType === 'tb' && <Metric label="수동확인 혼합수업 수" value={dashboard.mixedManual} />}
         {data.settings.examType === 'tb' &&
           dashboard.gradeStats.map((stat) => <Metric key={`${stat.grade}-done`} label={`${stat.grade}학년 배정 완료 수`} value={stat.done} />)}
         <Metric label="수동 확인 필요 수" value={dashboard.manual} />
@@ -880,6 +886,28 @@ function SettingsPanel({
                 </div>
               </Field>
             ))}
+            <div className="form-help">혼합수업 처리 기준</div>
+            <Field label="혼합수업 자동배정 여부">
+              <select value={settings.tbMixedClassHandling} onChange={(event) => update('tbMixedClassHandling', event.target.value as ExamSettings['tbMixedClassHandling'])}>
+                <option value="auto">자동배정</option>
+                <option value="defer">후순위 자동배정</option>
+                <option value="manual">수동확인</option>
+              </select>
+            </Field>
+            <Field label="같은 학년 혼합수업 추가 소요시간">
+              <input type="number" min={0} value={settings.tbSameGradeMixedExtraMinutes} onChange={(event) => update('tbSameGradeMixedExtraMinutes', Number(event.target.value))} />
+            </Field>
+            <Field label="여러 학년 혼합수업 추가 소요시간">
+              <input type="number" min={0} value={settings.tbMixedGradeExtraMinutes} onChange={(event) => update('tbMixedGradeExtraMinutes', Number(event.target.value))} />
+            </Field>
+            <Field label="수동확인 혼합 학급 수 기준">
+              <input type="number" min={2} value={settings.tbMixedManualClassThreshold} onChange={(event) => update('tbMixedManualClassThreshold', Number(event.target.value))} />
+            </Field>
+            <Field label="혼합수업 2슬롯 확보 여부">
+              <label className="toggle">
+                <input type="checkbox" checked={settings.tbMixedUseTwoSlots} onChange={(event) => update('tbMixedUseTwoSlots', event.target.checked)} /> 사용
+              </label>
+            </Field>
           </>
         )}
         <Field label="쉬는 시간 포함">
@@ -1684,6 +1712,8 @@ function ResultsPanel({
   const cautionAssigned = isUrine ? 0 : assigned.filter((item) => item.judgement === '주의').length;
   const mixedGradeAssigned = isUrine ? 0 : assigned.filter((item) => item.roomMappingReason?.includes('혼합학년') || item.note.includes('혼합학년')).length;
   const fallbackAssigned = isUrine ? 0 : assigned.filter((item) => item.isFallback).length;
+  const mixedDurationAssigned = isUrine ? 0 : assigned.filter((item) => item.hasMixedDurationExtra).length;
+  const mixedManualCount = isUrine ? 0 : manualRows.filter((item) => String(item.reason).includes('혼합')).length;
   const blockedCount = data.judgements.filter((item) => item.status === '불가').length;
   const totalEstimate =
     isUrine && data.settings.urineSimultaneous && data.settings.urineParallelMode === 'grade'
@@ -1733,6 +1763,8 @@ function ResultsPanel({
         {!isUrine && <Metric label="주의 배정 수" value={cautionAssigned} />}
         {!isUrine && <Metric label="혼합학년 포함 배정 수" value={mixedGradeAssigned} />}
         {!isUrine && <Metric label="fallback 배정 수" value={fallbackAssigned} />}
+        {!isUrine && <Metric label="추가 소요시간 적용 수" value={mixedDurationAssigned} />}
+        {!isUrine && <Metric label="수동확인 혼합수업 수" value={mixedManualCount} />}
         <Metric label="수동 확인 필요 수" value={manualRows.length} />
         {!isUrine && <Metric label="미배정 호출 단위 수" value={unassignedTbRows.length} />}
         {!isUrine && <Metric label="시간 부족 미배정 수" value={timeShortageCount} />}

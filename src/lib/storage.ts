@@ -181,6 +181,13 @@ function normalizeSettings(settings: AppData['settings'], fallback: AppData['set
     : fallback.urineMixedGradeHandling;
   settings.teamsByGrade = settings.teamsByGrade ?? fallback.teamsByGrade;
   settings.gradeStartTimes = settings.gradeStartTimes ?? fallback.gradeStartTimes;
+  settings.tbMixedClassHandling = ['auto', 'defer', 'manual'].includes(String(settings.tbMixedClassHandling))
+    ? settings.tbMixedClassHandling
+    : fallback.tbMixedClassHandling;
+  settings.tbSameGradeMixedExtraMinutes = Number.isFinite(settings.tbSameGradeMixedExtraMinutes) ? settings.tbSameGradeMixedExtraMinutes : fallback.tbSameGradeMixedExtraMinutes;
+  settings.tbMixedGradeExtraMinutes = Number.isFinite(settings.tbMixedGradeExtraMinutes) ? settings.tbMixedGradeExtraMinutes : fallback.tbMixedGradeExtraMinutes;
+  settings.tbMixedManualClassThreshold = Number.isFinite(settings.tbMixedManualClassThreshold) ? settings.tbMixedManualClassThreshold : fallback.tbMixedManualClassThreshold;
+  settings.tbMixedUseTwoSlots = typeof settings.tbMixedUseTwoSlots === 'boolean' ? settings.tbMixedUseTwoSlots : fallback.tbMixedUseTwoSlots;
   settings.useGradeTimeBlocks = typeof settings.useGradeTimeBlocks === 'boolean' ? settings.useGradeTimeBlocks : fallback.useGradeTimeBlocks;
   settings.gradeTimeMode = normalizeGradeTimeMode(settings.gradeTimeMode, fallback.gradeTimeMode);
   if (settings.examType === 'tb' && !hasStoredGradeTimeMode) settings.useGradeTimeBlocks = true;

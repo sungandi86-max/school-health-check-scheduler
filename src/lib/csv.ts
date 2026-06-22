@@ -164,7 +164,7 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
   if (settings?.examType === 'tb') {
     return {
       name: '결핵검진_자동배정표',
-      headers: ['순서', '학년', '시간 구간', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '교시', '수업명', '교과교사', '실제 수업 장소', '판정', '수동수정 여부', '컴시간 표시 교실', '실제교실 사유', '비고'],
+      headers: ['순서', '학년', '시간 구간', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '교시', '수업명', '교과교사', '실제 수업 장소', '예상 소요시간', '판정', '수동수정 여부', '컴시간 표시 교실', '실제교실 사유', '비고'],
       rows: assignments.map((item) => [
         item.order?.toString() ?? '',
         item.grade,
@@ -177,6 +177,7 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
         item.subject,
         item.teacher ?? '',
         item.actualRoomName || item.actualRoom || '',
+        item.estimatedDurationMinutes ? `${item.estimatedDurationMinutes}분` : '',
         item.judgement,
         item.isManual ? '수동수정' : '',
         item.comciganRoom ?? '',
@@ -238,7 +239,7 @@ export function createUrineLineTables(assignments: ScheduleAssignment[]): Export
 export function createTbTeamTable(assignments: ScheduleAssignment[], settings?: ExamSettings): ExportTable {
   return {
     name: '결핵검진_검진팀용_간단표',
-    headers: ['순서', '학년', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '수업명', '교과교사', '실제 수업 장소', '비고'],
+    headers: ['순서', '학년', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '수업명', '교과교사', '실제 수업 장소', '예상 소요시간', '비고'],
     rows: assignments
       .filter((item) => item.order)
       .sort(sortByDisplayTime)
@@ -252,6 +253,7 @@ export function createTbTeamTable(assignments: ScheduleAssignment[], settings?: 
         item.subject,
         item.teacher ?? '',
         item.actualRoomName || item.actualRoom || '',
+        item.estimatedDurationMinutes ? `${item.estimatedDurationMinutes}분` : '',
         displayNote(item),
       ]),
   };
@@ -261,7 +263,7 @@ export function createTbGradeTables(assignments: ScheduleAssignment[], settings?
   const grades = [...new Set(assignments.filter((item) => item.order).map((item) => item.grade))].sort();
   return grades.map((grade) => ({
     name: `결핵검진_${grade}학년_검진팀용_간단표`,
-    headers: ['순서', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '수업명', '교과교사', '실제 수업 장소', '비고'],
+    headers: ['순서', '호출 시간', '검진 예상 시간', '호출 단위', '검진 장소', '수업명', '교과교사', '실제 수업 장소', '예상 소요시간', '비고'],
     rows: assignments
       .filter((item) => item.order && item.grade === grade)
       .sort(sortByDisplayTime)
@@ -274,6 +276,7 @@ export function createTbGradeTables(assignments: ScheduleAssignment[], settings?
         item.subject,
         item.teacher ?? '',
         item.actualRoomName || item.actualRoom || '',
+        item.estimatedDurationMinutes ? `${item.estimatedDurationMinutes}분` : '',
         displayNote(item),
       ]),
   }));
