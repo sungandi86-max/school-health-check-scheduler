@@ -316,7 +316,7 @@ export function App() {
             ['dashboard', '대시보드'],
             ['settings', '검사 조건'],
             ['locations', mode.unitMenu],
-            ['timetable', data.settings.examType === 'tb' ? '학급별 기준 시간표' : '시간표 입력'],
+            ['timetable', data.settings.examType === 'tb' ? '학급별 검진 순서 입력' : '시간표 입력'],
             ['divisions', data.settings.examType === 'tb' ? '분반·혼합수업 참고자료' : '분반 참고'],
             ['results', data.settings.examType === 'tb' ? '학급별 검진 이동표' : '결과/출력'],
           ].map(([id, label]) => (
@@ -1158,6 +1158,7 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
   const commonFileRef = useRef<HTMLInputElement>(null);
   const comciganFileRef = useRef<HTMLInputElement>(null);
   const restrictedVenueFileRef = useRef<HTMLInputElement>(null);
+  const isTb = data.settings.examType === 'tb';
   const detectedExamWeekday = getWeekdayFromDateString(data.settings.examDate);
   const appliedTimetableWeekday = timetableWeekday === 'auto' ? detectedExamWeekday : timetableWeekday;
   const appliedTimetableWeekdayLabel = appliedTimetableWeekday ? `${appliedTimetableWeekday}요일` : '검사일 미입력';
@@ -1230,13 +1231,15 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
   return (
     <section className="stack">
       <div className="card stack">
-        <h2>{data.settings.examType === 'tb' ? '학급별 기준 시간표 입력' : '교실/장소별 시간표 입력'}</h2>
+        <h2>{isTb ? '학급별 검진 순서 입력' : '교실/장소별 시간표 입력'}</h2>
         <div className="notice notice-with-mascot">
           <OtterMascot variant="sm" decorative />
           <span>
-          컴시간알리미를 사용하지 않는 학교는 공통 시간표 서식을 다운로드한 뒤 학급별 시간표를 입력해 업로드해 주세요.
-          {'\n'}학생 이름, 학번, 검사 결과, 질병명 등 개인정보는 입력하지 않습니다.
-          {'\n'}검사단위와 교시별 수업명만 입력하면 자동으로 검진·검사 시간표를 배정할 수 있습니다.
+            {isTb
+              ? '결핵검진은 검진 대상 학급 기준으로 시간표를 만듭니다. 학급별 검진 순서와 검진 가능 시간만 입력해 주세요.'
+              : '컴시간알리미를 사용하지 않는 학교는 공통 시간표 서식을 다운로드한 뒤 학급별 시간표를 입력해 업로드해 주세요.'}
+            {'\n'}학생 이름, 학번, 검사 결과, 질병명 등 개인정보는 입력하지 않습니다.
+            {'\n'}{isTb ? '수업 장소 자료는 자동배정 보조 자료로만 활용하고 결과표에는 표시하지 않습니다.' : '검사단위와 교시별 수업명만 입력하면 자동으로 검진·검사 시간표를 배정할 수 있습니다.'}
           </span>
         </div>
         <div className="actions">
@@ -1262,7 +1265,7 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
         <input ref={commonFileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(event) => uploadWorkbook(event.target.files?.[0], 'common')} />
         <textarea
           className="paste-box"
-          placeholder="2-1교실 / 국어 / 영어 / 체육 / 수학 / 사회 / 과학 / 자율"
+          placeholder={isTb ? '2-1 / 2-2 / 2-3 / 2-4 / 2-5 / 2-6 / 2-7' : '2-1교실 / 국어 / 영어 / 체육 / 수학 / 사회 / 과학 / 자율'}
           value={paste}
           onChange={(event) => setPaste(event.target.value)}
         />
@@ -1305,7 +1308,7 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
           </div>
           <table>
             <thead>
-              <tr>{['검사단위', '학년', '구분', '실제장소', '자동배정', ...PERIODS.map((p) => `${p}교시`), '비고'].map((header) => <th key={header}>{header}</th>)}</tr>
+              <tr>{(isTb ? ['검진 대상 학급', '학년', '구분', '자동배정', ...PERIODS.map((p) => `${p}교시`), '비고'] : ['검사단위', '학년', '구분', '실제장소', '자동배정', ...PERIODS.map((p) => `${p}교시`), '비고']).map((header) => <th key={header}>{header}</th>)}</tr>
             </thead>
             <tbody>
               {previewRows.map((row, index) => (
@@ -1313,7 +1316,7 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
                   <td><input value={row.unit} onChange={(event) => updatePreview(index, { unit: event.target.value })} /></td>
                   <td><input value={row.grade} onChange={(event) => updatePreview(index, { grade: event.target.value })} /></td>
                   <td><input value={row.category} onChange={(event) => updatePreview(index, { category: event.target.value })} /></td>
-                  <td><input value={row.actualLocation} onChange={(event) => updatePreview(index, { actualLocation: event.target.value })} /></td>
+                  {!isTb && <td><input value={row.actualLocation} onChange={(event) => updatePreview(index, { actualLocation: event.target.value })} /></td>}
                   <td>
                     <select value={row.autoInclude} onChange={(event) => updatePreview(index, { autoInclude: event.target.value })}>
                       <option>포함</option>
@@ -1337,7 +1340,7 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
                             updatePreview(index, { periods, teachers, rawTexts });
                           }}
                         />
-                        {row.teachers?.[period - 1] && <span className="teacher-hint">교사: {row.teachers[period - 1]}</span>}
+                        {!isTb && row.teachers?.[period - 1] && <span className="teacher-hint">교사: {row.teachers[period - 1]}</span>}
                       </div>
                     </td>
                   ))}
@@ -1352,7 +1355,7 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
         <table>
           <thead>
             <tr>
-              {['장소ID', '표시명', ...PERIODS.map((p) => `${p}교시`), '비고'].map((header) => <th key={header}>{header}</th>)}
+              {(isTb ? ['검진 대상 학급 ID', '검진 대상 학급', ...PERIODS.map((p) => `${p}교시`), '비고'] : ['장소ID', '표시명', ...PERIODS.map((p) => `${p}교시`), '비고']).map((header) => <th key={header}>{header}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -1377,7 +1380,7 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
                           update(index, { periods, teachers, rawTexts });
                         }}
                       />
-                      {item.teachers?.[period - 1] && <span className="teacher-hint">교사: {item.teachers[period - 1]}</span>}
+                      {!isTb && item.teachers?.[period - 1] && <span className="teacher-hint">교사: {item.teachers[period - 1]}</span>}
                     </div>
                   </td>
                 ))}
@@ -1391,11 +1394,17 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
         <div className="card stack">
           <div className="section-title">
             <div>
-              <h2>검사 불가 장소 참고 시간표</h2>
+              <h2>{isTb ? '고급 참고자료 · 혼합수업 회피 참고 시간표' : '검사 불가 장소 참고 시간표'}</h2>
               <p className="table-description">
-                학생 화장실 이동 안내가 필요하거나 검사 진행이 어려운 장소가 있는 경우, 해당 장소의 시간표를 업로드해 주세요.
-                불가 장소에 있는 학급은 해당 교시에 소변검사 자동배정에서 제외되고, 종합강의실 계열 장소는 주의로 표시됩니다.
-                {'\n'}예: 2층 종합강의실 수업은 자동배정 가능하지만 화장실 이동 안내가 필요할 수 있습니다.
+                {isTb
+                  ? '결핵검진은 검진 대상 학급 기준으로 진행됩니다. 이 자료는 혼합수업을 최대한 피하기 위한 고급 참고자료이며, 결과표에는 수업 장소를 표시하지 않습니다.'
+                  : '학생 화장실 이동 안내가 필요하거나 검사 진행이 어려운 장소가 있는 경우, 해당 장소의 시간표를 업로드해 주세요.'}
+                {!isTb && (
+                  <>
+                    {'\n'}불가 장소에 있는 학급은 해당 교시에 소변검사 자동배정에서 제외되고, 종합강의실 계열 장소는 주의로 표시됩니다.
+                    {'\n'}예: 2층 종합강의실 수업은 자동배정 가능하지만 화장실 이동 안내가 필요할 수 있습니다.
+                  </>
+                )}
               </p>
             </div>
             <div className="actions">
@@ -1464,7 +1473,7 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
               <h3>장소 시간표 적용 미리보기</h3>
               <table>
                 <thead>
-                  <tr>{['요일', '교시', '학급', '수업명', '교과교사', '제한 장소', '처리'].map((header) => <th key={header}>{header}</th>)}</tr>
+                  <tr>{(isTb ? ['요일', '교시', '검진 대상 학급', '수업명', '처리'] : ['요일', '교시', '학급', '수업명', '교과교사', '제한 장소', '처리']).map((header) => <th key={header}>{header}</th>)}</tr>
                 </thead>
                 <tbody>
                   {data.restrictedVenueEntries.slice(0, 80).map((entry, index) => (
@@ -1473,8 +1482,8 @@ function TimetablePanel({ data, setData, resetExamples }: { data: AppData; setDa
                       <td>{entry.period}교시</td>
                       <td>{entry.className}</td>
                       <td>{entry.subject}</td>
-                      <td>{entry.teacher}</td>
-                      <td>{entry.venueName}</td>
+                      {!isTb && <td>{entry.teacher}</td>}
+                      {!isTb && <td>{entry.venueName}</td>}
                       <td><span className={`badge ${entry.mode}`}>{entry.mode}</span></td>
                     </tr>
                   ))}
@@ -1766,12 +1775,13 @@ function ResultsPanel({
       : Math.ceil((data.locations.filter((item) => item.isVisitable && item.includeInAuto).length * data.settings.durationMinutes) / Math.max(1, data.settings.teamCount || 1));
   const fullDescription = isUrine
     ? '보건교사용 검토표입니다. 검사 라인, 학년, 시간, 수업, 판정, 비고를 전체적으로 확인할 때 사용합니다. 교직원에게 그대로 공유하기보다는 검토용으로 사용해 주세요.'
-    : '보건교사용 검토표입니다. 검진 대상 학급, 검진 시간, 검진 장소, 이동 방식, 완료 확인 방식, 비고를 전체적으로 확인할 때 사용합니다.';
+    : '보건교사용 검토표입니다. 검진 순서, 검진 시간, 검진 대상 학급, 검진 장소, 이동 방식, 비고를 전체적으로 확인할 때 사용합니다.';
   const teamDescription = isUrine
     ? '검사팀이 실제 방문 순서를 확인할 때 사용하는 표입니다. 학년별 라인에 따라 교실 방문 순서를 확인할 수 있습니다.'
     : '검진 대상 학급별 이동 순서를 확인할 때 사용하는 표입니다. 검진 장소에서는 학급별 명렬표로 완료 여부를 확인합니다.';
-  const teacherDescription =
-    '담임 및 교과교사에게 공유할 안내용 표입니다. 검사 또는 검진 시간에 학생들이 질서 있게 참여할 수 있도록 협조 요청 문구가 포함됩니다.';
+  const teacherDescription = isUrine
+    ? '담임 및 교과교사에게 공유할 안내용 표입니다. 검사 시간에 학생들이 질서 있게 참여할 수 있도록 협조 요청 문구가 포함됩니다.'
+    : '교직원에게 공유할 안내용 표입니다. 검진 대상 학급 학생들이 정해진 시간에 이동할 수 있도록 협조 요청 문구가 포함됩니다.';
   const twoColumnDescription = isUrine
     ? '2학년과 3학년 소변검사 라인을 좌우로 나누어 한눈에 볼 수 있는 표입니다. 검사팀 및 내부 검토용으로 적합합니다.'
     : '2학년과 3학년 결핵검진 학급별 이동 시간표를 좌우로 나누어 한눈에 볼 수 있는 표입니다. 검진팀 및 교직원 공지용으로 적합합니다.';
@@ -1869,7 +1879,7 @@ function ResultsPanel({
             </>
           )}
         </OutputButtonGroup>
-        <OutputButtonGroup title="C. 교사용 안내자료" description="담임 및 교과교사에게 공유할 안내용 자료입니다.">
+        <OutputButtonGroup title="C. 교사용 안내자료" description={isUrine ? '담임 및 교과교사에게 공유할 안내용 자료입니다.' : '검진 대상 학급 이동 안내를 교직원에게 공유하는 자료입니다.'}>
           <button onClick={() => exportTableToCsv(tables.teacher)}><Download size={17} /> 교사용 CSV</button>
           <button onClick={copyTeacher}><ClipboardCopy size={17} /> 교사용 안내 복사</button>
         </OutputButtonGroup>
@@ -1919,7 +1929,7 @@ function ResultsPanel({
         <h2>{isUrine ? 'E. 수동 확인 필요 목록' : 'D. 수동 확인 필요 목록'}</h2>
         <table>
           <thead>
-            <tr>{(isUrine ? ['항목명', '사유', '필요한 확인', '비고'] : ['학년', '검진 대상 학급', '교시', '수업명', '교과교사', '판정 자료', '포함 학년', '포함 학급', '후보 시간 수', '제외된 후보 수', '사유', '필요한 확인']).map((h) => <th key={h}>{h}</th>)}</tr>
+            <tr>{(isUrine ? ['항목명', '사유', '필요한 확인', '비고'] : ['학년', '검진 대상 학급', '후보 시간 수', '제외된 후보 수', '사유', '필요한 확인']).map((h) => <th key={h}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {manualRows.length ? manualRows.map((row, index) => (
@@ -1934,19 +1944,13 @@ function ResultsPanel({
                 <tr key={`${row.name}-${index}`}>
                   <td>{row.grade}</td>
                   <td>{row.unitName || row.name}</td>
-                  <td>{row.period}</td>
-                  <td>{row.subject}</td>
-                  <td>{row.teacher}</td>
-                  <td>{row.type}</td>
-                  <td>{row.involvedGrades}</td>
-                  <td>{row.involvedClasses}</td>
                   <td>{row.candidateCount}</td>
                   <td>{row.excludedCount}</td>
-                  <td>{row.reason}</td>
-                  <td>{row.required}</td>
+                  <td>{sanitizeTbManualText(row.reason)}</td>
+                  <td>{sanitizeTbManualText(row.required)}</td>
                 </tr>
               )
-            )) : <tr><td colSpan={isUrine ? 4 : 12} className="empty">수동 확인 필요 항목이 없습니다.</td></tr>}
+            )) : <tr><td colSpan={isUrine ? 4 : 6} className="empty">수동 확인 필요 항목이 없습니다.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -1956,7 +1960,7 @@ function ResultsPanel({
           <li>나이스 시간표: 기준 자료</li>
           <li>교무부 분반 확인 자료: 기준 자료</li>
           <li>수업 장소 자료: 자동배정 보조 자료로만 활용하며 결핵검진 출력표에는 표시하지 않음</li>
-          <li>담당교사명: 참고 정보</li>
+          <li>{isUrine ? '담당교사명: 참고 정보' : '담당교사명: 결핵검진 출력 기준에 포함하지 않음'}</li>
           <li>미검 학생: 검진 후 별도 확인</li>
           <li>수행평가 일정은 교과 평가 운영 사항이므로 자동배정 기준에는 포함하지 않습니다. 검진·검사 일정은 외부기관 일정에 따라 진행되며, 평가 일정은 교과에서 사전 조정이 필요한 항목입니다.</li>
         </ul>
@@ -2269,12 +2273,12 @@ function TbTwoColumnPrintTable({ table, settings, description }: { table: Return
               <th>검진 대상 학급</th>
               <th>검진 장소</th>
               <th>이동 방식</th>
-              <th>완료 확인 방식</th>
+              <th>비고</th>
               <th>검진 시간</th>
               <th>검진 대상 학급</th>
               <th>검진 장소</th>
               <th>이동 방식</th>
-              <th>완료 확인 방식</th>
+              <th>비고</th>
             </tr>
           </thead>
           <tbody>
@@ -2320,7 +2324,17 @@ function TbNoticeVerticalTable({ table, settings, description }: { table: Return
       <div className="tb-notice-sheet">
         <h3>2·3학년 결핵검진 학급별 이동 시간표</h3>
         <p className="table-description">{tbScheduleSummary(settings)}</p>
-        <p className="table-description">결핵검진은 현재 수업 장소 기준이 아니라 검진 대상 학급 기준으로 진행됩니다. 안내된 시간에 해당 학급 학생들이 검진 장소로 이동하고, 검진 장소에서는 학급별 명렬표로 완료 여부를 확인합니다. 수업 장소 자료는 자동배정 보조 자료로만 활용하며 출력표에는 표시하지 않습니다.</p>
+        <div className="notice tb-class-movement-guide">
+          결핵검진은 현재 수업 장소 기준이 아니라 검진 대상 학급 기준으로 진행됩니다.
+          <br />
+          안내된 시간에 해당 학급 학생들이 검진 장소로 이동합니다.
+          <br />
+          선택과목·분반수업 중인 경우에도 해당 시간에 지정된 검진 대상 학급 학생만 이동합니다.
+          <br />
+          이미 검진을 완료한 학생은 이후 다른 수업 장소에 있더라도 다시 이동하지 않습니다.
+          <br />
+          검진 장소에서는 학급별 명렬표를 기준으로 완료 여부를 확인합니다.
+        </div>
         {sections.map((section) => <TbNoticeSection key={section.grade} title={section.title} rows={section.rows} />)}
       </div>
     </div>
@@ -2338,7 +2352,7 @@ function TbNoticeSection({ title, rows }: { title: string; rows: string[][] }) {
             <th>검진 대상 학급</th>
             <th>검진 장소</th>
             <th>이동 방식</th>
-            <th>완료 확인 방식</th>
+            <th>비고</th>
           </tr>
         </thead>
         <tbody>
@@ -2432,12 +2446,21 @@ function getTbGradeBlockStart(settings: ExamSettings, grade: string) {
 function exportTbNoticeRowsToCsv(name: string, grade2Rows: string[][], grade3Rows: string[][]) {
   exportTableToCsv({
     name,
-    headers: ['학년', '검진 시간', '검진 대상 학급', '검진 장소', '이동 방식', '완료 확인 방식'],
+    headers: ['학년', '검진 시간', '검진 대상 학급', '검진 장소', '이동 방식', '비고'],
     rows: [
       ...grade2Rows.map((row) => ['2학년', ...row]),
       ...grade3Rows.map((row) => ['3학년', ...row]),
     ],
   });
+}
+
+function sanitizeTbManualText(value: string | undefined) {
+  return String(value ?? '')
+    .replaceAll('실제 수업 장소 확인 필요', '학급 이동 시간 확인 필요')
+    .replaceAll('실제 방문 장소 없음', '검진 대상 학급 확인 필요')
+    .replaceAll('실제교실 사유', '참고자료 사유')
+    .replaceAll('실제 수업 교실', '참고자료')
+    .replaceAll('수업 장소 확인 필요', '학급 이동 시간 확인 필요');
 }
 
 function tbScheduleSummary(settings: ExamSettings) {

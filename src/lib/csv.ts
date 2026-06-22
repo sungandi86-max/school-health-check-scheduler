@@ -42,13 +42,21 @@ export function formatCurrentClassroom(item: ScheduleAssignment) {
 }
 
 function tbPlaceNote(item: ScheduleAssignment) {
-  const note = displayNote(item);
-  const checklistNote = item.isMixedGrade
-    ? '혼합학년 수업 / 명렬표 확인 필요'
-    : item.isMixedClass || (item.mixedClassCount ?? 1) >= 2
-      ? '여러 학급 혼합수업 / 명렬표 확인 필요'
-      : '명렬표 확인 후 검진';
-  return joinNotes(note, checklistNote, item.hasMixedDurationExtra ? '소요시간 변동 가능' : undefined);
+  if (item.failedReason) return item.failedReason;
+  const hasMixedClass = item.isMixedGrade || item.isMixedClass || (item.mixedClassCount ?? 1) >= 2;
+  const hasReferenceSignal = Boolean(
+    hasMixedClass ||
+      item.isFallback ||
+      item.hasMixedDurationExtra ||
+      item.roomMappingReason?.includes('혼합') ||
+      item.roomMappingReason?.includes('선택') ||
+      item.roomMappingReason?.includes('분반'),
+  );
+  return joinNotes(
+    hasReferenceSignal ? '선택수업 중이어도 해당 학급 학생만 이동' : undefined,
+    hasReferenceSignal ? '검진 완료자는 재이동 없음' : undefined,
+    '학급별 명렬표 기준 완료 확인',
+  );
 }
 
 function tbExamTimeRange(item: ScheduleAssignment) {
@@ -65,7 +73,7 @@ function tbMoveGuide(item: ScheduleAssignment) {
 }
 
 function tbCompletionGuide() {
-  return '명렬표 체크';
+  return '학급별 명렬표 기준 완료 확인';
 }
 
 function unitName(item: ScheduleAssignment) {
@@ -202,21 +210,13 @@ export function createFullTable(assignments: ScheduleAssignment[], settings?: Ex
   if (settings?.examType === 'tb') {
     return {
       name: '결핵검진_자동배정표',
-      headers: ['순서', '시간 구간', '검진 시간', '검진 대상 학급', '검진 장소', '이동 방식', '완료 확인 방식', '교시', '수업명', '교과교사', '예상 소요시간', '판정', '수동수정 여부', '비고'],
+      headers: ['검진 순서', '검진 시간', '검진 대상 학급', '검진 장소', '이동 방식', '비고'],
       rows: assignments.map((item) => [
         item.order?.toString() ?? '',
-        item.timeBlockLabel ?? '',
         tbExamTimeRange(item),
         unitName(item),
         item.examVenue || settings.examVenue,
         tbMoveGuide(item),
-        tbCompletionGuide(),
-        item.period ? `${item.period}교시` : '',
-        item.subject,
-        item.teacher ?? '',
-        item.estimatedDurationMinutes ? `${item.estimatedDurationMinutes}분` : '',
-        item.judgement,
-        item.isManual ? '수동수정' : '',
         tbPlaceNote(item),
       ]),
     };
@@ -274,7 +274,7 @@ export function createUrineLineTables(assignments: ScheduleAssignment[]): Export
 export function createTbTeamTable(assignments: ScheduleAssignment[], settings?: ExamSettings): ExportTable {
   return {
     name: '결핵검진_검진팀용_학급별_이동표',
-    headers: ['순서', '검진 시간', '검진 대상 학급', '검진 장소', '이동 방식', '완료 확인 방식', '비고'],
+    headers: ['검진 순서', '검진 시간', '검진 대상 학급', '검진 장소', '이동 방식', '비고'],
     rows: assignments
       .filter((item) => item.order)
       .sort(sortByDisplayTime)
@@ -284,7 +284,6 @@ export function createTbTeamTable(assignments: ScheduleAssignment[], settings?: 
         unitName(item),
         item.examVenue || settings?.examVenue || '',
         tbMoveGuide(item),
-        tbCompletionGuide(),
         tbPlaceNote(item),
       ]),
   };
@@ -294,7 +293,7 @@ export function createTbGradeTables(assignments: ScheduleAssignment[], settings?
   const grades = [...new Set(assignments.filter((item) => item.order).map((item) => item.grade))].sort();
   return grades.map((grade) => ({
     name: `결핵검진_${grade}학년_학급별_이동표`,
-    headers: ['순서', '검진 시간', '검진 대상 학급', '검진 장소', '이동 방식', '완료 확인 방식', '비고'],
+    headers: ['검진 순서', '검진 시간', '검진 대상 학급', '검진 장소', '이동 방식', '비고'],
     rows: assignments
       .filter((item) => item.order && item.grade === grade)
       .sort(sortByDisplayTime)
@@ -304,7 +303,6 @@ export function createTbGradeTables(assignments: ScheduleAssignment[], settings?
         unitName(item),
         item.examVenue || settings?.examVenue || '',
         tbMoveGuide(item),
-        tbCompletionGuide(),
         tbPlaceNote(item),
       ]),
   }));
@@ -317,18 +315,18 @@ export function createTbTwoColumnTable(assignments: ScheduleAssignment[], settin
 
   return {
     name: '결핵검진_학급별_2단표',
-    headers: ['2학년 검진 시간', '2학년 검진 대상 학급', '2학년 검진 장소', '2학년 이동 방식', '2학년 완료 확인 방식', '3학년 검진 시간', '3학년 검진 대상 학급', '3학년 검진 장소', '3학년 이동 방식', '3학년 완료 확인 방식'],
+    headers: ['2학년 검진 시간', '2학년 검진 대상 학급', '2학년 검진 장소', '2학년 이동 방식', '2학년 비고', '3학년 검진 시간', '3학년 검진 대상 학급', '3학년 검진 장소', '3학년 이동 방식', '3학년 비고'],
     rows: Array.from({ length: maxRows }, (_, index) => [
       grade2[index]?.examRange ?? '',
       grade2[index]?.unit ?? '',
       grade2[index]?.venue ?? '',
       grade2[index]?.moveGuide ?? '',
-      grade2[index]?.completionGuide ?? '',
+      grade2[index]?.note ?? '',
       grade3[index]?.examRange ?? '',
       grade3[index]?.unit ?? '',
       grade3[index]?.venue ?? '',
       grade3[index]?.moveGuide ?? '',
-      grade3[index]?.completionGuide ?? '',
+      grade3[index]?.note ?? '',
     ]),
   };
 }
@@ -347,7 +345,6 @@ function getTbGradeRows(assignments: ScheduleAssignment[], settings: ExamSetting
       subject: item.subject,
       note: tbPlaceNote(item),
       moveGuide: tbMoveGuide(item),
-      completionGuide: tbCompletionGuide(),
     }));
 }
 
@@ -407,7 +404,7 @@ export function createTeacherTable(assignments: ScheduleAssignment[], settings?:
   if (settings?.examType === 'tb') {
     return {
       name: '결핵검진_교사용_학급별_안내표',
-      headers: ['검진 시간', '검진 대상 학급', '검진 장소', '이동 방식', '완료 확인 방식', '비고', '협조 요청'],
+      headers: ['검진 시간', '검진 대상 학급', '검진 장소', '이동 방식', '비고', '협조 요청'],
       rows: assignments
         .filter((item) => item.order)
         .map((item) => [
@@ -415,7 +412,6 @@ export function createTeacherTable(assignments: ScheduleAssignment[], settings?:
           unitName(item),
           item.examVenue || settings.examVenue,
           tbMoveGuide(item),
-          tbCompletionGuide(),
           tbPlaceNote(item),
           '해당 시간 검진 대상 학급 학생들이 검진 장소로 이동할 수 있도록 안내 부탁드립니다. 혼합수업 중인 경우에도 지정된 학급 학생만 이동하며, 검진팀이 학급별 명렬표 기준으로 완료 여부를 확인합니다.',
         ]),
