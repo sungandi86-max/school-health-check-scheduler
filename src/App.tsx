@@ -682,26 +682,54 @@ function SettingsPanel({
   settings: ExamSettings;
   setSettings: (settings: ExamSettings) => void;
 }) {
-  const update = <K extends keyof ExamSettings>(key: K, value: ExamSettings[K]) => setSettings({ ...settings, [key]: value });
+  const update = <K extends keyof ExamSettings>(key: K, value: ExamSettings[K]) =>
+    setData((prev) => {
+      const nextSettings = { ...prev.settings, [key]: value };
+      if (
+        nextSettings.examType === 'tb' &&
+        nextSettings.useGradeTimeBlocks &&
+        nextSettings.gradeTimeMode !== 'CUSTOM_BY_GRADE' &&
+        ['startTime', 'endTime', 'daySchedule'].includes(String(key))
+      ) {
+        nextSettings.gradeTimeBlocks = calculateGradeTimeBlocks(nextSettings);
+      }
+      return { ...prev, settings: nextSettings, needsReschedule: true };
+    });
   const updateDaySchedule = (index: number, patch: Partial<DayScheduleItem>) =>
-    update(
-      'daySchedule',
-      settings.daySchedule.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)),
-    );
+    setData((prev) => {
+      const nextSettings = {
+        ...prev.settings,
+        daySchedule: prev.settings.daySchedule.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)),
+      };
+      if (nextSettings.examType === 'tb' && nextSettings.useGradeTimeBlocks && nextSettings.gradeTimeMode !== 'CUSTOM_BY_GRADE') {
+        nextSettings.gradeTimeBlocks = calculateGradeTimeBlocks(nextSettings);
+      }
+      return { ...prev, settings: nextSettings, needsReschedule: true };
+    });
   const updateTeamsByGrade = (grade: string, value: number) => update('teamsByGrade', { ...settings.teamsByGrade, [grade]: value });
   const updateGradeStartTime = (grade: string, value: string) => update('gradeStartTimes', { ...settings.gradeStartTimes, [grade]: value });
   const updateGradeTimeBlock = (grade: string, patch: Partial<(typeof settings.gradeTimeBlocks)[number]>) =>
-    update(
-      'gradeTimeBlocks',
-      settings.gradeTimeBlocks.map((block) => (block.grade === grade ? { ...block, ...patch } : block)),
-    );
+    setData((prev) => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        gradeTimeBlocks: prev.settings.gradeTimeBlocks.map((block) => (block.grade === grade ? { ...block, ...patch } : block)),
+      },
+      needsReschedule: true,
+    }));
   const isCustomGradeTime = settings.gradeTimeMode === 'CUSTOM_BY_GRADE';
   const displayedGradeTimeBlocks = settings.useGradeTimeBlocks ? calculateGradeTimeBlocks(settings) : [];
   const updateGradeTimeMode = (mode: GradeTimeMode) => {
-    const nextSettings = { ...settings, gradeTimeMode: mode };
-    setSettings({
-      ...nextSettings,
-      gradeTimeBlocks: calculateGradeTimeBlocks(nextSettings, mode),
+    setData((prev) => {
+      const nextSettings = { ...prev.settings, gradeTimeMode: mode, useGradeTimeBlocks: true };
+      return {
+        ...prev,
+        settings: {
+          ...nextSettings,
+          gradeTimeBlocks: calculateGradeTimeBlocks(nextSettings, mode),
+        },
+        needsReschedule: true,
+      };
     });
   };
   const saveSchoolDefaults = () =>
