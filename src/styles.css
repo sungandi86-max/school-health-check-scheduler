@@ -774,7 +774,7 @@ td select {
 .tb-print-two-column-table .two-column-table td:nth-child(5),
 .tb-print-two-column-table .two-column-table th:nth-child(10),
 .tb-print-two-column-table .two-column-table td:nth-child(10) {
-  text-align: left;
+  text-align: center;
 }
 
 .tb-compact-two-column {
@@ -838,11 +838,6 @@ td select {
   word-break: keep-all;
 }
 
-.tb-notice-sheet .urine-notice-table th:nth-child(5),
-.tb-notice-sheet .urine-notice-table td:nth-child(5) {
-  text-align: left;
-}
-
 .tb-class-movement-guide {
   display: grid;
   gap: 2px;
@@ -864,21 +859,6 @@ td select {
   text-align: center;
   vertical-align: middle;
   word-break: keep-all;
-}
-
-.tb-movement-result-table th:nth-child(5),
-.tb-movement-result-table td:nth-child(5) {
-  text-align: left;
-}
-
-.tb-movement-result-table th:nth-child(6),
-.tb-movement-result-table td:nth-child(6) {
-  text-align: left;
-}
-
-.tb-movement-result-table.with-order th:nth-child(5),
-.tb-movement-result-table.with-order td:nth-child(5) {
-  text-align: center;
 }
 
 .tb-print-ultra-table {
@@ -1301,6 +1281,10 @@ td select {
 }
 
 @media print {
+  .internal-detail-panel {
+    display: none !important;
+  }
+
   @page {
     size: A4 landscape;
     margin: 8mm;
@@ -1437,7 +1421,7 @@ td select {
   body.print-tb-two-column-only .tb-print-two-column-table .two-column-table td:nth-child(5),
   body.print-tb-two-column-only .tb-print-two-column-table .two-column-table th:nth-child(10),
   body.print-tb-two-column-only .tb-print-two-column-table .two-column-table td:nth-child(10) {
-    text-align: left;
+    text-align: center;
   }
 
   body.print-tb-two-column-only .tb-print-two-column-table .two-column-table .grade-title-row th {
@@ -1527,9 +1511,9 @@ td select {
     text-align: center;
   }
 
-  body.print-tb-notice-only .tb-notice-sheet .urine-notice-table td:nth-child(5),
-  body.print-tb-notice-only .tb-notice-sheet .urine-notice-table th:nth-child(5) {
-    text-align: left;
+  body.print-tb-notice-only .internal-detail-panel,
+  body.print-tb-two-column-only .internal-detail-panel {
+    display: none !important;
   }
 
   .urine-notice-header {

@@ -406,7 +406,7 @@ export function App() {
                   ? [
                       guideText,
                       '',
-                      ...tables.teacher.rows.map((row) => `${row[0]} / ${row[1]} / ${row[2]} / ${row[3]} / ${row[4]}`),
+                      ...tables.teacher.rows.map((row) => `${row[0]} / ${row[1]} / ${row[2]}`),
                     ].join('\n')
                   : tables.teacher.rows.map((row) => `${row[0]} ${row[1]} ${row[3]}`).join('\n'),
                 '교사용 안내 문구를 복사했습니다.',
@@ -1775,7 +1775,7 @@ function ResultsPanel({
       : Math.ceil((data.locations.filter((item) => item.isVisitable && item.includeInAuto).length * data.settings.durationMinutes) / Math.max(1, data.settings.teamCount || 1));
   const fullDescription = isUrine
     ? '보건교사용 검토표입니다. 검사 라인, 학년, 시간, 수업, 판정, 비고를 전체적으로 확인할 때 사용합니다. 교직원에게 그대로 공유하기보다는 검토용으로 사용해 주세요.'
-    : '보건교사용 검토표입니다. 검진 순서, 검진 시간, 검진 대상 학급, 검진 장소, 이동 방식, 비고를 전체적으로 확인할 때 사용합니다.';
+    : '교직원 공유용 시간표입니다. 몇 시에 어느 학급이 어느 검진 장소로 이동하는지만 간단히 표시합니다.';
   const teamDescription = isUrine
     ? '검사팀이 실제 방문 순서를 확인할 때 사용하는 표입니다. 학년별 라인에 따라 교실 방문 순서를 확인할 수 있습니다.'
     : '검진 대상 학급별 이동 순서를 확인할 때 사용하는 표입니다. 검진 장소에서는 학급별 명렬표로 완료 여부를 확인합니다.';
@@ -1889,23 +1889,30 @@ function ResultsPanel({
         </OutputButtonGroup>
       </div>
 
-      <ResultTable title="A. 전체 자동 배정표" description={fullDescription} headers={tables.full.headers} rows={tables.full.rows} />
-      <ManualAdjustments assignments={data.assignments} examType={data.settings.examType} setOverride={setOverride} />
+      <ResultTable title={isUrine ? 'A. 전체 자동 배정표' : 'A. 교직원 공유용 시간표'} description={fullDescription} headers={tables.full.headers} rows={tables.full.rows} />
+      {isUrine && <ManualAdjustments assignments={data.assignments} examType={data.settings.examType} setOverride={setOverride} />}
       {isUrine && <ResultTable title="B. 임상병리사용 간단표" description={teamDescription} headers={tables.lab.headers} rows={tables.lab.rows} compact />}
       {isUrine &&
         tables.urineLines.map((table) => <ResultTable key={table.name} title={table.name.replaceAll('_', ' ')} description={teamDescription} headers={table.headers} rows={table.rows} compact />)}
       {!isUrine && <ResultTable title="B. 검진팀용 학급별 이동표" description={teamDescription} headers={tables.tbTeam.headers} rows={tables.tbTeam.rows} compact />}
       {!isUrine &&
         tables.tbGrades.map((table) => <ResultTable key={table.name} title={table.name.replaceAll('_', ' ')} description={teamDescription} headers={table.headers} rows={table.rows} compact />)}
-      <ResultTable title="C. 교사용 안내표" description={teacherDescription} headers={tables.teacher.headers} rows={tables.teacher.rows} />
+      {isUrine && <ResultTable title="C. 교사용 안내표" description={teacherDescription} headers={tables.teacher.headers} rows={tables.teacher.rows} />}
       {isUrine && <UrineTwoColumnPrintTable table={tables.urineTwoColumn} description={twoColumnDescription} />}
       {isUrine && <UrineNoticeVerticalTable table={tables.urineTwoColumn} description={noticeDescription} />}
       {isUrine && <UrineUltraCompactNoticeTable table={tables.urineTwoColumn} description={ultraCompactDescription} />}
       {!isUrine && <TbTwoColumnPrintTable table={tables.tbTwoColumn} settings={data.settings} description={twoColumnDescription} />}
       {!isUrine && <TbNoticeVerticalTable table={tables.tbTwoColumn} settings={data.settings} description={noticeDescription} />}
       {!isUrine && <TbUltraCompactNoticeTable assignments={data.assignments} settings={data.settings} description={ultraCompactDescription} />}
+      {!isUrine && (
+        <details className="card table-wrap internal-detail-panel">
+          <summary>내부 확인용 상세 정보</summary>
+          <p className="table-description">혼합수업 여부, 미배정 사유, 계산 로그, 조정 필요 사항은 이 영역에서만 확인합니다. 인쇄용/공유용 시간표에는 표시하지 않습니다.</p>
+          <ManualAdjustments assignments={data.assignments} examType={data.settings.examType} setOverride={setOverride} />
+        </details>
+      )}
       {!isUrine && unassignedTbRows.length > 0 && (
-        <div className="card table-wrap">
+        <div className="card table-wrap internal-detail-panel">
           <h2>미배정 검진 대상 학급</h2>
           <table>
             <thead>
@@ -1925,7 +1932,7 @@ function ResultsPanel({
           </table>
         </div>
       )}
-      <div className="card table-wrap">
+      <div className={`card table-wrap ${isUrine ? '' : 'internal-detail-panel'}`}>
         <h2>{isUrine ? 'E. 수동 확인 필요 목록' : 'D. 수동 확인 필요 목록'}</h2>
         <table>
           <thead>
@@ -2265,33 +2272,25 @@ function TbTwoColumnPrintTable({ table, settings, description }: { table: Return
       <div className="two-column-table-wrap">
         <table className="two-column-table">
           <colgroup>
-            <col style={{ width: '9%' }} />
-            <col style={{ width: '7%' }} />
-            <col style={{ width: '11%' }} />
-            <col style={{ width: '9%' }} />
-            <col style={{ width: '14%' }} />
-            <col style={{ width: '9%' }} />
-            <col style={{ width: '7%' }} />
-            <col style={{ width: '11%' }} />
-            <col style={{ width: '9%' }} />
-            <col style={{ width: '14%' }} />
+            <col style={{ width: '17.5%' }} />
+            <col style={{ width: '12.5%' }} />
+            <col style={{ width: '20%' }} />
+            <col style={{ width: '17.5%' }} />
+            <col style={{ width: '12.5%' }} />
+            <col style={{ width: '20%' }} />
           </colgroup>
           <thead>
             <tr className="grade-title-row">
-              <th colSpan={5}>2학년 결핵검진</th>
-              <th colSpan={5}>3학년 결핵검진</th>
+              <th colSpan={3}>2학년 결핵검진</th>
+              <th colSpan={3}>3학년 결핵검진</th>
             </tr>
             <tr>
               <th>검진 시간</th>
               <th>검진 대상 학급</th>
               <th>검진 장소</th>
-              <th>이동 방식</th>
-              <th>비고</th>
               <th>검진 시간</th>
               <th>검진 대상 학급</th>
               <th>검진 장소</th>
-              <th>이동 방식</th>
-              <th>비고</th>
             </tr>
           </thead>
           <tbody>
@@ -2300,7 +2299,7 @@ function TbTwoColumnPrintTable({ table, settings, description }: { table: Return
                 {row.map((cell, cellIndex) => <td key={`${index}-${cellIndex}`}>{cell}</td>)}
               </tr>
             )) : (
-              <tr><td colSpan={10} className="empty">2단표로 표시할 결핵검진 배정 결과가 없습니다.</td></tr>
+              <tr><td colSpan={6} className="empty">2단표로 표시할 결핵검진 배정 결과가 없습니다.</td></tr>
             )}
           </tbody>
         </table>
@@ -2310,8 +2309,8 @@ function TbTwoColumnPrintTable({ table, settings, description }: { table: Return
 }
 
 function TbNoticeVerticalTable({ table, settings, description }: { table: ReturnType<typeof createTbTwoColumnTable>; settings: ExamSettings; description: string }) {
-  const grade2Rows = table.rows.map((row) => row.slice(0, 5)).filter((row) => row.some(Boolean));
-  const grade3Rows = table.rows.map((row) => row.slice(5, 10)).filter((row) => row.some(Boolean));
+  const grade2Rows = table.rows.map((row) => row.slice(0, 3)).filter((row) => row.some(Boolean));
+  const grade3Rows = table.rows.map((row) => row.slice(3, 6)).filter((row) => row.some(Boolean));
   const sections = [
     { grade: '2', title: '2학년 결핵검진', rows: grade2Rows },
     { grade: '3', title: '3학년 결핵검진', rows: grade3Rows },
@@ -2350,19 +2349,15 @@ function TbNoticeSection({ title, rows }: { title: string; rows: string[][] }) {
       <h4>{title}</h4>
       <table className="urine-notice-table">
         <colgroup>
-          <col style={{ width: '18%' }} />
-          <col style={{ width: '14%' }} />
-          <col style={{ width: '22%' }} />
-          <col style={{ width: '18%' }} />
-          <col style={{ width: '28%' }} />
+          <col style={{ width: '35%' }} />
+          <col style={{ width: '25%' }} />
+          <col style={{ width: '40%' }} />
         </colgroup>
         <thead>
           <tr>
             <th>검진 시간</th>
             <th>검진 대상 학급</th>
             <th>검진 장소</th>
-            <th>이동 방식</th>
-            <th>비고</th>
           </tr>
         </thead>
         <tbody>
@@ -2371,11 +2366,9 @@ function TbNoticeSection({ title, rows }: { title: string; rows: string[][] }) {
               <td>{row[0]}</td>
               <td>{row[1]}</td>
               <td>{row[2]}</td>
-              <td>{row[3]}</td>
-              <td>{row[4]}</td>
             </tr>
           )) : (
-            <tr><td colSpan={5} className="empty">배정 결과가 없습니다.</td></tr>
+            <tr><td colSpan={3} className="empty">배정 결과가 없습니다.</td></tr>
           )}
         </tbody>
       </table>
@@ -2468,7 +2461,7 @@ function getTbGradeBlockStart(settings: ExamSettings, grade: string) {
 function exportTbNoticeRowsToCsv(name: string, grade2Rows: string[][], grade3Rows: string[][]) {
   exportTableToCsv({
     name,
-    headers: ['학년', '검진 시간', '검진 대상 학급', '검진 장소', '이동 방식', '비고'],
+    headers: ['학년', '검진 시간', '검진 대상 학급', '검진 장소'],
     rows: [
       ...grade2Rows.map((row) => ['2학년', ...row]),
       ...grade3Rows.map((row) => ['3학년', ...row]),
@@ -2524,43 +2517,20 @@ function ResultTable({
   compact?: boolean;
 }) {
   const isTbMovementTable =
-    headers.length === 5 &&
+    headers.length === 3 &&
     headers[0].includes('검진 시간') &&
     headers[1].includes('검진 대상 학급') &&
-    headers[2].includes('검진 장소') &&
-    headers[3].includes('이동 방식') &&
-    headers[4].includes('비고');
-  const isTbMovementTableWithOrder =
-    headers.length === 6 &&
-    headers[0].includes('검진 순서') &&
-    headers[1].includes('검진 시간') &&
-    headers[2].includes('검진 대상 학급') &&
-    headers[3].includes('검진 장소') &&
-    headers[4].includes('이동 방식') &&
-    headers[5].includes('비고');
-  const isTbMovementResultTable = isTbMovementTable || isTbMovementTableWithOrder;
+    headers[2].includes('검진 장소');
   return (
-    <div className={`card table-wrap ${compact ? 'compact' : ''} ${isTbMovementResultTable ? 'tb-movement-result-table' : ''} ${isTbMovementTableWithOrder ? 'with-order' : ''}`}>
+    <div className={`card table-wrap ${compact ? 'compact' : ''} ${isTbMovementTable ? 'tb-movement-result-table' : ''}`}>
       <h2>{title}</h2>
       {description && <p className="table-description">{description}</p>}
       <table>
         {isTbMovementTable && (
           <colgroup>
-            <col style={{ width: '18%' }} />
-            <col style={{ width: '14%' }} />
-            <col style={{ width: '22%' }} />
-            <col style={{ width: '18%' }} />
-            <col style={{ width: '28%' }} />
-          </colgroup>
-        )}
-        {isTbMovementTableWithOrder && (
-          <colgroup>
-            <col style={{ width: '6%' }} />
-            <col style={{ width: '17%' }} />
-            <col style={{ width: '13%' }} />
-            <col style={{ width: '21%' }} />
-            <col style={{ width: '17%' }} />
-            <col style={{ width: '26%' }} />
+            <col style={{ width: '35%' }} />
+            <col style={{ width: '25%' }} />
+            <col style={{ width: '40%' }} />
           </colgroup>
         )}
         <thead>
