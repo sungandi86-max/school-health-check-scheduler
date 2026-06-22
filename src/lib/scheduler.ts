@@ -400,6 +400,9 @@ export function judgePeriod(
     return { locationId: location.id, period, subject, status: '수동확인', reason: '자동배정 제외 장소' };
   }
   if (hasKeyword(subject, settings.blockedKeywords)) {
+    if (settings.examType === 'tb') {
+      return { locationId: location.id, period, subject, teacher, status: '주의', reason: `호출 주의 수업 / 현장 협조 필요: ${subject}` };
+    }
     return { locationId: location.id, period, subject, status: '불가', reason: `검사 불가 키워드 포함: ${subject}` };
   }
   if (settings.examType === 'tb' && roomMapping && roomMappingConfidence === 'low') {
@@ -639,6 +642,13 @@ function buildAssignment(
 
 export function createManualConfirmRows(divisions: SubjectDivision[], assignments: ScheduleAssignment[], judgements: PeriodJudgement[]) {
   const assignmentMap = new Map(assignments.map((item) => [item.locationId, item]));
+  const candidateStats = new Map<string, { candidateCount: number; excludedCount: number }>();
+  for (const item of judgements) {
+    const current = candidateStats.get(item.locationId) ?? { candidateCount: 0, excludedCount: 0 };
+    if (item.status === '가능' || item.status === '주의') current.candidateCount += 1;
+    if (item.status === '불가' || item.status === '수동확인') current.excludedCount += 1;
+    candidateStats.set(item.locationId, current);
+  }
   const divisionRows = divisions
     .filter((item) => !item.actualLocationId || item.handling === '자동제외')
     .map((item) => ({
@@ -656,6 +666,8 @@ export function createManualConfirmRows(divisions: SubjectDivision[], assignment
       actualRoom: item.actualLocationId,
       involvedGrades: '',
       involvedClasses: '',
+      candidateCount: 0,
+      excludedCount: 0,
     }));
 
   const failedRows = assignments
@@ -675,6 +687,8 @@ export function createManualConfirmRows(divisions: SubjectDivision[], assignment
       actualRoom: normalizeVisitRoomName(item.actualRoomName || item.actualRoom || ''),
       involvedGrades: (item.involvedGrades ?? []).join(', '),
       involvedClasses: (item.involvedClasses ?? []).join(', '),
+      candidateCount: candidateStats.get(item.locationId)?.candidateCount ?? 0,
+      excludedCount: candidateStats.get(item.locationId)?.excludedCount ?? 0,
     }));
 
   const blockedRows = judgements
@@ -701,6 +715,8 @@ export function createManualConfirmRows(divisions: SubjectDivision[], assignment
       actualRoom: normalizeVisitRoomName(item.actualRoom || item.restrictedVenueName || ''),
       involvedGrades: (item.involvedGrades ?? []).join(', '),
       involvedClasses: (item.involvedClasses ?? []).join(', '),
+      candidateCount: candidateStats.get(item.locationId)?.candidateCount ?? 0,
+      excludedCount: candidateStats.get(item.locationId)?.excludedCount ?? 0,
       note: [
         `${item.period}교시`,
         item.subject,

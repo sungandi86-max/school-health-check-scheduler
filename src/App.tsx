@@ -1726,6 +1726,9 @@ function ResultsPanel({
       {manualRows.length > 0 && (
         <div className="warning-banner no-print">수동 확인이 필요한 항목이 있습니다. 시간표를 공유하기 전에 아래 수동 확인 목록을 먼저 확인해 주세요.</div>
       )}
+      {!isUrine && !data.settings.examVenue.trim() && (
+        <div className="warning-banner no-print">검진 장소가 입력되지 않았습니다. 결과 공유 전 검진 장소를 확인해 주세요.</div>
+      )}
       <div className="result-button-groups no-print">
         <OutputButtonGroup title="A. 보건교사용 검토자료" description="전체 배정 결과를 검토하거나 수정 확인용으로 사용하는 표입니다.">
           <button onClick={() => exportTableToCsv(tables.full)}><Download size={17} /> 전체표 CSV</button>
@@ -1810,7 +1813,7 @@ function ResultsPanel({
         <h2>{isUrine ? 'E. 수동 확인 필요 목록' : 'D. 수동 확인 필요 목록'}</h2>
         <table>
           <thead>
-            <tr>{(isUrine ? ['항목명', '사유', '필요한 확인', '비고'] : ['학년', '호출 단위', '교시', '수업명', '교과교사', '실제 수업 장소', '포함 학년', '포함 학급', '사유', '필요한 확인']).map((h) => <th key={h}>{h}</th>)}</tr>
+            <tr>{(isUrine ? ['항목명', '사유', '필요한 확인', '비고'] : ['학년', '호출 단위', '교시', '수업명', '교과교사', '실제 수업 장소', '포함 학년', '포함 학급', '후보 시간 수', '제외된 후보 수', '사유', '필요한 확인']).map((h) => <th key={h}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {manualRows.length ? manualRows.map((row, index) => (
@@ -1831,11 +1834,13 @@ function ResultsPanel({
                   <td>{row.actualRoom}</td>
                   <td>{row.involvedGrades}</td>
                   <td>{row.involvedClasses}</td>
+                  <td>{row.candidateCount}</td>
+                  <td>{row.excludedCount}</td>
                   <td>{row.reason}</td>
                   <td>{row.required}</td>
                 </tr>
               )
-            )) : <tr><td colSpan={isUrine ? 4 : 10} className="empty">수동 확인 필요 항목이 없습니다.</td></tr>}
+            )) : <tr><td colSpan={isUrine ? 4 : 12} className="empty">수동 확인 필요 항목이 없습니다.</td></tr>}
           </tbody>
         </table>
       </div>
