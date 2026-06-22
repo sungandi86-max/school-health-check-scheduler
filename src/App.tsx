@@ -1374,9 +1374,12 @@ function DivisionsPanel({ data, setData }: { data: AppData; setData: React.Dispa
   const roomMappingFileRef = useRef<HTMLInputElement>(null);
   const [mappingWarnings, setMappingWarnings] = useState<string[]>([]);
   const isTb = data.settings.examType === 'tb';
-  const roomMappingDescription = isTb
+  const rawRoomMappingDescription = isTb
     ? '이동수업이나 선택과목 수업은 원래 학급 교실과 실제 수업 교실이 다를 수 있습니다. 분반자료를 업로드하면 해당 시간에 학생들을 호출할 수 있는지, 혼합학년 수업인지, 실제 수업 장소 확인이 필요한지를 더 정확히 판정할 수 있습니다.'
     : '이동수업이나 선택과목 수업은 원래 학급 교실과 실제 수업 교실이 다를 수 있습니다. 분반자료를 업로드하면 실제 수업 교실과 혼합학년 여부를 기준으로 검사팀이 방문할 장소를 더 정확히 확인할 수 있습니다.';
+  const roomMappingDescription = isTb
+    ? '결핵검진은 학생들이 검진 장소로 이동하는 호출형 검진입니다. 분반자료와 실제 수업 장소는 학생 호출 가능 여부를 확인하기 위한 참고 자료로 사용되며, 종합강의실 수업이라는 이유만으로 자동배정에서 제외하지 않습니다.'
+    : rawRoomMappingDescription;
   const update = (index: number, patch: Partial<SubjectDivision>) =>
     setData((prev) => ({ ...prev, divisions: prev.divisions.map((item, rowIndex) => (rowIndex === index ? { ...item, ...patch } : item)), needsReschedule: true }));
   const updateRoomMapping = (index: number, patch: Partial<RoomMapping>) =>

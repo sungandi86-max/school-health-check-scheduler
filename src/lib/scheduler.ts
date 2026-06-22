@@ -21,6 +21,8 @@ const LOW_CONFIDENCE_ROOM_NOTE = '실제 수업 장소 확인 필요';
 const DUPLICATE_VISIT_LOCATION_NOTE = '동일한 방문 장소가 여러 번 배정되어 수동 확인 필요';
 const TB_ROOM_MAPPING_CONFIRM_NOTE = '실제 수업 교실 매칭 불명확 / 수동 확인 필요';
 
+const TB_COMPREHENSIVE_LECTURE_ROOM_NOTE = '종합강의실 수업 / 호출 시 위치 확인 필요';
+
 function hasKeyword(subject: string, keywords: string[]) {
   const normalized = subject.replace(/\s/g, '').toLowerCase();
   return keywords.some((keyword) => keyword.trim() && normalized.includes(keyword.replace(/\s/g, '').toLowerCase()));
@@ -72,8 +74,32 @@ function isBareRoomNumber(value?: string) {
   return /^\d{1,2}$/.test(String(value ?? '').trim());
 }
 
+function normalizeComprehensiveLectureRoomName(value = '') {
+  const normalized = normalizeRoomText(value);
+  if (
+    /5.*(\uc911\uac15|\uc885\uac15|\uc885\ud569|LECTURE|U-5)/i.test(normalized) ||
+    /^U-5-\d+/.test(normalized)
+  ) {
+    return '5\uce35 \uc885\ud569\uac15\uc758\uc2e4';
+  }
+  if (
+    isSecondFloorLectureRoomName(value) ||
+    /^U-2-\d+/.test(normalized) ||
+    /2.*(\uc911\uac15|\uc885\uac15|\uc885\ud569|LECTURE)/i.test(normalized) ||
+    /(\uc911\uac15|\uc885\uac15)[1-3\uae30]?/i.test(normalized) ||
+    /\uc885\ud569\uac15\uc758\uc2e4|COMPREHENSIVELECTUREROOM/i.test(normalized)
+  ) {
+    return '2\uce35 \uc885\ud569\uac15\uc758\uc2e4';
+  }
+  return '';
+}
+
+function isComprehensiveLectureRoomName(value = '') {
+  return Boolean(normalizeComprehensiveLectureRoomName(value));
+}
+
 function normalizeVisitRoomName(value?: string) {
-  return displaySecondFloorLectureRoomName(value)?.trim() ?? '';
+  return (normalizeComprehensiveLectureRoomName(value) || displaySecondFloorLectureRoomName(value))?.trim() ?? '';
 }
 
 function getUnitName(location: VisitLocation) {
@@ -113,15 +139,16 @@ function tbRoomMappingReason(location: VisitLocation, roomMapping: RoomMapping, 
   return joinNotes(
     roomMapping.isMixedClass ? '같은 학년 내 여러 학급 혼합 수업' : undefined,
     isDifferentActualRoom(location, actualRoom) ? '이동수업 / 실제 수업 장소 확인 필요' : undefined,
-    isSecondFloorLectureRoomName(actualRoom) ? SECOND_FLOOR_LECTURE_ROOM_NOTE : undefined,
+    isComprehensiveLectureRoomName(actualRoom) ? TB_COMPREHENSIVE_LECTURE_ROOM_NOTE : undefined,
     roomMapping.divisionName ? '선택과목 수업 / 교과교사 확인 필요' : undefined,
     roomMapping.reason,
   ) || '분반자료 기반 실제 수업 정보 확인 필요';
 }
 
 function createAssignmentNote(manual: ManualOverride | undefined, judgement: PeriodJudgement | undefined) {
+  const hasTbComprehensiveNote = Boolean(judgement?.roomMappingReason?.includes(TB_COMPREHENSIVE_LECTURE_ROOM_NOTE));
   const specialNotes = joinNotes(
-    isSecondFloorLectureRoomJudgement(judgement) ? SECOND_FLOOR_LECTURE_ROOM_NOTE : undefined,
+    hasTbComprehensiveNote ? TB_COMPREHENSIVE_LECTURE_ROOM_NOTE : isSecondFloorLectureRoomJudgement(judgement) ? SECOND_FLOOR_LECTURE_ROOM_NOTE : undefined,
     isMixedGradeJudgement(judgement) ? MIXED_GRADE_NOTE : undefined,
     judgement?.roomMappingConfidence === 'low' ? LOW_CONFIDENCE_ROOM_NOTE : undefined,
   );
