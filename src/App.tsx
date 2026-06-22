@@ -108,6 +108,9 @@ export function App() {
     return {
       totalCandidates,
       done: data.assignments.filter((item) => item.order).length,
+      cautionDone: data.settings.examType === 'tb' ? data.assignments.filter((item) => item.order && item.judgement === '주의').length : 0,
+      mixedGradeDone: data.settings.examType === 'tb' ? data.assignments.filter((item) => item.order && (item.roomMappingReason?.includes('혼합학년') || item.note.includes('혼합학년'))).length : 0,
+      fallbackDone: data.settings.examType === 'tb' ? data.assignments.filter((item) => item.order && item.isFallback).length : 0,
       unassigned: data.settings.examType === 'tb' ? data.assignments.filter((item) => !item.order).length : 0,
       timeShortage: data.settings.examType === 'tb' ? data.assignments.filter((item) => !item.order && (item.failedReason?.includes('배정 불가') || item.failedReason?.includes('시간'))).length : 0,
       filteredOut: data.settings.examType === 'tb' ? data.assignments.filter((item) => !item.order && (item.failedReason?.includes('교시') || item.failedReason?.includes('키워드'))).length : 0,
@@ -446,6 +449,9 @@ function Dashboard({
   dashboard: {
     totalCandidates: number;
     done: number;
+    cautionDone: number;
+    mixedGradeDone: number;
+    fallbackDone: number;
     unassigned: number;
     timeShortage: number;
     filteredOut: number;
@@ -499,6 +505,9 @@ function Dashboard({
           <Metric key={`${stat.grade}-count`} label={`${stat.grade}학년 ${data.settings.examType === 'tb' ? '호출 단위 수' : '방문 장소 수'}`} value={stat.count} />
         ))}
         <Metric label="자동 배정 완료 수" value={dashboard.done} />
+        {data.settings.examType === 'tb' && <Metric label="주의 배정 수" value={dashboard.cautionDone} />}
+        {data.settings.examType === 'tb' && <Metric label="혼합학년 포함 배정 수" value={dashboard.mixedGradeDone} />}
+        {data.settings.examType === 'tb' && <Metric label="fallback 배정 수" value={dashboard.fallbackDone} />}
         {data.settings.examType === 'tb' &&
           dashboard.gradeStats.map((stat) => <Metric key={`${stat.grade}-done`} label={`${stat.grade}학년 배정 완료 수`} value={stat.done} />)}
         <Metric label="수동 확인 필요 수" value={dashboard.manual} />
@@ -1659,6 +1668,9 @@ function ResultsPanel({
   }
   const assignedGrade2 = assigned.filter((item) => item.grade === '2').length;
   const assignedGrade3 = assigned.filter((item) => item.grade === '3').length;
+  const cautionAssigned = isUrine ? 0 : assigned.filter((item) => item.judgement === '주의').length;
+  const mixedGradeAssigned = isUrine ? 0 : assigned.filter((item) => item.roomMappingReason?.includes('혼합학년') || item.note.includes('혼합학년')).length;
+  const fallbackAssigned = isUrine ? 0 : assigned.filter((item) => item.isFallback).length;
   const blockedCount = data.judgements.filter((item) => item.status === '불가').length;
   const totalEstimate =
     isUrine && data.settings.urineSimultaneous && data.settings.urineParallelMode === 'grade'
@@ -1705,6 +1717,9 @@ function ResultsPanel({
         <Metric label="전체 배정 수" value={assigned.length} />
         <Metric label="2학년 배정 수" value={assignedGrade2} />
         <Metric label="3학년 배정 수" value={assignedGrade3} />
+        {!isUrine && <Metric label="주의 배정 수" value={cautionAssigned} />}
+        {!isUrine && <Metric label="혼합학년 포함 배정 수" value={mixedGradeAssigned} />}
+        {!isUrine && <Metric label="fallback 배정 수" value={fallbackAssigned} />}
         <Metric label="수동 확인 필요 수" value={manualRows.length} />
         {!isUrine && <Metric label="미배정 호출 단위 수" value={unassignedTbRows.length} />}
         {!isUrine && <Metric label="시간 부족 미배정 수" value={timeShortageCount} />}

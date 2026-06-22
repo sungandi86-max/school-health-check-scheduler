@@ -640,6 +640,21 @@ function buildAssignment(
   };
 }
 
+function createTbFallbackJudgement(location: VisitLocation, row: TimetableRow | undefined, period: number | undefined): PeriodJudgement {
+  const safePeriod = period ?? 0;
+  const subject = safePeriod ? row?.periods[safePeriod - 1] ?? '' : '';
+  const teacher = safePeriod ? row?.teachers?.[safePeriod - 1] ?? '' : '';
+  return {
+    locationId: location.id,
+    period: safePeriod,
+    subject,
+    teacher,
+    status: '주의',
+    reason: '시간표 기반 후보 부족 / 현장 확인 필요',
+    roomMappingReason: '시간표 기반 후보 부족 / 현장 확인 필요',
+  };
+}
+
 export function createManualConfirmRows(divisions: SubjectDivision[], assignments: ScheduleAssignment[], judgements: PeriodJudgement[]) {
   const assignmentMap = new Map(assignments.map((item) => [item.locationId, item]));
   const candidateStats = new Map<string, { candidateCount: number; excludedCount: number }>();
@@ -927,7 +942,7 @@ function scheduleCandidateGroup({
       for (let index = 0; index < slots.length; index += 1) {
         const slot = slots[index];
         if (usedSlots.has(index) || (manual?.period && slot.period !== manual.period)) continue;
-        const judgement = preferred ?? valid.find((item) => item.period === slot.period);
+        const judgement = preferred ?? valid.find((item) => item.period === slot.period) ?? (settings.examType === 'tb' ? createTbFallbackJudgement(location, row, slot.period) : undefined);
         if (!judgement) continue;
         const preview = buildAssignment(location, row, judgement, null, slot.time, manual, { lineName, timeBlockLabel });
         const duplicate = !canAssign(preview);
@@ -943,6 +958,11 @@ function scheduleCandidateGroup({
       lineName,
       timeBlockLabel,
     });
+
+    if (settings.examType === 'tb' && judgement?.roomMappingReason === '시간표 기반 후보 부족 / 현장 확인 필요') {
+      assignment.isFallback = true;
+      appendNote(assignment, '시간표 기반 후보 부족 / 현장 확인 필요');
+    }
 
     if (!judgement) {
       assignment.failedReason = '검사 가능한 교시가 없음';

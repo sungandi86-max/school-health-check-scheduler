@@ -133,6 +133,7 @@ export interface ScheduleAssignment {
   roomMappingConfidence?: 'high' | 'medium' | 'low';
   involvedGrades?: string[];
   involvedClasses?: string[];
+  isFallback?: boolean;
   duplicateWarning?: string;
   comciganRoom?: string;
 }
