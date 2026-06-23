@@ -2389,9 +2389,7 @@ function TbPrintGuide() {
 }
 
 function TbUltraCompactNoticeTable({ assignments, settings, description }: { assignments: ScheduleAssignment[]; settings: ExamSettings; description: string }) {
-  const rows = assignments
-    .filter((item) => item.order)
-    .sort((a, b) => (a.examTime || a.scheduledTime || '').localeCompare(b.examTime || b.scheduledTime || '') || a.grade.localeCompare(b.grade, 'ko', { numeric: true }))
+  const rows = normalizeTbNoticeAssignments(assignments)
     .map((item) => [`${item.grade}학년`, tbExamRange(item), item.unitName || item.locationName.replace(/교실$/, ''), item.examVenue || settings.examVenue]);
   const printUltraCompactOnly = () => {
     document.body.classList.add('print-tb-ultra-only');
@@ -2440,10 +2438,36 @@ function TbUltraCompactNoticeTable({ assignments, settings, description }: { ass
   );
 }
 
+function normalizeTbNoticeAssignments(assignments: ScheduleAssignment[]) {
+  const rows = assignments
+    .filter((item) => item.order)
+    .map((item) => ({ ...item }))
+    .sort((a, b) => (a.examTime || a.scheduledTime || '').localeCompare(b.examTime || b.scheduledTime || '') || a.grade.localeCompare(b.grade, 'ko', { numeric: true }));
+  const cursors = new Map<string, number>();
+  for (const item of rows) {
+    const key = item.timeBlockLabel || item.lineName || item.grade || 'tb';
+    const originalStart = timeStringToMinutes(item.examTime || item.scheduledTime || '23:59');
+    const start = Math.max(originalStart, cursors.get(key) ?? originalStart);
+    item.scheduledTime = formatMinutesAsTime(start);
+    item.examTime = item.scheduledTime;
+    cursors.set(key, start + Math.max(1, item.estimatedDurationMinutes ?? 0));
+  }
+  return rows.sort((a, b) => (a.examTime || a.scheduledTime || '').localeCompare(b.examTime || b.scheduledTime || '') || a.grade.localeCompare(b.grade, 'ko', { numeric: true }));
+}
+
 function tbExamRange(item: ScheduleAssignment) {
   const start = item.examTime || item.scheduledTime;
   if (!start) return '';
   return `${start}~${addTimeMinutes(start, item.estimatedDurationMinutes ?? 0)}`;
+}
+
+function timeStringToMinutes(time: string) {
+  const [hour = '0', minute = '0'] = time.split(':');
+  return Number(hour) * 60 + Number(minute);
+}
+
+function formatMinutesAsTime(total: number) {
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
 function addTimeMinutes(time: string, minutes: number) {

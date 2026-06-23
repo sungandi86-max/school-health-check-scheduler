@@ -47,6 +47,37 @@ function tbExamTimeRange(item: ScheduleAssignment) {
   return `${start}~${addMinutes(start, item.estimatedDurationMinutes ?? 0)}`;
 }
 
+function timeToMinutes(time: string) {
+  const [hour = '0', minute = '0'] = time.split(':');
+  return Number(hour) * 60 + Number(minute);
+}
+
+function minutesToTime(total: number) {
+  const hour = Math.floor(total / 60);
+  const minute = total % 60;
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+function normalizeTbDisplayAssignments(assignments: ScheduleAssignment[]) {
+  const rows = assignments
+    .filter((item) => item.order)
+    .map((item) => ({ ...item }))
+    .sort(sortByDisplayTime);
+  const cursors = new Map<string, number>();
+
+  for (const item of rows) {
+    const key = item.timeBlockLabel || item.lineName || item.grade || 'tb';
+    const originalStart = timeToMinutes(item.examTime || item.scheduledTime || '23:59');
+    const start = Math.max(originalStart, cursors.get(key) ?? originalStart);
+    const duration = Math.max(1, item.estimatedDurationMinutes ?? 0);
+    item.scheduledTime = minutesToTime(start);
+    item.examTime = item.scheduledTime;
+    cursors.set(key, start + duration);
+  }
+
+  return rows.sort(sortByDisplayTime);
+}
+
 function unitName(item: ScheduleAssignment) {
   return item.unitName || item.homeRoomName?.replace(/교실$/, '') || item.locationName.replace(/교실$/, '');
 }
@@ -179,11 +210,11 @@ function formatHomeRoomName(value: string | undefined, grade: string) {
 
 export function createFullTable(assignments: ScheduleAssignment[], settings?: ExamSettings): ExportTable {
   if (settings?.examType === 'tb') {
+    const tbRows = normalizeTbDisplayAssignments(assignments);
     return {
       name: '결핵검진_자동배정표',
       headers: ['검진 시간', '검진 대상 학급', '검진 장소'],
-      rows: assignments
-        .filter((item) => item.order)
+      rows: tbRows
         .map((item) => [
           tbExamTimeRange(item),
           unitName(item),
@@ -242,12 +273,11 @@ export function createUrineLineTables(assignments: ScheduleAssignment[]): Export
 }
 
 export function createTbTeamTable(assignments: ScheduleAssignment[], settings?: ExamSettings): ExportTable {
+  const tbRows = normalizeTbDisplayAssignments(assignments);
   return {
     name: '결핵검진_검진팀용_학급별_이동표',
     headers: ['검진 시간', '검진 대상 학급', '검진 장소'],
-    rows: assignments
-      .filter((item) => item.order)
-      .sort(sortByDisplayTime)
+    rows: tbRows
       .map((item) => [
         tbExamTimeRange(item),
         unitName(item),
@@ -258,12 +288,12 @@ export function createTbTeamTable(assignments: ScheduleAssignment[], settings?: 
 
 export function createTbGradeTables(assignments: ScheduleAssignment[], settings?: ExamSettings): ExportTable[] {
   const grades = [...new Set(assignments.filter((item) => item.order).map((item) => item.grade))].sort();
+  const tbRows = normalizeTbDisplayAssignments(assignments);
   return grades.map((grade) => ({
     name: `결핵검진_${grade}학년_학급별_이동표`,
     headers: ['검진 시간', '검진 대상 학급', '검진 장소'],
-    rows: assignments
-      .filter((item) => item.order && item.grade === grade)
-      .sort(sortByDisplayTime)
+    rows: tbRows
+      .filter((item) => item.grade === grade)
       .map((item) => [
         tbExamTimeRange(item),
         unitName(item),
@@ -273,8 +303,9 @@ export function createTbGradeTables(assignments: ScheduleAssignment[], settings?
 }
 
 export function createTbTwoColumnTable(assignments: ScheduleAssignment[], settings: ExamSettings): ExportTable {
-  const grade2 = getTbGradeRows(assignments, settings, '2');
-  const grade3 = getTbGradeRows(assignments, settings, '3');
+  const tbRows = normalizeTbDisplayAssignments(assignments);
+  const grade2 = getTbGradeRows(tbRows, settings, '2');
+  const grade3 = getTbGradeRows(tbRows, settings, '3');
   const maxRows = Math.max(grade2.length, grade3.length);
 
   return {
@@ -358,11 +389,11 @@ function lineRank(lineName?: string) {
 
 export function createTeacherTable(assignments: ScheduleAssignment[], settings?: ExamSettings): ExportTable {
   if (settings?.examType === 'tb') {
+    const tbRows = normalizeTbDisplayAssignments(assignments);
     return {
       name: '결핵검진_교사용_학급별_안내표',
       headers: ['검진 시간', '검진 대상 학급', '검진 장소'],
-      rows: assignments
-        .filter((item) => item.order)
+      rows: tbRows
         .map((item) => [
           tbExamTimeRange(item),
           unitName(item),
