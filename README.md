@@ -74,3 +74,40 @@ npm run build
 - 관리자 구상안: 고교학점제 대응 검진 운영 개선 보고 문안
 
 현재 MVP는 브라우저 `localStorage` 기반입니다. 여러 기기에서 동시에 공유하려면 다음 단계에서 Supabase 또는 Firebase 실시간 DB 연동이 필요합니다.
+
+## School Health Hub
+
+이 저장소의 현재 이름은 `school-health-check-scheduler`이지만, 장기 제품명은 **School Health Hub**로 사용합니다.
+
+School Health Hub는 기존 학생건강검진 스케줄러를 기반으로 다음 기능까지 확장하는 학교 보건 업무 허브입니다.
+
+- 검진 시간표 자동배정
+- 공통 건강검진 모듈
+- 명렬표 업로드 및 학생 상태 관리
+- 검진 운영센터
+- 교사용 대시보드
+- 실시간 동기화
+- 관리자 대시보드
+- 운영 로그 및 보고서
+
+## 버전 관리 정책
+
+이 프로젝트는 GitHub Releases와 SemVer 형식을 기준으로 버전을 관리합니다.
+
+- `v1.0.0`: 기존 학생건강검진 스케줄러 기준 버전
+- `v2.x.x-alpha`: 공통 건강검진 구조와 내부 데이터 모델을 정리하는 초기 확장 단계
+- `v2.x.x-beta`: 검진 운영센터, 교사용 대시보드, 실시간 동기화 등 현장 운영 기능 검증 단계
+- `v3.0.0`: School Health Hub 첫 정식 버전
+
+릴리스 전에는 최소한 다음 조건을 확인합니다.
+
+- `npm run build` 통과
+- 기존 소변검사/결핵검진 스케줄러 기능 유지
+- 개인정보가 저장소 예시, 로그, 문서에 포함되지 않음
+- 변경 내용이 `docs/CHANGELOG.md`에 기록됨
+
+## 프로젝트 문서
+
+- [로드맵](docs/ROADMAP.md)
+- [릴리스 계획](docs/RELEASE_PLAN.md)
+- [변경 이력](docs/CHANGELOG.md)
