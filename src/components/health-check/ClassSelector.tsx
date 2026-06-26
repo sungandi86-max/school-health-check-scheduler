@@ -1,4 +1,4 @@
-import { getRosterClasses } from '../../lib/roster';
+import { getClassesFromStudents } from '../../lib/roster';
 import type { HealthCheckStudent } from '../../types/healthCheck';
 
 export function ClassSelector({
@@ -10,7 +10,7 @@ export function ClassSelector({
   value: string;
   onChange: (className: string) => void;
 }) {
-  const classes = getRosterClasses(students);
+  const classes = getClassesFromStudents(students);
 
   return (
     <label className="field">

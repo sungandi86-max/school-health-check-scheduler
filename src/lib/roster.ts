@@ -36,6 +36,14 @@ export function saveRosterStudents(checkType: HealthCheckType, students: HealthC
   localStorage.setItem(key, JSON.stringify(students.map((student) => normalizeStudent(student, checkType))));
 }
 
+export function getStudentsBySession(sessionId: string, checkType: HealthCheckType): HealthCheckStudent[] {
+  return loadRosterStudents(checkType, sessionId);
+}
+
+export function saveStudentsBySession(sessionId: string, checkType: HealthCheckType, students: HealthCheckStudent[]) {
+  saveRosterStudents(checkType, students, sessionId);
+}
+
 export async function parseRosterFile(file: File, checkType: HealthCheckType, sessionId: string): Promise<HealthCheckStudent[]> {
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array' });
@@ -99,8 +107,20 @@ export function updateRosterStudent(
   return students.map((student) => (student.id === studentId ? { ...student, ...patch, updatedAt } : student));
 }
 
+export function updateStudentStatus(students: HealthCheckStudent[], studentId: string, status: HealthCheckStudentStatus) {
+  return updateRosterStudent(students, studentId, { status });
+}
+
+export function updateStudentMemo(students: HealthCheckStudent[], studentId: string, memo: string) {
+  return updateRosterStudent(students, studentId, { memo });
+}
+
 export function getRosterClasses(students: HealthCheckStudent[]) {
   return [...new Set(students.map((student) => student.className).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+}
+
+export function getClassesFromStudents(students: HealthCheckStudent[]) {
+  return getRosterClasses(students);
 }
 
 export function getRosterSummary(students: HealthCheckStudent[]) {
@@ -120,6 +140,10 @@ export function getRosterSummary(students: HealthCheckStudent[]) {
     incomplete,
     byStatus,
   };
+}
+
+export function getStudentSummary(students: HealthCheckStudent[]) {
+  return getRosterSummary(students);
 }
 
 function normalizeStudent(student: Partial<HealthCheckStudent>, checkType: HealthCheckType): HealthCheckStudent {

@@ -1,10 +1,10 @@
-import { getRosterSummary, STUDENT_STATUS_LABELS } from '../../lib/roster';
+import { getStudentSummary, STUDENT_STATUS_LABELS } from '../../lib/roster';
 import type { HealthCheckStudent, HealthCheckStudentStatus } from '../../types/healthCheck';
 
 const summaryStatuses: HealthCheckStudentStatus[] = ['pending', 'completed', 'absent', 'earlyLeave', 'late', 'deferred'];
 
 export function StudentStatusSummary({ students }: { students: HealthCheckStudent[] }) {
-  const summary = getRosterSummary(students);
+  const summary = getStudentSummary(students);
 
   return (
     <section className="card student-status-summary">

@@ -1,16 +1,18 @@
 import { FileInput } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { getRosterClasses, parseRosterFile } from '../../lib/roster';
+import { getClassesFromStudents, parseRosterFile } from '../../lib/roster';
 import type { HealthCheckStudent, HealthCheckType } from '../../types/healthCheck';
 
 export function RosterUpload({
   checkType,
   sessionId,
+  sessionTitle,
   students,
   onUpload,
 }: {
   checkType: HealthCheckType;
   sessionId: string;
+  sessionTitle?: string;
   students: HealthCheckStudent[];
   onUpload: (students: HealthCheckStudent[]) => void;
 }) {
@@ -34,6 +36,7 @@ export function RosterUpload({
         <p className="eyebrow">명렬표</p>
         <h2>명렬표 업로드</h2>
         <p className="table-description">엑셀 파일에서 학년, 반, 번호, 이름 열을 읽어 학급별 학생 목록을 만듭니다.</p>
+        <p className="table-description">현재 선택된 세션: {sessionTitle || sessionId}</p>
       </div>
       <div className="roster-upload-actions">
         <button type="button" className="primary" onClick={() => fileRef.current?.click()}>
@@ -49,7 +52,7 @@ export function RosterUpload({
           <span>업로드된 학생 수</span>
         </div>
         <div>
-          <strong>{getRosterClasses(students).length}</strong>
+          <strong>{getClassesFromStudents(students).length}</strong>
           <span>학급 수</span>
         </div>
       </div>

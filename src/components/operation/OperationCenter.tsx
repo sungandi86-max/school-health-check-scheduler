@@ -5,9 +5,9 @@ import { RosterUpload } from '../health-check/RosterUpload';
 import { StudentChecklist } from '../health-check/StudentChecklist';
 import { StudentStatusSummary } from '../health-check/StudentStatusSummary';
 import { getHealthCheckLabel } from '../../lib/healthCheck';
-import { loadRosterStudents, saveRosterStudents, updateRosterStudent } from '../../lib/roster';
+import { getStudentsBySession, saveStudentsBySession, updateStudentMemo, updateStudentStatus } from '../../lib/roster';
 import type { HealthCheckOperationStatus, HealthCheckSession, HealthCheckStudent, HealthCheckStudentStatus, HealthCheckType } from '../../types/healthCheck';
-import { HealthCheckSessionBadge } from '../health-check/HealthCheckSessionBadge';
+import { formatSessionTitle, HealthCheckSessionBadge } from '../health-check/HealthCheckSessionBadge';
 
 export function OperationCenter({
   checkType,
@@ -19,17 +19,17 @@ export function OperationCenter({
   status: HealthCheckOperationStatus;
 }) {
   const sessionId = session?.id ?? `${checkType}-local-session`;
-  const [students, setStudents] = useState<HealthCheckStudent[]>(() => loadRosterStudents(checkType, sessionId));
+  const [students, setStudents] = useState<HealthCheckStudent[]>(() => getStudentsBySession(sessionId, checkType));
   const [selectedClass, setSelectedClass] = useState('');
 
   useEffect(() => {
-    const loaded = loadRosterStudents(checkType, sessionId);
+    const loaded = getStudentsBySession(sessionId, checkType);
     setStudents(loaded);
     setSelectedClass(loaded[0]?.className ?? '');
   }, [checkType, sessionId]);
 
   useEffect(() => {
-    saveRosterStudents(checkType, students, sessionId);
+    saveStudentsBySession(sessionId, checkType, students);
   }, [checkType, sessionId, students]);
 
   const selectedClassStudents = useMemo(
@@ -55,11 +55,11 @@ export function OperationCenter({
   };
 
   const updateStatus = (studentId: string, statusValue: HealthCheckStudentStatus) => {
-    setStudents((prev) => updateRosterStudent(prev, studentId, { status: statusValue }));
+    setStudents((prev) => updateStudentStatus(prev, studentId, statusValue));
   };
 
   const updateMemo = (studentId: string, memo: string) => {
-    setStudents((prev) => updateRosterStudent(prev, studentId, { memo }));
+    setStudents((prev) => updateStudentMemo(prev, studentId, memo));
   };
 
   return (
@@ -101,7 +101,7 @@ export function OperationCenter({
         </section>
 
         <section className="operation-student-panel">
-          <RosterUpload checkType={checkType} sessionId={sessionId} students={students} onUpload={handleUpload} />
+          <RosterUpload checkType={checkType} sessionId={sessionId} sessionTitle={session ? formatSessionTitle(session) : undefined} students={students} onUpload={handleUpload} />
           <StudentStatusSummary students={students} />
           <div className="card operation-class-selector-card">
             <ClassSelector students={students} value={selectedClass} onChange={setSelectedClass} />
