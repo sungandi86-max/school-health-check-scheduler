@@ -1517,6 +1517,57 @@ td select {
   white-space: pre-wrap;
 }
 
+.storage-status-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  padding: 14px;
+}
+
+.storage-status-panel h3,
+.storage-status-panel p {
+  margin: 0;
+}
+
+.storage-status-panel h3 {
+  color: #0d2a3f;
+  font-size: 18px;
+}
+
+.storage-status-panel p {
+  color: #29465a;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.status-pill {
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid #d8e8e5;
+  background: #ffffff;
+  color: #29465a;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.status-pill.ready {
+  border-color: #9bd7ba;
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.status-pill.muted {
+  background: #f3f7f8;
+  color: #587084;
+}
+
 .roster-upload-card,
 .student-status-summary,
 .student-checklist-card,
@@ -1732,6 +1783,11 @@ td select {
   .report-two-column,
   .report-session-info dl {
     grid-template-columns: 1fr;
+  }
+
+  .storage-status-panel {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
