@@ -64,9 +64,19 @@ import { OperationPanel } from './components/operation/OperationPanel';
 import { OperationCenter } from './components/operation/OperationCenter';
 import { HealthCheckTypeSelector } from './components/health-check/HealthCheckTypeSelector';
 import { HealthCheckSummary } from './components/health-check/HealthCheckSummary';
+import { HealthCheckSessionSelector } from './components/health-check/HealthCheckSessionSelector';
 import { createOperationStatus } from './lib/operation';
 import { getHealthCheckLabel, normalizeHealthCheckType, toExamType } from './lib/healthCheck';
-import type { HealthCheckType } from './types/healthCheck';
+import {
+  createHealthCheckSession,
+  createSessionFromDefaults,
+  deleteHealthCheckSession,
+  getActiveSessionId,
+  getHealthCheckSessions,
+  setActiveSessionId,
+  updateHealthCheckSession,
+} from './lib/sessions';
+import type { HealthCheckSession, HealthCheckSessionStatus, HealthCheckType } from './types/healthCheck';
 
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 const CATEGORIES: LocationCategory[] = ['일반교실', '특별실', '선택과목 장소', '체육시설', '수동확인'];
@@ -85,6 +95,8 @@ export function App() {
   const [entryNotice, setEntryNotice] = useState('');
   const [showCommonHelp, setShowCommonHelp] = useState(false);
   const [validationMessages, setValidationMessages] = useState<string[]>([]);
+  const [sessions, setSessions] = useState<HealthCheckSession[]>(() => getHealthCheckSessions());
+  const [activeSessionIdState, setActiveSessionIdState] = useState(() => getActiveSessionId());
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -96,6 +108,50 @@ export function App() {
     saveAppData(data);
     setStoredInfo(getStoredAppDataInfo());
   }, [data]);
+
+  const activeSession = useMemo(
+    () => sessions.find((session) => session.id === activeSessionIdState) ?? sessions[0],
+    [activeSessionIdState, sessions],
+  );
+
+  const applySessionToData = (session: HealthCheckSession) => {
+    const examType = toExamType(session.checkType);
+    setData((prev) => ({
+      ...prev,
+      healthCheckType: session.checkType,
+      settings: {
+        ...prev.settings,
+        healthCheckType: session.checkType,
+        examType,
+        operationMode: examType === 'tb' ? 'move' : 'visit',
+        examDate: session.date,
+        targetGrades: session.targetGrades,
+        examVenue: session.location || prev.settings.examVenue,
+      },
+      needsReschedule: true,
+    }));
+  };
+
+  const refreshSessions = () => setSessions(getHealthCheckSessions());
+
+  useEffect(() => {
+    if (!data.hasSelectedExamType) return;
+    if (sessions.length === 0) {
+      const created = createSessionFromDefaults({
+        checkType: data.settings.healthCheckType,
+        date: data.settings.examDate,
+        targetGrades: data.settings.targetGrades,
+        location: data.settings.examVenue,
+      });
+      refreshSessions();
+      setActiveSessionIdState(created.id);
+      return;
+    }
+    if (!activeSessionIdState && sessions[0]) {
+      setActiveSessionId(sessions[0].id);
+      setActiveSessionIdState(sessions[0].id);
+    }
+  }, [activeSessionIdState, data.hasSelectedExamType, data.settings.examDate, data.settings.examVenue, data.settings.healthCheckType, data.settings.targetGrades, sessions]);
 
   const manualRows = useMemo(
     () => createManualConfirmRows(data.divisions, data.assignments, data.judgements),
@@ -145,6 +201,14 @@ export function App() {
     const healthCheckType = normalizeHealthCheckType(checkType);
     const examType = toExamType(healthCheckType);
     const keywordSet = examType === 'tb' ? fresh.keywordSets.tb : fresh.keywordSets.urine;
+    const session = createSessionFromDefaults({
+      checkType: healthCheckType,
+      date: fresh.settings.examDate,
+      targetGrades: fresh.settings.targetGrades,
+      location: fresh.settings.examVenue,
+    });
+    refreshSessions();
+    setActiveSessionIdState(session.id);
     setData({
       ...fresh,
       healthCheckType,
@@ -196,6 +260,40 @@ export function App() {
     if (window.confirm(NEW_SCHEDULE_WARNING)) {
       startFreshExamType(data.settings.healthCheckType);
     }
+  };
+  const createSession = (input: {
+    title: string;
+    checkType: HealthCheckType;
+    date: string;
+    targetGrades: string[];
+    location: string;
+    status: HealthCheckSessionStatus;
+  }) => {
+    const session = createHealthCheckSession(input);
+    refreshSessions();
+    setActiveSessionIdState(session.id);
+    applySessionToData(session);
+    return session;
+  };
+  const selectSession = (sessionId: string) => {
+    const session = sessions.find((item) => item.id === sessionId);
+    if (!session) return;
+    setActiveSessionId(session.id);
+    setActiveSessionIdState(session.id);
+    applySessionToData(session);
+  };
+  const removeSession = (sessionId: string) => {
+    if (!window.confirm('이 검진 세션을 삭제하시겠습니까? 세션 기반 데이터 연결은 다음 단계에서 더 정리됩니다.')) return;
+    const next = deleteHealthCheckSession(sessionId);
+    setSessions(next);
+    const nextActive = next[0];
+    setActiveSessionIdState(nextActive?.id ?? '');
+    if (nextActive) applySessionToData(nextActive);
+  };
+  const changeSessionStatus = (sessionId: string, status: HealthCheckSessionStatus) => {
+    const updated = updateHealthCheckSession(sessionId, { status });
+    refreshSessions();
+    if (updated && sessionId === activeSession?.id) applySessionToData(updated);
   };
   const saveCurrentTemplate = () => {
     const defaultName = `${data.settings.examDate.slice(0, 4) || new Date().getFullYear()} ${mode.shortLabel}`;
@@ -376,6 +474,19 @@ export function App() {
           </div>
         </header>
 
+        <HealthCheckSessionSelector
+          sessions={sessions}
+          activeSession={activeSession}
+          defaultCheckType={data.settings.healthCheckType}
+          defaultDate={data.settings.examDate}
+          defaultGrades={data.settings.targetGrades}
+          defaultLocation={data.settings.examVenue}
+          onCreate={createSession}
+          onSelect={selectSession}
+          onDelete={removeSession}
+          onStatusChange={changeSessionStatus}
+        />
+
         {data.needsReschedule && (
           <div className="reschedule-banner no-print">
             <span>검사 조건 또는 시간표가 변경되었습니다. 최신 조건을 반영하려면 자동배정을 다시 실행해 주세요.</span>
@@ -387,7 +498,7 @@ export function App() {
 
         {activeTab === 'urine-help' && <UrineHelp />}
         {activeTab === 'tb-help' && <TbHelp />}
-        {activeTab === 'operation-center' && <OperationCenter checkType={data.settings.healthCheckType} status={data.operationStatus ?? createOperationStatus(data.settings.healthCheckType, data.assignments)} />}
+        {activeTab === 'operation-center' && <OperationCenter checkType={data.settings.healthCheckType} session={activeSession} status={data.operationStatus ?? createOperationStatus(data.settings.healthCheckType, data.assignments)} />}
         {activeTab === 'dashboard' && (
           <Dashboard
             data={data}

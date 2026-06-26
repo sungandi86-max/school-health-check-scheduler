@@ -6,6 +6,8 @@ export type HealthCheckEngineType = 'urine' | 'tb';
 
 export type HealthCheckStudentStatus = 'pending' | 'completed' | 'absent' | 'earlyLeave' | 'late' | 'deferred';
 
+export type HealthCheckSessionStatus = 'draft' | 'scheduled' | 'inProgress' | 'completed' | 'archived';
+
 export interface HealthCheckTypeDefinition {
   id: HealthCheckType;
   engineType: HealthCheckEngineType;
@@ -18,12 +20,14 @@ export interface HealthCheckTypeDefinition {
 
 export interface HealthCheckSession {
   id: string;
-  checkType: HealthCheckType;
-  examDate: string;
   title: string;
-  scheduleItems: HealthCheckScheduleItem[];
-  students: HealthCheckStudent[];
-  operationStatus: HealthCheckOperationStatus;
+  checkType: HealthCheckType;
+  date: string;
+  targetGrades: string[];
+  location: string;
+  status: HealthCheckSessionStatus;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface HealthCheckScheduleItem {

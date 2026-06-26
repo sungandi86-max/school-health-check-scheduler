@@ -6,28 +6,31 @@ import { StudentChecklist } from '../health-check/StudentChecklist';
 import { StudentStatusSummary } from '../health-check/StudentStatusSummary';
 import { getHealthCheckLabel } from '../../lib/healthCheck';
 import { loadRosterStudents, saveRosterStudents, updateRosterStudent } from '../../lib/roster';
-import type { HealthCheckOperationStatus, HealthCheckStudent, HealthCheckStudentStatus, HealthCheckType } from '../../types/healthCheck';
+import type { HealthCheckOperationStatus, HealthCheckSession, HealthCheckStudent, HealthCheckStudentStatus, HealthCheckType } from '../../types/healthCheck';
+import { HealthCheckSessionBadge } from '../health-check/HealthCheckSessionBadge';
 
 export function OperationCenter({
   checkType,
+  session,
   status,
 }: {
   checkType: HealthCheckType;
+  session?: HealthCheckSession;
   status: HealthCheckOperationStatus;
 }) {
-  const sessionId = `${checkType}-local-session`;
-  const [students, setStudents] = useState<HealthCheckStudent[]>(() => loadRosterStudents(checkType));
+  const sessionId = session?.id ?? `${checkType}-local-session`;
+  const [students, setStudents] = useState<HealthCheckStudent[]>(() => loadRosterStudents(checkType, sessionId));
   const [selectedClass, setSelectedClass] = useState('');
 
   useEffect(() => {
-    const loaded = loadRosterStudents(checkType);
+    const loaded = loadRosterStudents(checkType, sessionId);
     setStudents(loaded);
     setSelectedClass(loaded[0]?.className ?? '');
-  }, [checkType]);
+  }, [checkType, sessionId]);
 
   useEffect(() => {
-    saveRosterStudents(checkType, students);
-  }, [checkType, students]);
+    saveRosterStudents(checkType, students, sessionId);
+  }, [checkType, sessionId, students]);
 
   const selectedClassStudents = useMemo(
     () => (selectedClass ? students.filter((student) => student.className === selectedClass) : []),
@@ -65,6 +68,8 @@ export function OperationCenter({
         <p className="eyebrow">검진 운영</p>
         <h2>학교 건강검진 운영센터</h2>
       </div>
+
+      <HealthCheckSessionBadge session={session} />
 
       <div className="operation-status-grid">
         {statusCards.map((card) => (

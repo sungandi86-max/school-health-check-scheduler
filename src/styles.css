@@ -344,6 +344,134 @@ h3 {
   font-weight: 700;
 }
 
+.session-selector {
+  margin-bottom: 16px;
+}
+
+.session-selector-header,
+.session-badge,
+.session-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.session-selector-header {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.session-badge {
+  min-width: min(100%, 420px);
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  color: #29465a;
+  padding: 12px 14px;
+}
+
+.session-badge.empty {
+  color: #6b7d8c;
+}
+
+.session-badge svg {
+  color: #0f766e;
+  flex: 0 0 auto;
+}
+
+.session-badge div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.session-badge span {
+  color: #587084;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.session-badge strong {
+  color: #0d2a3f;
+  font-size: 15px;
+}
+
+.session-badge em {
+  margin-left: auto;
+  border-radius: 999px;
+  background: #e7f4f2;
+  color: #0f766e;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+  padding: 5px 8px;
+}
+
+.session-manager {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.session-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-content: start;
+}
+
+.session-form .primary {
+  align-self: end;
+}
+
+.session-list {
+  display: grid;
+  gap: 10px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.session-list-item {
+  align-items: stretch;
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  padding: 10px;
+}
+
+.session-list-item.active {
+  border-color: #59b8ad;
+  background: #eefbf9;
+}
+
+.session-select-button {
+  display: grid;
+  flex: 1;
+  justify-items: start;
+  gap: 3px;
+  min-height: auto;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  white-space: normal;
+}
+
+.session-select-button:hover {
+  background: transparent;
+}
+
+.session-select-button strong {
+  color: #0d2a3f;
+}
+
+.session-select-button span {
+  color: #587084;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -16,18 +16,24 @@ export function getRosterStorageKey(checkType: HealthCheckType) {
   return `schoolHealthHub.students.${checkType}`;
 }
 
-export function loadRosterStudents(checkType: HealthCheckType): HealthCheckStudent[] {
+export function getSessionRosterStorageKey(sessionId: string) {
+  return `schoolHealthHub.students.${sessionId}`;
+}
+
+export function loadRosterStudents(checkType: HealthCheckType, sessionId?: string): HealthCheckStudent[] {
   if (typeof localStorage === 'undefined') return [];
   try {
-    const parsed = JSON.parse(localStorage.getItem(getRosterStorageKey(checkType)) || '[]') as HealthCheckStudent[];
+    const key = sessionId ? getSessionRosterStorageKey(sessionId) : getRosterStorageKey(checkType);
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]') as HealthCheckStudent[];
     return Array.isArray(parsed) ? parsed.map((student) => normalizeStudent(student, checkType)) : [];
   } catch {
     return [];
   }
 }
 
-export function saveRosterStudents(checkType: HealthCheckType, students: HealthCheckStudent[]) {
-  localStorage.setItem(getRosterStorageKey(checkType), JSON.stringify(students.map((student) => normalizeStudent(student, checkType))));
+export function saveRosterStudents(checkType: HealthCheckType, students: HealthCheckStudent[], sessionId?: string) {
+  const key = sessionId ? getSessionRosterStorageKey(sessionId) : getRosterStorageKey(checkType);
+  localStorage.setItem(key, JSON.stringify(students.map((student) => normalizeStudent(student, checkType))));
 }
 
 export async function parseRosterFile(file: File, checkType: HealthCheckType, sessionId: string): Promise<HealthCheckStudent[]> {
