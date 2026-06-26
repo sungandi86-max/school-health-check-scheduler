@@ -65,12 +65,12 @@ import { OperationCenter } from './components/operation/OperationCenter';
 import { TeacherDashboard } from './components/teacher-dashboard/TeacherDashboard';
 import { AdminDashboard } from './components/admin-dashboard/AdminDashboard';
 import { OperationReport } from './components/report/OperationReport';
+import { StorageSettingsPanel } from './components/settings/StorageSettingsPanel';
 import { HealthCheckTypeSelector } from './components/health-check/HealthCheckTypeSelector';
 import { HealthCheckSummary } from './components/health-check/HealthCheckSummary';
 import { HealthCheckSessionSelector } from './components/health-check/HealthCheckSessionSelector';
 import { createOperationStatus } from './lib/operation';
 import { getHealthCheckLabel, normalizeHealthCheckType, toExamType } from './lib/healthCheck';
-import { getSupabaseConfigStatus } from './lib/supabase/client';
 import {
   createHealthCheckSession,
   createSessionFromDefaults,
@@ -886,7 +886,6 @@ function SettingsPanel({
   const isCustomGradeTime = settings.gradeTimeMode === 'CUSTOM_BY_GRADE';
   const effectiveGradeTimeMode: GradeTimeMode = settings.useGradeTimeBlocks ? settings.gradeTimeMode : 'ALL_GRADES_FULL_RANGE';
   const displayedGradeTimeBlocks = settings.useGradeTimeBlocks ? calculateGradeTimeBlocks(settings, effectiveGradeTimeMode) : [];
-  const supabaseStatus = getSupabaseConfigStatus();
   const updateGradeTimeMode = (mode: GradeTimeMode) => {
     setData((prev) => {
       const nextSettings = { ...prev.settings, gradeTimeMode: mode, useGradeTimeBlocks: true };
@@ -933,16 +932,7 @@ function SettingsPanel({
   return (
     <section className="card stack">
       <h2>검사 조건 설정</h2>
-      <div className="storage-status-panel">
-        <div>
-          <p className="eyebrow">저장소 상태</p>
-          <h3>현재 저장 방식: {supabaseStatus.storageMode}</h3>
-          <p>{supabaseStatus.message}</p>
-        </div>
-        <span className={supabaseStatus.enabled ? 'status-pill ready' : 'status-pill muted'}>
-          {supabaseStatus.enabled ? 'Supabase 환경변수 설정됨' : 'Supabase 환경변수 미설정'}
-        </span>
-      </div>
+      <StorageSettingsPanel />
       <div className="form-grid">
         <Field label="검사 유형">
           <input value={getHealthCheckLabel(settings.healthCheckType)} readOnly />

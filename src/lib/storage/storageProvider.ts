@@ -5,6 +5,7 @@ import type { StorageAdapter, StorageMode } from './storageAdapter';
 import { STORAGE_MODE_KEY } from './storageKeys';
 
 const DEFAULT_STORAGE_MODE: StorageMode = 'local';
+const ENABLE_SUPABASE_STORAGE_ADAPTER = false;
 
 export function getStorageMode(): StorageMode {
   const stored = localStorageAdapter.getItem<StorageMode>(STORAGE_MODE_KEY);
@@ -21,7 +22,7 @@ export function isRemoteStorageAvailable() {
 
 export function getStorageAdapter(): StorageAdapter {
   const mode = getStorageMode();
-  if (mode === 'supabase' && isRemoteStorageAvailable()) return supabaseStorageAdapter;
+  if (mode === 'supabase' && isRemoteStorageAvailable() && ENABLE_SUPABASE_STORAGE_ADAPTER) return supabaseStorageAdapter;
   return localStorageAdapter;
 }
 

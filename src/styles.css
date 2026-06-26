@@ -1568,6 +1568,105 @@ td select {
   color: #587084;
 }
 
+.storage-settings-panel {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  padding: 14px;
+}
+
+.storage-settings-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.storage-settings-header h3,
+.storage-settings-header p,
+.storage-warning p,
+.storage-mode-notice {
+  margin: 0;
+}
+
+.storage-settings-header h3 {
+  color: #0d2a3f;
+  font-size: 18px;
+}
+
+.storage-settings-header p,
+.storage-warning p,
+.storage-mode-notice {
+  color: #29465a;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.storage-option-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.storage-option-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  padding: 12px;
+}
+
+.storage-option-card.selected {
+  border-color: #59b8ad;
+  background: #ecfdf5;
+}
+
+.storage-option-card.disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.storage-option-card input {
+  margin-top: 4px;
+}
+
+.storage-option-card strong,
+.storage-option-card small {
+  display: block;
+}
+
+.storage-option-card strong {
+  color: #0d2a3f;
+  font-size: 15px;
+}
+
+.storage-option-card small {
+  color: #587084;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+  margin-top: 4px;
+}
+
+.storage-warning {
+  display: grid;
+  gap: 4px;
+}
+
+.storage-mode-notice {
+  border: 1px solid #9bd7ba;
+  border-radius: 8px;
+  background: #ecfdf5;
+  padding: 10px;
+}
+
 .roster-upload-card,
 .student-status-summary,
 .student-checklist-card,
@@ -1788,6 +1887,14 @@ td select {
   .storage-status-panel {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .storage-settings-header {
+    flex-direction: column;
+  }
+
+  .storage-option-grid {
+    grid-template-columns: 1fr;
   }
 }
 
