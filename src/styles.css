@@ -962,6 +962,74 @@ td select {
   background: #ecfdf5;
 }
 
+.share-link-panel,
+.share-message-box {
+  display: grid;
+  gap: 14px;
+}
+
+.share-role-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.share-link-card {
+  display: grid;
+  align-content: space-between;
+  gap: 12px;
+  min-height: 172px;
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  padding: 14px;
+}
+
+.share-link-card strong {
+  color: #0d2a3f;
+  font-size: 16px;
+}
+
+.share-link-card p {
+  margin: 7px 0;
+  color: #29465a;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.share-link-card small {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #587084;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.share-message-box pre,
+.share-security-notice {
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  color: #29465a;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.7;
+  margin: 0;
+  padding: 14px;
+  white-space: pre-wrap;
+}
+
+.share-security-notice {
+  display: grid;
+  gap: 4px;
+}
+
+.share-security-notice p {
+  margin: 0;
+}
+
 .teacher-dashboard-page {
   display: grid;
   gap: 18px;
@@ -1646,6 +1714,10 @@ td select {
   }
 
   .manual-log-input {
+    grid-template-columns: 1fr;
+  }
+
+  .share-role-grid {
     grid-template-columns: 1fr;
   }
 

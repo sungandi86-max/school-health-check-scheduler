@@ -8,6 +8,7 @@ import { TeacherCurrentStatusCard } from './TeacherCurrentStatusCard';
 import { TeacherMissingClassAlert } from './TeacherMissingClassAlert';
 import { TeacherNoticeMessage } from './TeacherNoticeMessage';
 import { TeacherSessionInfo } from './TeacherSessionInfo';
+import { ShareSecurityNotice } from '../share/ShareLinkPanel';
 
 export function TeacherDashboard() {
   const [snapshot, setSnapshot] = useState(() => loadTeacherSnapshot());
@@ -67,6 +68,7 @@ export function TeacherDashboard() {
       <footer className="teacher-dashboard-footer">
         <p>이 화면은 보건실에서 입력한 현황을 기준으로 표시됩니다.</p>
         <p>방송 안내를 최소화하기 위한 교사용 확인 화면입니다.</p>
+        <ShareSecurityNotice />
       </footer>
     </section>
   );

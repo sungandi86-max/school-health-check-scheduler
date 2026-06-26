@@ -17,6 +17,7 @@ import { ReportImprovementNotes } from './ReportImprovementNotes';
 import { ReportLogSummary } from './ReportLogSummary';
 import { ReportSessionInfo } from './ReportSessionInfo';
 import { ReportStudentSummary } from './ReportStudentSummary';
+import { ShareSecurityNotice } from '../share/ShareLinkPanel';
 
 export function OperationReport() {
   const [snapshot, setSnapshot] = useState(() => loadReportSnapshot());
@@ -74,6 +75,9 @@ export function OperationReport() {
       <ReportLogSummary logs={summary.logs} />
       <ReportImprovementNotes value={snapshot.notes} onSave={saveNotes} />
       <ReportCopyBox text={reportText} onCopy={copyReport} />
+      <section className="report-card">
+        <ShareSecurityNotice />
+      </section>
     </section>
   );
 }

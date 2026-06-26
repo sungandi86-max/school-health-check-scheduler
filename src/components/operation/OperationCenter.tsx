@@ -26,6 +26,8 @@ import { OperationSummary } from './OperationSummary';
 import { NoticeMessageBox } from './NoticeMessageBox';
 import { OperationMemo } from './OperationMemo';
 import { OperationLogPanel } from './OperationLogPanel';
+import { ShareLinkPanel } from '../share/ShareLinkPanel';
+import { ShareMessageBox } from '../share/ShareMessageBox';
 
 export function OperationCenter({
   checkType,
@@ -195,6 +197,9 @@ export function OperationCenter({
           </div>
         )}
       </section>
+
+      <ShareLinkPanel session={session} />
+      <ShareMessageBox session={session} />
 
       <OperationStatusCard state={operationState} />
 

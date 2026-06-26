@@ -11,6 +11,7 @@ import { AdminProgressCards } from './AdminProgressCards';
 import { AdminRecentLogs } from './AdminRecentLogs';
 import { AdminSessionInfo } from './AdminSessionInfo';
 import { AdminStudentStatusSummary } from './AdminStudentStatusSummary';
+import { ShareSecurityNotice } from '../share/ShareLinkPanel';
 
 export function AdminDashboard() {
   const [snapshot, setSnapshot] = useState(() => loadAdminSnapshot());
@@ -84,6 +85,7 @@ export function AdminDashboard() {
       <footer className="admin-dashboard-footer">
         <p>최근 업데이트: {formatDateTime(snapshot.state.updatedAt)}</p>
         <p>이 화면은 보건실 운영센터 입력 내용을 기준으로 표시됩니다.</p>
+        <ShareSecurityNotice />
       </footer>
     </section>
   );

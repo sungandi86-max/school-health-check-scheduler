@@ -92,7 +92,7 @@ const RESET_STORAGE_WARNING = '브라우저에 저장된 검사 조건, 시간�
 
 export function App() {
   const [data, setData] = useState<AppData>(() => loadAppData({ startAtTypeSelect: true }));
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => getInitialActiveTab());
   const [showTypeConfirm, setShowTypeConfirm] = useState(false);
   const [storedInfo, setStoredInfo] = useState(() => getStoredAppDataInfo());
   const [entryNotice, setEntryNotice] = useState('');
@@ -238,7 +238,7 @@ export function App() {
   const continueStoredWork = () => {
     const restored = loadAppData({ startAtTypeSelect: false });
     setData(restored);
-    setActiveTab(restored.currentView ?? 'dashboard');
+    setActiveTab(getRouteTab() ?? restored.currentView ?? 'dashboard');
     setEntryNotice('');
     setStoredInfo(getStoredAppDataInfo());
   };
@@ -386,6 +386,16 @@ export function App() {
     alert(message);
   };
 
+  const selectAppTab = (tabId: string) => {
+    setActiveTab(tabId);
+    const path = getTabPath(tabId);
+    if (path && window.location.pathname !== path) {
+      window.history.pushState({}, '', path);
+    } else if (!path && window.location.pathname !== '/') {
+      window.history.pushState({}, '', '/');
+    }
+  };
+
   const tables = {
     full: createFullTable(data.assignments, data.settings),
     lab: createLabTable(data.assignments),
@@ -441,7 +451,7 @@ export function App() {
             ['results', data.settings.examType === 'tb' ? '학급별 검진 이동표' : '결과/출력'],
             ['operation', '실시간 검진 운영'],
           ].map(([id, label]) => (
-            <button key={id} className={activeTab === id ? 'active' : ''} onClick={() => setActiveTab(id)}>
+            <button key={id} className={activeTab === id ? 'active' : ''} onClick={() => selectAppTab(id)}>
               {label}
             </button>
           ))}
@@ -2780,6 +2790,29 @@ function snapshotTemplateData(data: AppData) {
     roomMappingSettings: structuredClone(data.roomMappingSettings),
     uploadedMappingFileNames: structuredClone(data.uploadedMappingFileNames),
   };
+}
+
+function getInitialActiveTab() {
+  return getRouteTab() ?? 'dashboard';
+}
+
+function getRouteTab() {
+  if (typeof window === 'undefined') return undefined;
+  const routes: Record<string, string> = {
+    '/teacher-dashboard': 'teacher-dashboard',
+    '/admin-dashboard': 'admin-dashboard',
+    '/report': 'report',
+  };
+  return routes[window.location.pathname];
+}
+
+function getTabPath(tabId: string) {
+  const paths: Record<string, string> = {
+    'teacher-dashboard': '/teacher-dashboard',
+    'admin-dashboard': '/admin-dashboard',
+    report: '/report',
+  };
+  return paths[tabId];
 }
 
 function getModeCopy(examType: ExamType) {
