@@ -1,7 +1,10 @@
 import type { AppData, ExamType } from '../types';
 import { createDefaultData } from './defaultData';
+import { normalizeHealthCheckType, toExamType, toHealthCheckType } from './healthCheck';
+import type { HealthCheckType } from '../types/healthCheck';
 
 const STORAGE_KEY = 'urine-exam-room-scheduler:v1';
+const ACTIVE_HEALTH_CHECK_TYPE_KEY = 'health-check-scheduler:active-type';
 export const APP_DATA_VERSION = '2026-06-health-check-scheduler-v3';
 const REQUIRED_BLOCKED_KEYWORDS = ['스생'];
 const MIXED_GRADE_NOTE = '혼합학년 수업 / 명렬표 확인 필요';
@@ -10,19 +13,23 @@ export function loadAppData(options: { startAtTypeSelect?: boolean } = {}): AppD
   if (typeof localStorage === 'undefined') return createDefaultData();
 
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const activeType = normalizeHealthCheckType(localStorage.getItem(ACTIVE_HEALTH_CHECK_TYPE_KEY));
+    const raw = localStorage.getItem(getHealthCheckStorageKey(activeType)) ?? localStorage.getItem(STORAGE_KEY);
     if (!raw) return createDefaultData();
     const parsed = JSON.parse(raw) as Partial<AppData> & { appDataVersion?: string };
     const fallback = createDefaultData();
 
     const settings = { ...fallback.settings, ...parsed.settings };
     settings.examType = normalizeExamType(settings.examType);
+    settings.healthCheckType = normalizeHealthCheckType(settings.healthCheckType ?? parsed.healthCheckType ?? toHealthCheckType(settings.examType));
+    settings.examType = toExamType(settings.healthCheckType);
     normalizeSettings(settings, fallback.settings);
     ensureRequiredBlockedKeywords(settings);
     const templates = Array.isArray(parsed.templates)
-      ? parsed.templates.map((template) => ({
+        ? parsed.templates.map((template) => ({
           ...template,
           examType: normalizeExamType(template.examType),
+          healthCheckType: normalizeHealthCheckType(template.healthCheckType ?? template.data?.settings?.healthCheckType ?? toHealthCheckType(normalizeExamType(template.examType))),
           data: {
             ...template.data,
             restrictedVenues: normalizeRestrictedVenues(Array.isArray(template.data?.restrictedVenues) ? template.data.restrictedVenues : []),
@@ -34,14 +41,15 @@ export function loadAppData(options: { startAtTypeSelect?: boolean } = {}): AppD
             settings: {
               ...fallback.settings,
               ...template.data?.settings,
-              examType: normalizeExamType(template.data?.settings?.examType ?? template.examType),
+              healthCheckType: normalizeHealthCheckType(template.data?.settings?.healthCheckType ?? template.healthCheckType ?? toHealthCheckType(normalizeExamType(template.data?.settings?.examType ?? template.examType))),
+              examType: toExamType(normalizeHealthCheckType(template.data?.settings?.healthCheckType ?? template.healthCheckType ?? toHealthCheckType(normalizeExamType(template.data?.settings?.examType ?? template.examType)))),
             },
           },
         }))
       : fallback.templates;
-    const templateTypes = new Set(templates.map((template) => template.examType));
+    const templateTypes = new Set(templates.map((template) => normalizeHealthCheckType(template.healthCheckType ?? template.examType)));
     for (const fallbackTemplate of fallback.templates) {
-      if (!templateTypes.has(fallbackTemplate.examType)) templates.push(fallbackTemplate);
+      if (!templateTypes.has(normalizeHealthCheckType(fallbackTemplate.healthCheckType ?? fallbackTemplate.examType))) templates.push(fallbackTemplate);
     }
     const urineDate = templates.find((template) => template.id === 'tpl-2026-urine')?.data.settings.examDate;
     const tbTemplate = templates.find((template) => template.id === 'tpl-2026-tb');
@@ -69,6 +77,9 @@ export function loadAppData(options: { startAtTypeSelect?: boolean } = {}): AppD
       uploadedMappingFileNames: Array.isArray(parsed.uploadedMappingFileNames) ? parsed.uploadedMappingFileNames : [],
       templates,
       activeTemplateId: typeof parsed.activeTemplateId === 'string' ? parsed.activeTemplateId : fallback.activeTemplateId,
+      healthCheckType: settings.healthCheckType,
+      healthCheckSessions: Array.isArray(parsed.healthCheckSessions) ? parsed.healthCheckSessions : [],
+      operationStatus: parsed.operationStatus,
       schoolDefaults: parsed.schoolDefaults?.daySchedule ? parsed.schoolDefaults : fallback.schoolDefaults,
       keywordSets: normalizeKeywordSets(parsed.keywordSets, fallback.keywordSets),
       appDataVersion: APP_DATA_VERSION,
@@ -87,6 +98,10 @@ function normalizeRestrictedVenueWeekday(value: unknown): AppData['restrictedVen
 
 function normalizeExamType(value: unknown): ExamType {
   return value === 'tb' || value === '결핵검진' ? 'tb' : 'urine';
+}
+
+function getHealthCheckStorageKey(checkType: HealthCheckType) {
+  return `health-check-scheduler:${checkType}:v1`;
 }
 
 function normalizeRoomMappings(mappings: AppData['roomMappings']): AppData['roomMappings'] {
@@ -244,7 +259,8 @@ function mergeRequiredKeywords(keywords: string[]) {
 
 export function getStoredAppDataInfo() {
   if (typeof localStorage === 'undefined') return { exists: false, versionMismatch: false };
-  const raw = localStorage.getItem(STORAGE_KEY);
+  const activeType = normalizeHealthCheckType(localStorage.getItem(ACTIVE_HEALTH_CHECK_TYPE_KEY));
+  const raw = localStorage.getItem(getHealthCheckStorageKey(activeType)) ?? localStorage.getItem(STORAGE_KEY);
   if (!raw) return { exists: false, versionMismatch: false };
   try {
     const parsed = JSON.parse(raw) as { appDataVersion?: string };
@@ -258,7 +274,9 @@ export function getStoredAppDataInfo() {
 }
 
 export function saveAppData(data: AppData) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...data, appDataVersion: APP_DATA_VERSION }));
+  const healthCheckType = normalizeHealthCheckType(data.settings.healthCheckType ?? data.healthCheckType);
+  localStorage.setItem(ACTIVE_HEALTH_CHECK_TYPE_KEY, healthCheckType);
+  localStorage.setItem(getHealthCheckStorageKey(healthCheckType), JSON.stringify({ ...data, healthCheckType, appDataVersion: APP_DATA_VERSION }));
 }
 
 export function clearAppData() {

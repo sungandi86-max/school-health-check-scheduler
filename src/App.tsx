@@ -61,6 +61,12 @@ import { CommonHelp } from './components/help/CommonHelp';
 import { UrineHelp } from './components/help/UrineHelp';
 import { TbHelp } from './components/help/TbHelp';
 import { OperationPanel } from './components/operation/OperationPanel';
+import { OperationCenter } from './components/operation/OperationCenter';
+import { HealthCheckTypeSelector } from './components/health-check/HealthCheckTypeSelector';
+import { HealthCheckSummary } from './components/health-check/HealthCheckSummary';
+import { createOperationStatus } from './lib/operation';
+import { getHealthCheckLabel, normalizeHealthCheckType, toExamType } from './lib/healthCheck';
+import type { HealthCheckType } from './types/healthCheck';
 
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 const CATEGORIES: LocationCategory[] = ['일반교실', '특별실', '선택과목 장소', '체육시설', '수동확인'];
@@ -133,13 +139,20 @@ export function App() {
       ? `${getGuideText(data.settings.examType)}\n${tbGradeTimeGuideSentence(data.settings)}`
       : getGuideText(data.settings.examType);
   const mode = getModeCopy(data.settings.examType);
-  const startFreshExamType = (examType: ExamType) => {
+  const checkLabel = getHealthCheckLabel(data.settings.healthCheckType);
+  const startFreshExamType = (checkType: HealthCheckType) => {
     const fresh = createDefaultData();
+    const healthCheckType = normalizeHealthCheckType(checkType);
+    const examType = toExamType(healthCheckType);
     const keywordSet = examType === 'tb' ? fresh.keywordSets.tb : fresh.keywordSets.urine;
     setData({
       ...fresh,
+      healthCheckType,
+      healthCheckSessions: [],
+      operationStatus: createOperationStatus(healthCheckType, []),
       settings: {
         ...fresh.settings,
+        healthCheckType,
         examType,
         operationMode: examType === 'tb' ? 'move' : 'visit',
         blockedKeywords: keywordSet.blockedKeywords,
@@ -151,9 +164,9 @@ export function App() {
     setActiveTab('settings');
     setEntryNotice('');
   };
-  const selectExamType = (examType: ExamType) => {
+  const selectExamType = (checkType: HealthCheckType) => {
     if (storedInfo.exists && !window.confirm(NEW_SCHEDULE_WARNING)) return;
-    startFreshExamType(examType);
+    startFreshExamType(checkType);
   };
   const continueStoredWork = () => {
     const restored = loadAppData({ startAtTypeSelect: false });
@@ -181,7 +194,7 @@ export function App() {
   };
   const startNewSchedule = () => {
     if (window.confirm(NEW_SCHEDULE_WARNING)) {
-      startFreshExamType(data.settings.examType);
+      startFreshExamType(data.settings.healthCheckType);
     }
   };
   const saveCurrentTemplate = () => {
@@ -194,6 +207,7 @@ export function App() {
       name,
       year: name.match(/\d{4}/)?.[0] ?? data.settings.examDate.slice(0, 4),
       examType: data.settings.examType,
+      healthCheckType: data.settings.healthCheckType,
       createdAt: data.templates.find((item) => item.id === data.activeTemplateId)?.createdAt ?? now,
       updatedAt: now,
       data: snapshotTemplateData(data),
@@ -244,7 +258,7 @@ export function App() {
       return;
     }
     const result = makeSchedule(data);
-    setData((prev) => ({ ...prev, ...result, needsReschedule: false }));
+    setData((prev) => ({ ...prev, ...result, operationStatus: createOperationStatus(prev.settings.healthCheckType, result.assignments), needsReschedule: false }));
     setActiveTab('results');
   };
 
@@ -307,7 +321,7 @@ export function App() {
           <OtterMascot variant="sm" decorative />
           <div>
             <strong>검진·검사 자동배정</strong>
-            <span>{mode.shortLabel}</span>
+            <span>{checkLabel}</span>
             <span>{mode.sidebarDetail}</span>
           </div>
         </div>
@@ -315,6 +329,7 @@ export function App() {
           {[
             [data.settings.examType === 'urine' ? 'urine-help' : 'tb-help', data.settings.examType === 'urine' ? '소변검사 사용 안내' : '결핵검진 사용 안내'],
             ['dashboard', '대시보드'],
+            ['operation-center', '검진 운영'],
             ['settings', '검사 조건'],
             ['locations', mode.unitMenu],
             ['timetable', data.settings.examType === 'tb' ? '학급별 검진 순서 입력' : '시간표 입력'],
@@ -343,7 +358,7 @@ export function App() {
         <header className="topbar">
           <div>
             <p className="eyebrow">내부 업무용 도구</p>
-            <h1>{mode.title}</h1>
+            <h1>{data.settings.healthCheckType === 'general' ? '일반 건강검진 시간표 자동배정' : mode.title}</h1>
             {data.settings.examType === 'tb' && (
               <p className="topbar-subtitle">선택수업·분반수업은 참고자료로 활용하고, 검진은 학급별 명렬표 기준으로 진행됩니다.</p>
             )}
@@ -372,6 +387,7 @@ export function App() {
 
         {activeTab === 'urine-help' && <UrineHelp />}
         {activeTab === 'tb-help' && <TbHelp />}
+        {activeTab === 'operation-center' && <OperationCenter checkType={data.settings.healthCheckType} status={data.operationStatus ?? createOperationStatus(data.settings.healthCheckType, data.assignments)} />}
         {activeTab === 'dashboard' && (
           <Dashboard
             data={data}
@@ -487,7 +503,7 @@ function Dashboard({
   mode: ReturnType<typeof getModeCopy>;
   validationMessages: string[];
 }) {
-  const visibleTemplates = data.templates.filter((template) => template.examType === data.settings.examType);
+  const visibleTemplates = data.templates.filter((template) => normalizeHealthCheckType(template.healthCheckType ?? template.examType) === data.settings.healthCheckType);
   const selectedTemplateId = visibleTemplates.some((template) => template.id === data.activeTemplateId) ? data.activeTemplateId : visibleTemplates[0]?.id ?? '';
   return (
     <section className="stack">
@@ -495,6 +511,7 @@ function Dashboard({
         <OtterMascot variant="sm" decorative />
         <span>{guideText}</span>
       </div>
+      <HealthCheckSummary checkType={data.settings.healthCheckType} examDate={data.settings.examDate} />
       <div className="card template-bar">
         <Field label="연도별 검사 템플릿">
           <select value={selectedTemplateId} onChange={(event) => loadTemplate(event.target.value)}>
@@ -635,7 +652,7 @@ function ExamTypeSelect({
   versionMismatch,
   notice,
 }: {
-  onSelect: (examType: ExamType) => void;
+  onSelect: (checkType: HealthCheckType) => void;
   onOpenHelp: () => void;
   onContinue: () => void;
   onReset: () => void;
@@ -664,20 +681,7 @@ function ExamTypeSelect({
           <button onClick={onOpenHelp}>사용 설명 보기</button>
         </section>
 
-        <section className="type-card-grid">
-          <div className="type-card">
-            <span className="mode-pill">방문형 검사</span>
-            <h2>소변검사 시간표 만들기</h2>
-            <p>검사팀이 실제 방문 가능한 교실·장소를 기준으로 순서를 배정합니다.</p>
-            <button className="primary" onClick={() => onSelect('urine')}>소변검사 시작</button>
-          </div>
-          <div className="type-card">
-            <span className="mode-pill">이동형 검사</span>
-            <h2>결핵검진 시간표 만들기</h2>
-            <p>학생들이 검진 장소로 이동하므로 검진 대상 학급 기준으로 이동 시간표를 배정합니다. 분반자료는 참고자료로 활용합니다.</p>
-            <button className="primary" onClick={() => onSelect('tb')}>결핵검진 시작</button>
-          </div>
-        </section>
+        <HealthCheckTypeSelector onSelect={onSelect} />
 
         {notice && <div className="entry-reset-notice">{notice}</div>}
         {hasStoredData && (
@@ -799,7 +803,7 @@ function SettingsPanel({
       <h2>검사 조건 설정</h2>
       <div className="form-grid">
         <Field label="검사 유형">
-          <input value={getModeCopy(settings.examType).shortLabel} readOnly />
+          <input value={getHealthCheckLabel(settings.healthCheckType)} readOnly />
         </Field>
         <Field label="검사 운영 방식">
           <select value={settings.operationMode} onChange={(event) => update('operationMode', event.target.value as ExamSettings['operationMode'])}>

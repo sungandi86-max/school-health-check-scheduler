@@ -1,4 +1,5 @@
 import type { ScheduleAssignment } from '../types';
+import type { HealthCheckOperationStatus, HealthCheckType } from '../types/healthCheck';
 
 export type StudentExamStatus = 'pending' | 'completed' | 'absent' | 'earlyLeave' | 'late' | 'deferred';
 export type ScheduleRunStatus = 'waiting' | 'active' | 'completed' | 'missed';
@@ -152,4 +153,25 @@ export function formatDateTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+export function createOperationStatus(checkType: HealthCheckType, assignments: ScheduleAssignment[] = []): HealthCheckOperationStatus {
+  const ordered = assignments
+    .filter((item) => item.order)
+    .sort((a, b) => (a.examTime || a.scheduledTime || '').localeCompare(b.examTime || b.scheduledTime || '') || (a.order ?? 0) - (b.order ?? 0));
+  const current = ordered[0];
+  const next = ordered[1];
+  const last = ordered[ordered.length - 1];
+  const pendingClasses = ordered.slice(current ? 1 : 0).map((item) => item.unitName || item.locationName).filter(Boolean);
+
+  return {
+    checkType,
+    state: ordered.length ? 'in_progress' : 'ready',
+    currentClass: current?.unitName || current?.locationName,
+    nextClass: next?.unitName || next?.locationName,
+    expectedEndTime: last?.examTime || last?.scheduledTime,
+    completedClasses: [],
+    pendingClasses,
+    delayedClasses: assignments.filter((item) => item.failedReason).map((item) => item.unitName || item.locationName).filter(Boolean),
+  };
 }

@@ -315,6 +315,35 @@ h3 {
   color: #0d2a3f;
 }
 
+.health-check-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  border: 1px solid #d8e8e5;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(13, 42, 63, 0.06);
+  padding: 14px 18px;
+}
+
+.health-check-summary span {
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.health-check-summary strong {
+  color: #0d2a3f;
+  font-size: 18px;
+}
+
+.health-check-summary small {
+  color: #587084;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -537,6 +566,131 @@ td select {
   color: #587084;
   font-size: 11px;
   line-height: 1.25;
+}
+
+.operation-center {
+  max-width: 1280px;
+}
+
+.operation-header {
+  display: grid;
+  gap: 4px;
+}
+
+.operation-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.operation-status-card {
+  min-height: 118px;
+}
+
+.operation-status-card small {
+  display: block;
+  margin-top: 10px;
+  color: #587084;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.operation-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.section-title.compact {
+  margin-bottom: 14px;
+}
+
+.operation-class-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.operation-class-group {
+  min-height: 136px;
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  padding: 14px;
+}
+
+.operation-class-group h3 {
+  color: #17384f;
+}
+
+.operation-class-group ul {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.operation-class-group li {
+  border-radius: 8px;
+  background: #ffffff;
+  color: #29465a;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 9px 10px;
+}
+
+.operation-student-panel {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.operation-placeholder {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  border: 1px dashed #a7ccc7;
+  border-radius: 10px;
+  background: #f7fcfb;
+  color: #587084;
+  font-weight: 800;
+}
+
+.operation-placeholder svg {
+  color: #0f766e;
+}
+
+.operation-student-panel .primary {
+  justify-self: start;
+}
+
+.operation-memo-card textarea {
+  min-height: 128px;
+}
+
+.operation-memo-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  color: #587084;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 980px) {
+  .operation-status-grid,
+  .operation-layout,
+  .operation-class-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .operation-layout {
+    align-items: start;
+  }
 }
 
 .badge-stack {

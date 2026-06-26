@@ -30,6 +30,7 @@ export interface DayScheduleItem {
 }
 
 export interface ExamSettings {
+  healthCheckType: HealthCheckType;
   examType: ExamType;
   operationMode: ExamOperationMode;
   examDate: string;
@@ -255,6 +256,7 @@ export interface ExamTemplate {
   name: string;
   year: string;
   examType: ExamType;
+  healthCheckType?: HealthCheckType;
   createdAt: string;
   updatedAt: string;
   data: TemplateData;
@@ -278,8 +280,12 @@ export interface AppData {
   uploadedMappingFileNames: string[];
   templates: ExamTemplate[];
   activeTemplateId: string;
+  healthCheckType: HealthCheckType;
+  healthCheckSessions: HealthCheckSession[];
+  operationStatus?: HealthCheckOperationStatus;
   schoolDefaults: SchoolDefaults;
   keywordSets: KeywordSets;
   hasSelectedExamType: boolean;
   needsReschedule: boolean;
 }
+import type { HealthCheckOperationStatus, HealthCheckSession, HealthCheckType } from './types/healthCheck';

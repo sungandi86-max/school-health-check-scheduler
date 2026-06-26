@@ -103,6 +103,7 @@ export function getGuideText(examType: ExamSettings['examType']) {
 }
 
 const settings: ExamSettings = {
+  healthCheckType: 'urine',
   examType: 'urine',
   operationMode: 'visit',
   examDate: '2026-06-24',
@@ -268,6 +269,7 @@ export function createDefaultData(): AppData {
     ...structuredClone(base),
     settings: {
       ...structuredClone(settings),
+      healthCheckType: 'tuberculosis' as const,
       examType: 'tb' as const,
       operationMode: 'move' as const,
       examDate: '2026-06-25',
@@ -291,6 +293,16 @@ export function createDefaultData(): AppData {
       ],
     },
   };
+  const generalBase = {
+    ...structuredClone(base),
+    settings: {
+      ...structuredClone(settings),
+      healthCheckType: 'general' as const,
+      examType: 'urine' as const,
+      operationMode: 'visit' as const,
+      examDate: '2026-06-26',
+    },
+  };
 
   return {
     ...base,
@@ -300,6 +312,7 @@ export function createDefaultData(): AppData {
         name: '2026 소변검사',
         year: '2026',
         examType: 'urine',
+        healthCheckType: 'urine',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         data: structuredClone(base),
@@ -309,12 +322,26 @@ export function createDefaultData(): AppData {
         name: '2026 결핵검진',
         year: '2026',
         examType: 'tb',
+        healthCheckType: 'tuberculosis',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         data: structuredClone(tbBase),
       },
+      {
+        id: 'tpl-2026-general',
+        name: '2026 일반 건강검진',
+        year: '2026',
+        examType: 'urine',
+        healthCheckType: 'general',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        data: structuredClone(generalBase),
+      },
     ],
     activeTemplateId: 'tpl-2026-urine',
+    healthCheckType: 'urine',
+    healthCheckSessions: [],
+    operationStatus: undefined,
     schoolDefaults: {
       daySchedule: structuredClone(DEFAULT_DAY_SCHEDULE),
     },
