@@ -1,13 +1,29 @@
-import { Clock } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { ClassSelector } from '../health-check/ClassSelector';
 import { RosterUpload } from '../health-check/RosterUpload';
 import { StudentChecklist } from '../health-check/StudentChecklist';
 import { StudentStatusSummary } from '../health-check/StudentStatusSummary';
 import { getHealthCheckLabel } from '../../lib/healthCheck';
-import { getStudentsBySession, saveStudentsBySession, updateStudentMemo, updateStudentStatus } from '../../lib/roster';
-import type { HealthCheckOperationStatus, HealthCheckSession, HealthCheckStudent, HealthCheckStudentStatus, HealthCheckType } from '../../types/healthCheck';
+import { getClassesFromStudents, getStudentsBySession, saveStudentsBySession, updateStudentMemo, updateStudentStatus } from '../../lib/roster';
+import {
+  clearClassMissing,
+  generateNoticeMessage,
+  getOperationState,
+  normalizeOperationClassId,
+  saveOperationState,
+  setClassCompleted,
+  setClassMissing,
+  setCurrentClass,
+  updateDelayedMinutes,
+  updateOperationMemo,
+} from '../../lib/operation';
+import type { HealthCheckOperationStatus, HealthCheckOperationState, HealthCheckSession, HealthCheckStudent, HealthCheckStudentStatus, HealthCheckType } from '../../types/healthCheck';
 import { formatSessionTitle, HealthCheckSessionBadge } from '../health-check/HealthCheckSessionBadge';
+import { OperationStatusCard } from './OperationStatusCard';
+import { ClassProgressList } from './ClassProgressList';
+import { OperationSummary } from './OperationSummary';
+import { NoticeMessageBox } from './NoticeMessageBox';
+import { OperationMemo } from './OperationMemo';
 
 export function OperationCenter({
   checkType,
@@ -20,11 +36,13 @@ export function OperationCenter({
 }) {
   const sessionId = session?.id ?? `${checkType}-local-session`;
   const [students, setStudents] = useState<HealthCheckStudent[]>(() => getStudentsBySession(sessionId, checkType));
+  const [operationState, setOperationState] = useState<HealthCheckOperationState>(() => getOperationState(sessionId));
   const [selectedClass, setSelectedClass] = useState('');
 
   useEffect(() => {
     const loaded = getStudentsBySession(sessionId, checkType);
     setStudents(loaded);
+    setOperationState(getOperationState(sessionId));
     setSelectedClass(loaded[0]?.className ?? '');
   }, [checkType, sessionId]);
 
@@ -32,22 +50,28 @@ export function OperationCenter({
     saveStudentsBySession(sessionId, checkType, students);
   }, [checkType, sessionId, students]);
 
+  useEffect(() => {
+    saveOperationState(sessionId, operationState);
+  }, [operationState, sessionId]);
+
+  const classIds = useMemo(() => {
+    const fromStudents = getClassesFromStudents(students).map(normalizeOperationClassId);
+    const fromOperation = [
+      operationState.currentClassId,
+      operationState.nextClassId,
+      ...operationState.completedClassIds,
+      ...operationState.missingClassIds,
+      ...status.pendingClasses,
+      ...status.completedClasses,
+      ...status.delayedClasses,
+    ].map(normalizeOperationClassId);
+    return [...new Set([...fromStudents, ...fromOperation].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+  }, [operationState, status.completedClasses, status.delayedClasses, status.pendingClasses, students]);
+
   const selectedClassStudents = useMemo(
-    () => (selectedClass ? students.filter((student) => student.className === selectedClass) : []),
+    () => (selectedClass ? students.filter((student) => normalizeOperationClassId(student.className) === normalizeOperationClassId(selectedClass)) : []),
     [selectedClass, students],
   );
-
-  const statusCards = [
-    { label: '현재 검사반', value: status.currentClass || '-', note: getHealthCheckLabel(checkType) },
-    { label: '다음 검사반', value: status.nextClass || '-', note: status.state === 'ready' ? '운영 준비중' : '대기 확인 필요' },
-    { label: '예상 종료시간', value: status.expectedEndTime || '-', note: '자동 계산 예정' },
-  ];
-  const classGroups = [
-    { title: '진행중 학급', rows: [status.currentClass || '-'] },
-    { title: '완료 학급', rows: status.completedClasses.length ? status.completedClasses : ['-'] },
-    { title: '미도착 학급', rows: status.pendingClasses.length ? status.pendingClasses : ['-'] },
-    { title: '지연 현황', rows: status.delayedClasses.length ? status.delayedClasses : ['지연 없음'] },
-  ];
 
   const handleUpload = (nextStudents: HealthCheckStudent[]) => {
     setStudents(nextStudents);
@@ -62,6 +86,11 @@ export function OperationCenter({
     setStudents((prev) => updateStudentMemo(prev, studentId, memo));
   };
 
+  const noticeMessage = generateNoticeMessage(operationState, {
+    checkType,
+    location: session?.location,
+  });
+
   return (
     <section className="stack operation-center">
       <div className="operation-header">
@@ -69,37 +98,48 @@ export function OperationCenter({
         <h2>학교 건강검진 운영센터</h2>
       </div>
 
-      <HealthCheckSessionBadge session={session} />
+      <section className="card operation-session-card">
+        <HealthCheckSessionBadge session={session} />
+        {session && (
+          <div className="operation-session-details">
+            <span>검사 종류: {getHealthCheckLabel(session.checkType)}</span>
+            <span>날짜: {session.date || '-'}</span>
+            <span>장소: {session.location || '-'}</span>
+          </div>
+        )}
+      </section>
 
-      <div className="operation-status-grid">
-        {statusCards.map((card) => (
-          <article className="metric-card operation-status-card" key={card.label}>
-            <span>{card.label}</span>
-            <strong>{card.value}</strong>
-            <small>{card.note}</small>
-          </article>
-        ))}
+      <OperationStatusCard state={operationState} />
+
+      <div className="operation-control-grid">
+        <ClassProgressList
+          classIds={classIds}
+          state={operationState}
+          students={students}
+          onSetCurrent={(classId) => setOperationState((prev) => setCurrentClass(prev, classId, classIds))}
+          onComplete={(classId) => setOperationState((prev) => setClassCompleted(prev, classId, classIds))}
+          onMissing={(classId) => setOperationState((prev) => setClassMissing(prev, classId))}
+          onClearMissing={(classId) => setOperationState((prev) => clearClassMissing(prev, classId))}
+        />
+
+        <div className="stack">
+          <OperationSummary state={operationState} classIds={classIds} />
+          <section className="card operation-delay-card">
+            <label className="field">
+              <span>지연 시간(분)</span>
+              <input
+                type="number"
+                min={0}
+                value={operationState.delayedMinutes}
+                onChange={(event) => setOperationState((prev) => updateDelayedMinutes(prev, Number(event.target.value)))}
+              />
+            </label>
+          </section>
+          <NoticeMessageBox message={noticeMessage} />
+        </div>
       </div>
 
       <div className="operation-layout">
-        <section className="card operation-class-panel">
-          <div className="section-title compact">
-            <h2>학급 진행 현황</h2>
-          </div>
-          <div className="operation-class-grid">
-            {classGroups.map((group) => (
-              <article className="operation-class-group" key={group.title}>
-                <h3>{group.title}</h3>
-                <ul>
-                  {group.rows.map((row) => (
-                    <li key={`${group.title}-${row}`}>{row}</li>
-                  ))}
-                </ul>
-              </article>
-            ))}
-          </div>
-        </section>
-
         <section className="operation-student-panel">
           <RosterUpload checkType={checkType} sessionId={sessionId} sessionTitle={session ? formatSessionTitle(session) : undefined} students={students} onUpload={handleUpload} />
           <StudentStatusSummary students={students} />
@@ -109,18 +149,9 @@ export function OperationCenter({
           </div>
           <StudentChecklist students={students} selectedClass={selectedClass} onStatusChange={updateStatus} onMemoChange={updateMemo} />
         </section>
-      </div>
 
-      <section className="card operation-memo-card">
-        <label className="field">
-          <span>운영 메모</span>
-          <textarea placeholder="검진 운영 중 공유할 메모를 입력하세요." />
-        </label>
-        <div className="operation-memo-hint">
-          <Clock size={16} aria-hidden="true" />
-          <span>학생 상태와 명렬표는 검사 종류별 localStorage에 저장됩니다.</span>
-        </div>
-      </section>
+        <OperationMemo value={operationState.operationMemo} onSave={(memo) => setOperationState((prev) => updateOperationMemo(prev, memo))} />
+      </div>
     </section>
   );
 }

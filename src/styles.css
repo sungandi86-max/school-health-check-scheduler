@@ -809,6 +809,118 @@ td select {
   font-weight: 700;
 }
 
+.operation-session-card {
+  display: grid;
+  gap: 10px;
+}
+
+.operation-session-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.operation-session-details span {
+  border: 1px solid #d8e8e5;
+  border-radius: 999px;
+  background: #f7fcfb;
+  color: #29465a;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 10px;
+}
+
+.operation-control-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.class-progress-card,
+.operation-summary-card,
+.notice-message-card,
+.operation-delay-card {
+  display: grid;
+  gap: 14px;
+}
+
+.class-progress-list {
+  display: grid;
+  gap: 10px;
+  max-height: 520px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.class-progress-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  padding: 12px;
+}
+
+.class-progress-row > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.class-progress-row strong {
+  color: #0d2a3f;
+  font-size: 18px;
+}
+
+.class-progress-row span,
+.class-progress-row small {
+  color: #587084;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.class-progress-row.status-active {
+  border-color: #59b8ad;
+  background: #eefbf9;
+}
+
+.class-progress-row.status-completed {
+  border-color: #99d8c9;
+  background: #ecfdf5;
+}
+
+.class-progress-row.status-missing {
+  border-color: #f6d58f;
+  background: #fffbeb;
+}
+
+.class-progress-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.class-progress-actions button {
+  min-height: 34px;
+  padding: 6px 10px;
+}
+
+.notice-message-box {
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  color: #29465a;
+  min-height: 130px;
+  padding: 14px;
+  white-space: pre-line;
+  line-height: 1.6;
+  font-weight: 700;
+}
+
 .roster-upload-card,
 .student-status-summary,
 .student-checklist-card,
@@ -945,12 +1057,21 @@ td select {
 @media (max-width: 980px) {
   .operation-status-grid,
   .operation-layout,
-  .operation-class-grid {
+  .operation-class-grid,
+  .operation-control-grid {
     grid-template-columns: 1fr;
   }
 
   .operation-layout {
     align-items: start;
+  }
+
+  .class-progress-row {
+    grid-template-columns: 1fr;
+  }
+
+  .class-progress-actions {
+    justify-content: flex-start;
   }
 }
 

@@ -8,6 +8,8 @@ export type HealthCheckStudentStatus = 'pending' | 'completed' | 'absent' | 'ear
 
 export type HealthCheckSessionStatus = 'draft' | 'scheduled' | 'inProgress' | 'completed' | 'archived';
 
+export type HealthCheckClassOperationStatus = 'waiting' | 'active' | 'completed' | 'missing';
+
 export interface HealthCheckTypeDefinition {
   id: HealthCheckType;
   engineType: HealthCheckEngineType;
@@ -64,4 +66,16 @@ export interface HealthCheckOperationStatus {
   pendingClasses: string[];
   delayedClasses: string[];
   memo?: string;
+}
+
+export interface HealthCheckOperationState {
+  sessionId: string;
+  currentClassId: string;
+  nextClassId: string;
+  completedClassIds: string[];
+  missingClassIds: string[];
+  delayedMinutes: number;
+  noticeMessage: string;
+  operationMemo: string;
+  updatedAt: string;
 }

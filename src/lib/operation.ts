@@ -1,5 +1,6 @@
 import type { ScheduleAssignment } from '../types';
-import type { HealthCheckOperationStatus, HealthCheckType } from '../types/healthCheck';
+import type { HealthCheckOperationState, HealthCheckOperationStatus, HealthCheckStudent, HealthCheckType } from '../types/healthCheck';
+import { getHealthCheckLabel } from './healthCheck';
 
 export type StudentExamStatus = 'pending' | 'completed' | 'absent' | 'earlyLeave' | 'late' | 'deferred';
 export type ScheduleRunStatus = 'waiting' | 'active' | 'completed' | 'missed';
@@ -87,8 +88,14 @@ export function loadOperationState(): OperationState {
   }
 }
 
-export function saveOperationState(state: OperationState) {
-  localStorage.setItem(OPERATION_STORAGE_KEY, JSON.stringify({ ...state, lastUpdatedAt: new Date().toISOString() }));
+export function saveOperationState(state: OperationState): void;
+export function saveOperationState(sessionId: string, state: HealthCheckOperationState): void;
+export function saveOperationState(arg1: OperationState | string, arg2?: HealthCheckOperationState) {
+  if (typeof arg1 === 'string') {
+    localStorage.setItem(getOperationStorageKey(arg1), JSON.stringify(normalizeHealthCheckOperationState(arg1, arg2)));
+    return;
+  }
+  localStorage.setItem(OPERATION_STORAGE_KEY, JSON.stringify({ ...arg1, lastUpdatedAt: new Date().toISOString() }));
 }
 
 export function normalizeOperationState(state: Partial<OperationState>): OperationState {
@@ -174,4 +181,161 @@ export function createOperationStatus(checkType: HealthCheckType, assignments: S
     pendingClasses,
     delayedClasses: assignments.filter((item) => item.failedReason).map((item) => item.unitName || item.locationName).filter(Boolean),
   };
+}
+
+export function getOperationState(sessionId: string): HealthCheckOperationState {
+  if (typeof localStorage === 'undefined') return normalizeHealthCheckOperationState(sessionId);
+  try {
+    const parsed = JSON.parse(localStorage.getItem(getOperationStorageKey(sessionId)) || '{}') as Partial<HealthCheckOperationState>;
+    return normalizeHealthCheckOperationState(sessionId, parsed);
+  } catch {
+    return normalizeHealthCheckOperationState(sessionId);
+  }
+}
+
+export function setCurrentClass(state: HealthCheckOperationState, classId: string, classIds: string[] = []) {
+  const normalizedClassId = normalizeOperationClassId(classId);
+  const nextClassId = findNextClassId(normalizedClassId, classIds);
+  return withNotice({
+    ...state,
+    currentClassId: normalizedClassId,
+    nextClassId,
+    missingClassIds: state.missingClassIds.filter((id) => id !== normalizedClassId),
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export function setClassCompleted(state: HealthCheckOperationState, classId: string, classIds: string[] = []) {
+  const normalizedClassId = normalizeOperationClassId(classId);
+  const completedClassIds = uniqueIds([...state.completedClassIds, normalizedClassId]);
+  const nextClassId = findNextClassId(normalizedClassId, classIds);
+  const currentClassId = state.currentClassId === normalizedClassId ? nextClassId : state.currentClassId;
+  return withNotice({
+    ...state,
+    currentClassId,
+    nextClassId: currentClassId ? findNextClassId(currentClassId, classIds) : nextClassId,
+    completedClassIds,
+    missingClassIds: state.missingClassIds.filter((id) => id !== normalizedClassId),
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export function setClassMissing(state: HealthCheckOperationState, classId: string) {
+  const normalizedClassId = normalizeOperationClassId(classId);
+  return withNotice({
+    ...state,
+    missingClassIds: uniqueIds([...state.missingClassIds, normalizedClassId]),
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export function clearClassMissing(state: HealthCheckOperationState, classId: string) {
+  const normalizedClassId = normalizeOperationClassId(classId);
+  return withNotice({
+    ...state,
+    missingClassIds: state.missingClassIds.filter((id) => id !== normalizedClassId),
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export function updateDelayedMinutes(state: HealthCheckOperationState, delayedMinutes: number) {
+  return withNotice({
+    ...state,
+    delayedMinutes: Math.max(0, Number.isFinite(delayedMinutes) ? delayedMinutes : 0),
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export function updateOperationMemo(state: HealthCheckOperationState, operationMemo: string) {
+  return {
+    ...state,
+    operationMemo,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export function generateNoticeMessage(
+  state: HealthCheckOperationState,
+  options: { checkType?: HealthCheckType; location?: string } = {},
+) {
+  const checkLabel = options.checkType ? getHealthCheckLabel(options.checkType) : '검진';
+  const lines = [
+    state.currentClassId ? `현재 ${state.currentClassId} ${checkLabel}이 진행 중입니다.` : `현재 진행 중인 ${checkLabel} 학급이 지정되지 않았습니다.`,
+    state.nextClassId ? `다음 검사 학급은 ${state.nextClassId}입니다.` : '다음 검사 학급은 아직 지정되지 않았습니다.',
+    state.missingClassIds.length ? `${state.missingClassIds.join(', ')} 학생이 수업 중인 경우 검진 장소로 이동할 수 있도록 안내 부탁드립니다.` : '',
+    state.delayedMinutes > 0 ? `현재 약 ${state.delayedMinutes}분 지연 중입니다.` : '',
+    options.location ? `검진 장소: ${options.location}` : '',
+  ];
+  return lines.filter(Boolean).join('\n');
+}
+
+export function getOperationSummary(state: HealthCheckOperationState, classIds: string[]) {
+  const uniqueClassIds = uniqueIds(classIds.map(normalizeOperationClassId).filter(Boolean));
+  const completedClassIds = state.completedClassIds.filter((id) => uniqueClassIds.includes(id));
+  const missingClassIds = state.missingClassIds.filter((id) => uniqueClassIds.includes(id));
+  const totalClasses = uniqueClassIds.length;
+  const completedClasses = completedClassIds.length;
+
+  return {
+    totalClasses,
+    completedClasses,
+    missingClasses: missingClassIds.length,
+    progressPercent: totalClasses ? Math.round((completedClasses / totalClasses) * 100) : 0,
+  };
+}
+
+export function getClassStudentStats(students: HealthCheckStudent[], classId: string) {
+  const normalizedClassId = normalizeOperationClassId(classId);
+  const classStudents = students.filter((student) => normalizeOperationClassId(student.className) === normalizedClassId);
+  const completed = classStudents.filter((student) => student.status === 'completed').length;
+  return {
+    total: classStudents.length,
+    completed,
+    incomplete: classStudents.length - completed,
+    hasRoster: classStudents.length > 0,
+  };
+}
+
+export function normalizeOperationClassId(value: string) {
+  const compact = String(value || '').replace(/\s/g, '').replace(/학년/g, '-').replace(/반/g, '');
+  const dashed = compact.match(/([1-6])-(\d{1,2})/);
+  if (dashed) return `${Number(dashed[1])}-${Number(dashed[2])}`;
+  const mixed = compact.match(/([1-6])\D+(\d{1,2})/);
+  if (mixed) return `${Number(mixed[1])}-${Number(mixed[2])}`;
+  return compact;
+}
+
+export function getOperationStorageKey(sessionId: string) {
+  return `schoolHealthHub.operation.${sessionId}`;
+}
+
+function normalizeHealthCheckOperationState(sessionId: string, state: Partial<HealthCheckOperationState> = {}): HealthCheckOperationState {
+  return withNotice({
+    sessionId,
+    currentClassId: normalizeOperationClassId(state.currentClassId || ''),
+    nextClassId: normalizeOperationClassId(state.nextClassId || ''),
+    completedClassIds: uniqueIds(Array.isArray(state.completedClassIds) ? state.completedClassIds.map(normalizeOperationClassId) : []),
+    missingClassIds: uniqueIds(Array.isArray(state.missingClassIds) ? state.missingClassIds.map(normalizeOperationClassId) : []),
+    delayedMinutes: Math.max(0, Number(state.delayedMinutes) || 0),
+    noticeMessage: String(state.noticeMessage || ''),
+    operationMemo: String(state.operationMemo || ''),
+    updatedAt: String(state.updatedAt || new Date().toISOString()),
+  });
+}
+
+function withNotice(state: HealthCheckOperationState) {
+  return {
+    ...state,
+    noticeMessage: generateNoticeMessage(state),
+  };
+}
+
+function uniqueIds(ids: string[]) {
+  return [...new Set(ids.map(normalizeOperationClassId).filter(Boolean))];
+}
+
+function findNextClassId(currentClassId: string, classIds: string[]) {
+  const normalized = uniqueIds(classIds);
+  const index = normalized.indexOf(currentClassId);
+  return index >= 0 ? normalized[index + 1] ?? '' : normalized[0] ?? '';
 }
