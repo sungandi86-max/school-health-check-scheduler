@@ -1,8 +1,11 @@
 import { ClipboardCopy } from 'lucide-react';
 
-export function NoticeMessageBox({ message }: { message: string }) {
+export function NoticeMessageBox({ message, onCopy }: { message: string; onCopy?: () => void }) {
   const copy = () => {
-    navigator.clipboard.writeText(message).then(() => alert('안내 문구를 복사했습니다.'));
+    navigator.clipboard.writeText(message).then(() => {
+      onCopy?.();
+      alert('안내 문구를 복사했습니다.');
+    });
   };
 
   return (

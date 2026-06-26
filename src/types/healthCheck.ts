@@ -10,6 +10,18 @@ export type HealthCheckSessionStatus = 'draft' | 'scheduled' | 'inProgress' | 'c
 
 export type HealthCheckClassOperationStatus = 'waiting' | 'active' | 'completed' | 'missing';
 
+export type HealthCheckOperationLogType =
+  | 'sessionStarted'
+  | 'classStarted'
+  | 'classCompleted'
+  | 'classMissing'
+  | 'classMissingCleared'
+  | 'studentStatusChanged'
+  | 'delayUpdated'
+  | 'noticeGenerated'
+  | 'memoUpdated'
+  | 'manualNote';
+
 export interface HealthCheckTypeDefinition {
   id: HealthCheckType;
   engineType: HealthCheckEngineType;
@@ -78,4 +90,14 @@ export interface HealthCheckOperationState {
   noticeMessage: string;
   operationMemo: string;
   updatedAt: string;
+}
+
+export interface HealthCheckOperationLog {
+  id: string;
+  sessionId: string;
+  type: HealthCheckOperationLogType;
+  message: string;
+  relatedClassId?: string;
+  relatedStudentId?: string;
+  createdAt: string;
 }

@@ -4,7 +4,8 @@ import { RosterUpload } from '../health-check/RosterUpload';
 import { StudentChecklist } from '../health-check/StudentChecklist';
 import { StudentStatusSummary } from '../health-check/StudentStatusSummary';
 import { getHealthCheckLabel } from '../../lib/healthCheck';
-import { getClassesFromStudents, getStudentsBySession, saveStudentsBySession, updateStudentMemo, updateStudentStatus } from '../../lib/roster';
+import { getClassesFromStudents, getStudentsBySession, saveStudentsBySession, STUDENT_STATUS_LABELS, updateStudentMemo, updateStudentStatus } from '../../lib/roster';
+import { addOperationLog, getOperationLogs } from '../../lib/logs';
 import {
   clearClassMissing,
   generateNoticeMessage,
@@ -24,6 +25,7 @@ import { ClassProgressList } from './ClassProgressList';
 import { OperationSummary } from './OperationSummary';
 import { NoticeMessageBox } from './NoticeMessageBox';
 import { OperationMemo } from './OperationMemo';
+import { OperationLogPanel } from './OperationLogPanel';
 
 export function OperationCenter({
   checkType,
@@ -37,12 +39,14 @@ export function OperationCenter({
   const sessionId = session?.id ?? `${checkType}-local-session`;
   const [students, setStudents] = useState<HealthCheckStudent[]>(() => getStudentsBySession(sessionId, checkType));
   const [operationState, setOperationState] = useState<HealthCheckOperationState>(() => getOperationState(sessionId));
+  const [operationLogs, setOperationLogs] = useState(() => getOperationLogs(sessionId));
   const [selectedClass, setSelectedClass] = useState('');
 
   useEffect(() => {
     const loaded = getStudentsBySession(sessionId, checkType);
     setStudents(loaded);
     setOperationState(getOperationState(sessionId));
+    setOperationLogs(getOperationLogs(sessionId));
     setSelectedClass(loaded[0]?.className ?? '');
   }, [checkType, sessionId]);
 
@@ -79,6 +83,15 @@ export function OperationCenter({
   };
 
   const updateStatus = (studentId: string, statusValue: HealthCheckStudentStatus) => {
+    const student = students.find((item) => item.id === studentId);
+    if (student && student.status !== statusValue) {
+      recordLog({
+        type: 'studentStatusChanged',
+        message: `${student.name} ${STUDENT_STATUS_LABELS[statusValue]} 상태로 변경`,
+        relatedClassId: normalizeOperationClassId(student.className),
+        relatedStudentId: student.id,
+      });
+    }
     setStudents((prev) => updateStudentStatus(prev, studentId, statusValue));
   };
 
@@ -90,6 +103,80 @@ export function OperationCenter({
     checkType,
     location: session?.location,
   });
+
+  const recordLog = (input: Parameters<typeof addOperationLog>[1]) => {
+    addOperationLog(sessionId, input);
+    setOperationLogs(getOperationLogs(sessionId));
+  };
+
+  const handleSetCurrent = (classId: string) => {
+    setOperationState((prev) => setCurrentClass(prev, classId, classIds));
+    recordLog({
+      type: 'classStarted',
+      message: `${normalizeOperationClassId(classId)} 현재 검사 학급 지정`,
+      relatedClassId: normalizeOperationClassId(classId),
+    });
+  };
+
+  const handleComplete = (classId: string) => {
+    setOperationState((prev) => setClassCompleted(prev, classId, classIds));
+    recordLog({
+      type: 'classCompleted',
+      message: `${normalizeOperationClassId(classId)} 검사 완료`,
+      relatedClassId: normalizeOperationClassId(classId),
+    });
+  };
+
+  const handleMissing = (classId: string) => {
+    setOperationState((prev) => setClassMissing(prev, classId));
+    recordLog({
+      type: 'classMissing',
+      message: `${normalizeOperationClassId(classId)} 미도착 표시`,
+      relatedClassId: normalizeOperationClassId(classId),
+    });
+  };
+
+  const handleClearMissing = (classId: string) => {
+    setOperationState((prev) => clearClassMissing(prev, classId));
+    recordLog({
+      type: 'classMissingCleared',
+      message: `${normalizeOperationClassId(classId)} 미도착 해제`,
+      relatedClassId: normalizeOperationClassId(classId),
+    });
+  };
+
+  const handleDelayChange = (minutes: number) => {
+    const nextMinutes = Math.max(0, Number.isFinite(minutes) ? minutes : 0);
+    if (nextMinutes !== operationState.delayedMinutes) {
+      recordLog({
+        type: 'delayUpdated',
+        message: `지연 시간 ${nextMinutes}분으로 변경`,
+      });
+    }
+    setOperationState((prev) => updateDelayedMinutes(prev, nextMinutes));
+  };
+
+  const handleMemoSave = (memo: string) => {
+    setOperationState((prev) => updateOperationMemo(prev, memo));
+    recordLog({
+      type: 'memoUpdated',
+      message: '운영 메모 저장',
+    });
+  };
+
+  const handleNoticeCopy = () => {
+    recordLog({
+      type: 'noticeGenerated',
+      message: '교사용 안내 문구 복사',
+    });
+  };
+
+  const handleManualLog = (message: string) => {
+    recordLog({
+      type: 'manualNote',
+      message,
+    });
+  };
 
   return (
     <section className="stack operation-center">
@@ -116,10 +203,10 @@ export function OperationCenter({
           classIds={classIds}
           state={operationState}
           students={students}
-          onSetCurrent={(classId) => setOperationState((prev) => setCurrentClass(prev, classId, classIds))}
-          onComplete={(classId) => setOperationState((prev) => setClassCompleted(prev, classId, classIds))}
-          onMissing={(classId) => setOperationState((prev) => setClassMissing(prev, classId))}
-          onClearMissing={(classId) => setOperationState((prev) => clearClassMissing(prev, classId))}
+          onSetCurrent={handleSetCurrent}
+          onComplete={handleComplete}
+          onMissing={handleMissing}
+          onClearMissing={handleClearMissing}
         />
 
         <div className="stack">
@@ -131,11 +218,12 @@ export function OperationCenter({
                 type="number"
                 min={0}
                 value={operationState.delayedMinutes}
-                onChange={(event) => setOperationState((prev) => updateDelayedMinutes(prev, Number(event.target.value)))}
+                onChange={(event) => handleDelayChange(Number(event.target.value))}
               />
             </label>
           </section>
-          <NoticeMessageBox message={noticeMessage} />
+          <NoticeMessageBox message={noticeMessage} onCopy={handleNoticeCopy} />
+          <OperationLogPanel logs={operationLogs} onAddManualLog={handleManualLog} />
         </div>
       </div>
 
@@ -150,7 +238,7 @@ export function OperationCenter({
           <StudentChecklist students={students} selectedClass={selectedClass} onStatusChange={updateStatus} onMemoChange={updateMemo} />
         </section>
 
-        <OperationMemo value={operationState.operationMemo} onSave={(memo) => setOperationState((prev) => updateOperationMemo(prev, memo))} />
+        <OperationMemo value={operationState.operationMemo} onSave={handleMemoSave} />
       </div>
     </section>
   );

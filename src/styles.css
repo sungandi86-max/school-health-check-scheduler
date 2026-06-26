@@ -921,6 +921,47 @@ td select {
   font-weight: 700;
 }
 
+.operation-log-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.manual-log-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.operation-log-list,
+.admin-log-list {
+  display: grid;
+  gap: 8px;
+}
+
+.operation-log-item,
+.admin-log-list article {
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  color: #29465a;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.5;
+  padding: 10px 12px;
+}
+
+.operation-log-item.type-classMissing,
+.operation-log-item.type-delayUpdated {
+  border-color: #f6d58f;
+  background: #fffbeb;
+}
+
+.operation-log-item.type-classCompleted,
+.operation-log-item.type-classMissingCleared {
+  border-color: #9bd7ba;
+  background: #ecfdf5;
+}
+
 .teacher-dashboard-page {
   display: grid;
   gap: 18px;
@@ -1069,6 +1110,7 @@ td select {
 
 .admin-session-info,
 .admin-notice-panel,
+.admin-recent-logs,
 .admin-dashboard-footer,
 .admin-class-status-summary,
 .admin-student-status-summary {
@@ -1218,7 +1260,8 @@ td select {
 
 .admin-class-status-summary,
 .admin-student-status-summary,
-.admin-notice-panel {
+.admin-notice-panel,
+.admin-recent-logs {
   display: grid;
   gap: 14px;
 }
@@ -1274,6 +1317,7 @@ td select {
 }
 
 .admin-notice-panel p,
+.admin-recent-logs p,
 .admin-dashboard-footer p {
   margin: 0;
   color: #29465a;
@@ -1289,6 +1333,120 @@ td select {
 
 .admin-dashboard-footer p + p {
   margin-top: 6px;
+}
+
+.operation-report-page {
+  display: grid;
+  gap: 18px;
+  max-width: 1320px;
+}
+
+.operation-report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.operation-report-header h1 {
+  font-size: 34px;
+  line-height: 1.15;
+}
+
+.report-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #d8e8e5;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(13, 42, 63, 0.06);
+  padding: 18px;
+}
+
+.report-two-column {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.report-session-info dl {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.report-session-info dl div,
+.report-metric {
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  padding: 12px;
+}
+
+.report-session-info dt,
+.report-metric span {
+  color: #587084;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.report-session-info dd {
+  margin: 4px 0 0;
+  color: #0d2a3f;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.report-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.report-metric {
+  display: grid;
+  gap: 6px;
+}
+
+.report-metric strong {
+  color: #0d2a3f;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.report-log-list {
+  display: grid;
+  gap: 8px;
+}
+
+.report-log-list article {
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  color: #29465a;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.5;
+  padding: 10px 12px;
+}
+
+.report-notes-card textarea {
+  min-height: 150px;
+}
+
+.report-copy-box pre {
+  margin: 0;
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  color: #29465a;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.7;
+  padding: 14px;
+  white-space: pre-wrap;
 }
 
 .roster-upload-card,
@@ -1485,6 +1643,23 @@ td select {
   .admin-progress-card strong,
   .admin-flow-card strong {
     font-size: 32px;
+  }
+
+  .manual-log-input {
+    grid-template-columns: 1fr;
+  }
+
+  .operation-report-header {
+    display: grid;
+  }
+
+  .operation-report-header h1 {
+    font-size: 28px;
+  }
+
+  .report-two-column,
+  .report-session-info dl {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -1,12 +1,14 @@
 import { RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { getOperationLogs } from '../../lib/logs';
 import { generateNoticeMessage, getOperationState, normalizeOperationClassId } from '../../lib/operation';
 import { getStudentsBySession, getStudentSummary } from '../../lib/roster';
 import { getActiveSession } from '../../lib/sessions';
-import type { HealthCheckOperationState, HealthCheckSession, HealthCheckStudent } from '../../types/healthCheck';
+import type { HealthCheckOperationLog, HealthCheckOperationState, HealthCheckSession, HealthCheckStudent } from '../../types/healthCheck';
 import { AdminClassStatusSummary, type AdminClassStatusRow } from './AdminClassStatusSummary';
 import { AdminCurrentFlow } from './AdminCurrentFlow';
 import { AdminProgressCards } from './AdminProgressCards';
+import { AdminRecentLogs } from './AdminRecentLogs';
 import { AdminSessionInfo } from './AdminSessionInfo';
 import { AdminStudentStatusSummary } from './AdminStudentStatusSummary';
 
@@ -77,6 +79,8 @@ export function AdminDashboard() {
         <p>{notice || '운영센터에서 현재 검사 학급을 지정하면 안내문구가 표시됩니다.'}</p>
       </section>
 
+      <AdminRecentLogs logs={snapshot.logs} />
+
       <footer className="admin-dashboard-footer">
         <p>최근 업데이트: {formatDateTime(snapshot.state.updatedAt)}</p>
         <p>이 화면은 보건실 운영센터 입력 내용을 기준으로 표시됩니다.</p>
@@ -89,12 +93,14 @@ function loadAdminSnapshot(): {
   session?: HealthCheckSession;
   state: HealthCheckOperationState;
   students: HealthCheckStudent[];
+  logs: HealthCheckOperationLog[];
 } {
   const session = getActiveSession();
   const sessionId = session?.id ?? 'admin-dashboard-local-session';
   const state = getOperationState(sessionId);
   const students = session ? getStudentsBySession(session.id, session.checkType) : [];
-  return { session, state, students };
+  const logs = getOperationLogs(sessionId);
+  return { session, state, students, logs };
 }
 
 function createClassRows(state: HealthCheckOperationState, students: HealthCheckStudent[]): AdminClassStatusRow[] {
