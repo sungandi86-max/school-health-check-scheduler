@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { HealthCheckStudent, HealthCheckStudentStatus, HealthCheckType } from '../types/healthCheck';
-import { storageAdapter } from './storage/localStorageAdapter';
+import { storageAdapter } from './storage/storageProvider';
 import { getRosterStorageKey, getSessionRosterStorageKey } from './storage/storageKeys';
 
 export const STUDENT_STATUS_LABELS: Record<HealthCheckStudentStatus, string> = {

@@ -1,6 +1,6 @@
 import type { HealthCheckSession, HealthCheckSessionStatus, HealthCheckType } from '../types/healthCheck';
 import { getHealthCheckLabel, normalizeHealthCheckType } from './healthCheck';
-import { storageAdapter } from './storage/localStorageAdapter';
+import { storageAdapter } from './storage/storageProvider';
 import { ACTIVE_HEALTH_CHECK_SESSION_ID_KEY, HEALTH_CHECK_SESSIONS_KEY } from './storage/storageKeys';
 
 export { ACTIVE_HEALTH_CHECK_SESSION_ID_KEY, HEALTH_CHECK_SESSIONS_KEY };

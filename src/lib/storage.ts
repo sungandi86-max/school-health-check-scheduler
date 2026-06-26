@@ -2,7 +2,7 @@ import type { AppData, ExamType } from '../types';
 import { createDefaultData } from './defaultData';
 import { normalizeHealthCheckType, toExamType, toHealthCheckType } from './healthCheck';
 import type { HealthCheckType } from '../types/healthCheck';
-import { storageAdapter } from './storage/localStorageAdapter';
+import { storageAdapter } from './storage/storageProvider';
 import { ACTIVE_HEALTH_CHECK_TYPE_KEY, APP_STORAGE_KEY, getHealthCheckAppStorageKey } from './storage/storageKeys';
 
 const STORAGE_KEY = APP_STORAGE_KEY;

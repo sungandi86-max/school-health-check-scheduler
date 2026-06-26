@@ -3,7 +3,7 @@ import { getHealthCheckLabel } from './healthCheck';
 import { formatOperationLogMessage } from './logs';
 import { normalizeOperationClassId } from './operation';
 import { getStudentSummary } from './roster';
-import { storageAdapter } from './storage/localStorageAdapter';
+import { storageAdapter } from './storage/storageProvider';
 import { getReportNotesStorageKey } from './storage/storageKeys';
 
 export interface OperationReportSummary {

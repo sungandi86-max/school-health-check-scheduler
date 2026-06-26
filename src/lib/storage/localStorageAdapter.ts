@@ -31,5 +31,3 @@ export const localStorageAdapter: StorageAdapter = {
     localStorage.clear();
   },
 };
-
-export const storageAdapter: StorageAdapter = localStorageAdapter;

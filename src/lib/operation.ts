@@ -1,7 +1,7 @@
 import type { ScheduleAssignment } from '../types';
 import type { HealthCheckOperationState, HealthCheckOperationStatus, HealthCheckStudent, HealthCheckType } from '../types/healthCheck';
 import { getHealthCheckLabel } from './healthCheck';
-import { storageAdapter } from './storage/localStorageAdapter';
+import { storageAdapter } from './storage/storageProvider';
 import { getOperationStorageKey, LEGACY_OPERATION_STORAGE_KEY } from './storage/storageKeys';
 
 export type StudentExamStatus = 'pending' | 'completed' | 'absent' | 'earlyLeave' | 'late' | 'deferred';

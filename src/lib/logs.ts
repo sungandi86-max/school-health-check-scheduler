@@ -1,5 +1,5 @@
 import type { HealthCheckOperationLog, HealthCheckOperationLogType } from '../types/healthCheck';
-import { storageAdapter } from './storage/localStorageAdapter';
+import { storageAdapter } from './storage/storageProvider';
 import { getOperationLogStorageKey } from './storage/storageKeys';
 
 export interface HealthCheckOperationLogInput {

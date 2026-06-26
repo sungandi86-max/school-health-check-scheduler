@@ -1,3 +1,5 @@
+export type StorageMode = 'local' | 'supabase';
+
 export interface StorageAdapter {
   getItem<T>(key: string): T | null;
   setItem<T>(key: string, value: T): void;

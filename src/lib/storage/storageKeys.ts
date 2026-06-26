@@ -5,6 +5,7 @@ export const ACTIVE_HEALTH_CHECK_TYPE_KEY = 'health-check-scheduler:active-type'
 
 export const HEALTH_CHECK_SESSIONS_KEY = 'schoolHealthHub.sessions';
 export const ACTIVE_HEALTH_CHECK_SESSION_ID_KEY = 'schoolHealthHub.activeSessionId';
+export const STORAGE_MODE_KEY = 'schoolHealthHub.storageMode';
 
 export const LEGACY_OPERATION_STORAGE_KEY = 'school-health-check-operation-v1';
 
