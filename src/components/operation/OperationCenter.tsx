@@ -1,6 +1,12 @@
-import { ClipboardList, Clock, Upload } from 'lucide-react';
+import { Clock } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ClassSelector } from '../health-check/ClassSelector';
+import { RosterUpload } from '../health-check/RosterUpload';
+import { StudentChecklist } from '../health-check/StudentChecklist';
+import { StudentStatusSummary } from '../health-check/StudentStatusSummary';
 import { getHealthCheckLabel } from '../../lib/healthCheck';
-import type { HealthCheckOperationStatus, HealthCheckType } from '../../types/healthCheck';
+import { loadRosterStudents, saveRosterStudents, updateRosterStudent } from '../../lib/roster';
+import type { HealthCheckOperationStatus, HealthCheckStudent, HealthCheckStudentStatus, HealthCheckType } from '../../types/healthCheck';
 
 export function OperationCenter({
   checkType,
@@ -9,6 +15,25 @@ export function OperationCenter({
   checkType: HealthCheckType;
   status: HealthCheckOperationStatus;
 }) {
+  const sessionId = `${checkType}-local-session`;
+  const [students, setStudents] = useState<HealthCheckStudent[]>(() => loadRosterStudents(checkType));
+  const [selectedClass, setSelectedClass] = useState('');
+
+  useEffect(() => {
+    const loaded = loadRosterStudents(checkType);
+    setStudents(loaded);
+    setSelectedClass(loaded[0]?.className ?? '');
+  }, [checkType]);
+
+  useEffect(() => {
+    saveRosterStudents(checkType, students);
+  }, [checkType, students]);
+
+  const selectedClassStudents = useMemo(
+    () => (selectedClass ? students.filter((student) => student.className === selectedClass) : []),
+    [selectedClass, students],
+  );
+
   const statusCards = [
     { label: '현재 검사반', value: status.currentClass || '-', note: getHealthCheckLabel(checkType) },
     { label: '다음 검사반', value: status.nextClass || '-', note: status.state === 'ready' ? '운영 준비중' : '대기 확인 필요' },
@@ -20,6 +45,19 @@ export function OperationCenter({
     { title: '미도착 학급', rows: status.pendingClasses.length ? status.pendingClasses : ['-'] },
     { title: '지연 현황', rows: status.delayedClasses.length ? status.delayedClasses : ['지연 없음'] },
   ];
+
+  const handleUpload = (nextStudents: HealthCheckStudent[]) => {
+    setStudents(nextStudents);
+    setSelectedClass(nextStudents[0]?.className ?? '');
+  };
+
+  const updateStatus = (studentId: string, statusValue: HealthCheckStudentStatus) => {
+    setStudents((prev) => updateRosterStudent(prev, studentId, { status: statusValue }));
+  };
+
+  const updateMemo = (studentId: string, memo: string) => {
+    setStudents((prev) => updateRosterStudent(prev, studentId, { memo }));
+  };
 
   return (
     <section className="stack operation-center">
@@ -57,20 +95,14 @@ export function OperationCenter({
           </div>
         </section>
 
-        <section className="card operation-student-panel">
-          <div>
-            <p className="eyebrow">학생 체크</p>
-            <h2>학생 체크 영역</h2>
-            <p className="table-description">명렬표 기반 학생 확인 기능이 이 영역에 표시될 예정입니다.</p>
+        <section className="operation-student-panel">
+          <RosterUpload checkType={checkType} sessionId={sessionId} students={students} onUpload={handleUpload} />
+          <StudentStatusSummary students={students} />
+          <div className="card operation-class-selector-card">
+            <ClassSelector students={students} value={selectedClass} onChange={setSelectedClass} />
+            <p className="table-description">{selectedClass ? `${selectedClass} 학생 ${selectedClassStudents.length}명` : '명렬표 업로드 후 학급을 선택할 수 있습니다.'}</p>
           </div>
-          <div className="operation-placeholder">
-            <ClipboardList size={34} aria-hidden="true" />
-            <span>Placeholder</span>
-          </div>
-          <button type="button" className="primary">
-            <Upload size={17} />
-            명렬표 업로드
-          </button>
+          <StudentChecklist students={students} selectedClass={selectedClass} onStatusChange={updateStatus} onMemoChange={updateMemo} />
         </section>
       </div>
 
@@ -81,7 +113,7 @@ export function OperationCenter({
         </label>
         <div className="operation-memo-hint">
           <Clock size={16} aria-hidden="true" />
-          <span>현재는 화면 구성용 메모 영역이며 저장 기능은 연결되어 있지 않습니다.</span>
+          <span>학생 상태와 명렬표는 검사 종류별 localStorage에 저장됩니다.</span>
         </div>
       </section>
     </section>

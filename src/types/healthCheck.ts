@@ -4,6 +4,8 @@ export type HealthCheckType = 'urine' | 'tuberculosis' | 'general' | 'other';
 
 export type HealthCheckEngineType = 'urine' | 'tb';
 
+export type HealthCheckStudentStatus = 'pending' | 'completed' | 'absent' | 'earlyLeave' | 'late' | 'deferred';
+
 export interface HealthCheckTypeDefinition {
   id: HealthCheckType;
   engineType: HealthCheckEngineType;
@@ -38,11 +40,14 @@ export interface HealthCheckScheduleItem {
 export interface HealthCheckStudent {
   id: string;
   sessionId: string;
+  checkType: HealthCheckType;
+  grade: string;
   className: string;
+  number: string;
   name: string;
-  studentNumber?: string;
-  checkedAt?: string;
-  status: 'pending' | 'checked' | 'absent' | 'deferred';
+  status: HealthCheckStudentStatus;
+  memo: string;
+  updatedAt: string;
 }
 
 export interface HealthCheckOperationStatus {

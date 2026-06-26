@@ -681,6 +681,139 @@ td select {
   font-weight: 700;
 }
 
+.roster-upload-card,
+.student-status-summary,
+.student-checklist-card,
+.operation-class-selector-card {
+  display: grid;
+  gap: 14px;
+}
+
+.roster-upload-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.roster-upload-actions span {
+  color: #587084;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.roster-upload-summary,
+.student-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.roster-upload-summary div,
+.student-summary-metric {
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  padding: 12px;
+}
+
+.roster-upload-summary strong,
+.student-summary-metric strong {
+  display: block;
+  color: #0d2a3f;
+  font-size: 22px;
+}
+
+.roster-upload-summary span,
+.student-summary-metric span {
+  color: #587084;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.student-summary-metric.warn strong {
+  color: #b45309;
+}
+
+.student-status-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.student-status-counts span,
+.student-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #cfe1df;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #29465a;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 9px;
+}
+
+.student-status-badge.status-completed {
+  border-color: #99d8c9;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.student-status-badge.status-absent,
+.student-status-badge.status-earlyLeave,
+.student-status-badge.status-late,
+.student-status-badge.status-deferred {
+  border-color: #f6d58f;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.student-checklist {
+  display: grid;
+  gap: 10px;
+  max-height: 520px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.student-check-row {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  padding: 12px;
+}
+
+.student-check-identity {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.student-check-identity strong {
+  min-width: 34px;
+  color: #0f766e;
+}
+
+.student-check-identity span {
+  font-weight: 800;
+}
+
+.student-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.student-status-actions button {
+  min-height: 34px;
+  padding: 6px 10px;
+}
+
 @media (max-width: 980px) {
   .operation-status-grid,
   .operation-layout,
