@@ -1,15 +1,15 @@
 import type { HealthCheckSession, HealthCheckSessionStatus, HealthCheckType } from '../types/healthCheck';
 import { getHealthCheckLabel, normalizeHealthCheckType } from './healthCheck';
+import { storageAdapter } from './storage/localStorageAdapter';
+import { ACTIVE_HEALTH_CHECK_SESSION_ID_KEY, HEALTH_CHECK_SESSIONS_KEY } from './storage/storageKeys';
 
-export const HEALTH_CHECK_SESSIONS_KEY = 'schoolHealthHub.sessions';
-export const ACTIVE_HEALTH_CHECK_SESSION_ID_KEY = 'schoolHealthHub.activeSessionId';
+export { ACTIVE_HEALTH_CHECK_SESSION_ID_KEY, HEALTH_CHECK_SESSIONS_KEY };
 
 const SESSION_STATUSES: HealthCheckSessionStatus[] = ['draft', 'scheduled', 'inProgress', 'completed', 'archived'];
 
 export function getHealthCheckSessions(): HealthCheckSession[] {
-  if (typeof localStorage === 'undefined') return [];
   try {
-    const parsed = JSON.parse(localStorage.getItem(HEALTH_CHECK_SESSIONS_KEY) || '[]') as Partial<HealthCheckSession>[];
+    const parsed = storageAdapter.getItem<Partial<HealthCheckSession>[]>(HEALTH_CHECK_SESSIONS_KEY) ?? [];
     return Array.isArray(parsed) ? parsed.map(normalizeSession).sort(compareSessions) : [];
   } catch {
     return [];
@@ -17,7 +17,7 @@ export function getHealthCheckSessions(): HealthCheckSession[] {
 }
 
 export function saveHealthCheckSessions(sessions: HealthCheckSession[]) {
-  localStorage.setItem(HEALTH_CHECK_SESSIONS_KEY, JSON.stringify(sessions.map(normalizeSession).sort(compareSessions)));
+  storageAdapter.setItem(HEALTH_CHECK_SESSIONS_KEY, sessions.map(normalizeSession).sort(compareSessions));
 }
 
 export function createHealthCheckSession(input: {
@@ -72,13 +72,12 @@ export function deleteHealthCheckSession(sessionId: string) {
 }
 
 export function getActiveSessionId() {
-  if (typeof localStorage === 'undefined') return '';
-  return localStorage.getItem(ACTIVE_HEALTH_CHECK_SESSION_ID_KEY) || '';
+  return storageAdapter.getItem<string>(ACTIVE_HEALTH_CHECK_SESSION_ID_KEY) || '';
 }
 
 export function setActiveSessionId(sessionId: string) {
-  if (!sessionId) localStorage.removeItem(ACTIVE_HEALTH_CHECK_SESSION_ID_KEY);
-  else localStorage.setItem(ACTIVE_HEALTH_CHECK_SESSION_ID_KEY, sessionId);
+  if (!sessionId) storageAdapter.removeItem(ACTIVE_HEALTH_CHECK_SESSION_ID_KEY);
+  else storageAdapter.setItem(ACTIVE_HEALTH_CHECK_SESSION_ID_KEY, sessionId);
 }
 
 export function getActiveSession() {

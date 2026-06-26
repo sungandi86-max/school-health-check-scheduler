@@ -1,4 +1,6 @@
 import type { HealthCheckOperationLog, HealthCheckOperationLogType } from '../types/healthCheck';
+import { storageAdapter } from './storage/localStorageAdapter';
+import { getOperationLogStorageKey } from './storage/storageKeys';
 
 export interface HealthCheckOperationLogInput {
   type: HealthCheckOperationLogType;
@@ -8,9 +10,8 @@ export interface HealthCheckOperationLogInput {
 }
 
 export function getOperationLogs(sessionId: string): HealthCheckOperationLog[] {
-  if (typeof localStorage === 'undefined') return [];
   try {
-    const parsed = JSON.parse(localStorage.getItem(getOperationLogStorageKey(sessionId)) || '[]') as Partial<HealthCheckOperationLog>[];
+    const parsed = storageAdapter.getItem<Partial<HealthCheckOperationLog>[]>(getOperationLogStorageKey(sessionId)) ?? [];
     return Array.isArray(parsed)
       ? parsed.map((log) => normalizeOperationLog(sessionId, log)).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
       : [];
@@ -20,7 +21,7 @@ export function getOperationLogs(sessionId: string): HealthCheckOperationLog[] {
 }
 
 export function saveOperationLogs(sessionId: string, logs: HealthCheckOperationLog[]) {
-  localStorage.setItem(getOperationLogStorageKey(sessionId), JSON.stringify(logs.map((log) => normalizeOperationLog(sessionId, log))));
+  storageAdapter.setItem(getOperationLogStorageKey(sessionId), logs.map((log) => normalizeOperationLog(sessionId, log)));
 }
 
 export function addOperationLog(sessionId: string, logInput: HealthCheckOperationLogInput): HealthCheckOperationLog {
@@ -36,7 +37,7 @@ export function addOperationLog(sessionId: string, logInput: HealthCheckOperatio
 }
 
 export function clearOperationLogs(sessionId: string) {
-  localStorage.removeItem(getOperationLogStorageKey(sessionId));
+  storageAdapter.removeItem(getOperationLogStorageKey(sessionId));
 }
 
 export function formatOperationLogMessage(log: HealthCheckOperationLog) {
@@ -44,9 +45,7 @@ export function formatOperationLogMessage(log: HealthCheckOperationLog) {
   return `${time} ${log.message}`;
 }
 
-export function getOperationLogStorageKey(sessionId: string) {
-  return `schoolHealthHub.logs.${sessionId}`;
-}
+export { getOperationLogStorageKey };
 
 function normalizeOperationLog(sessionId: string, log: Partial<HealthCheckOperationLog>): HealthCheckOperationLog {
   return {

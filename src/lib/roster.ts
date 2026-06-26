@@ -1,5 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { HealthCheckStudent, HealthCheckStudentStatus, HealthCheckType } from '../types/healthCheck';
+import { storageAdapter } from './storage/localStorageAdapter';
+import { getRosterStorageKey, getSessionRosterStorageKey } from './storage/storageKeys';
 
 export const STUDENT_STATUS_LABELS: Record<HealthCheckStudentStatus, string> = {
   pending: '대기',
@@ -12,19 +14,12 @@ export const STUDENT_STATUS_LABELS: Record<HealthCheckStudentStatus, string> = {
 
 export const STUDENT_STATUS_OPTIONS: HealthCheckStudentStatus[] = ['completed', 'absent', 'earlyLeave', 'late', 'deferred'];
 
-export function getRosterStorageKey(checkType: HealthCheckType) {
-  return `schoolHealthHub.students.${checkType}`;
-}
-
-export function getSessionRosterStorageKey(sessionId: string) {
-  return `schoolHealthHub.students.${sessionId}`;
-}
+export { getRosterStorageKey, getSessionRosterStorageKey };
 
 export function loadRosterStudents(checkType: HealthCheckType, sessionId?: string): HealthCheckStudent[] {
-  if (typeof localStorage === 'undefined') return [];
   try {
     const key = sessionId ? getSessionRosterStorageKey(sessionId) : getRosterStorageKey(checkType);
-    const parsed = JSON.parse(localStorage.getItem(key) || '[]') as HealthCheckStudent[];
+    const parsed = storageAdapter.getItem<HealthCheckStudent[]>(key) ?? [];
     return Array.isArray(parsed) ? parsed.map((student) => normalizeStudent(student, checkType)) : [];
   } catch {
     return [];
@@ -33,7 +28,7 @@ export function loadRosterStudents(checkType: HealthCheckType, sessionId?: strin
 
 export function saveRosterStudents(checkType: HealthCheckType, students: HealthCheckStudent[], sessionId?: string) {
   const key = sessionId ? getSessionRosterStorageKey(sessionId) : getRosterStorageKey(checkType);
-  localStorage.setItem(key, JSON.stringify(students.map((student) => normalizeStudent(student, checkType))));
+  storageAdapter.setItem(key, students.map((student) => normalizeStudent(student, checkType)));
 }
 
 export function getStudentsBySession(sessionId: string, checkType: HealthCheckType): HealthCheckStudent[] {

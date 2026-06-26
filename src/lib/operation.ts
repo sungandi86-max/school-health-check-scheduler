@@ -1,6 +1,8 @@
 import type { ScheduleAssignment } from '../types';
 import type { HealthCheckOperationState, HealthCheckOperationStatus, HealthCheckStudent, HealthCheckType } from '../types/healthCheck';
 import { getHealthCheckLabel } from './healthCheck';
+import { storageAdapter } from './storage/localStorageAdapter';
+import { getOperationStorageKey, LEGACY_OPERATION_STORAGE_KEY } from './storage/storageKeys';
 
 export type StudentExamStatus = 'pending' | 'completed' | 'absent' | 'earlyLeave' | 'late' | 'deferred';
 export type ScheduleRunStatus = 'waiting' | 'active' | 'completed' | 'missed';
@@ -47,7 +49,7 @@ export interface OperationState {
   lastUpdatedAt: string;
 }
 
-export const OPERATION_STORAGE_KEY = 'school-health-check-operation-v1';
+export const OPERATION_STORAGE_KEY = LEGACY_OPERATION_STORAGE_KEY;
 
 export const STUDENT_STATUS_LABELS: Record<StudentExamStatus, string> = {
   pending: '대기',
@@ -79,9 +81,8 @@ export const DEFAULT_OPERATION_STATE: OperationState = {
 
 export function loadOperationState(): OperationState {
   try {
-    const raw = localStorage.getItem(OPERATION_STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_OPERATION_STATE };
-    const parsed = JSON.parse(raw) as Partial<OperationState>;
+    const parsed = storageAdapter.getItem<Partial<OperationState>>(OPERATION_STORAGE_KEY);
+    if (!parsed) return { ...DEFAULT_OPERATION_STATE };
     return normalizeOperationState(parsed);
   } catch {
     return { ...DEFAULT_OPERATION_STATE };
@@ -92,10 +93,10 @@ export function saveOperationState(state: OperationState): void;
 export function saveOperationState(sessionId: string, state: HealthCheckOperationState): void;
 export function saveOperationState(arg1: OperationState | string, arg2?: HealthCheckOperationState) {
   if (typeof arg1 === 'string') {
-    localStorage.setItem(getOperationStorageKey(arg1), JSON.stringify(normalizeHealthCheckOperationState(arg1, arg2)));
+    storageAdapter.setItem(getOperationStorageKey(arg1), normalizeHealthCheckOperationState(arg1, arg2));
     return;
   }
-  localStorage.setItem(OPERATION_STORAGE_KEY, JSON.stringify({ ...arg1, lastUpdatedAt: new Date().toISOString() }));
+  storageAdapter.setItem(OPERATION_STORAGE_KEY, { ...arg1, lastUpdatedAt: new Date().toISOString() });
 }
 
 export function normalizeOperationState(state: Partial<OperationState>): OperationState {
@@ -184,9 +185,8 @@ export function createOperationStatus(checkType: HealthCheckType, assignments: S
 }
 
 export function getOperationState(sessionId: string): HealthCheckOperationState {
-  if (typeof localStorage === 'undefined') return normalizeHealthCheckOperationState(sessionId);
   try {
-    const parsed = JSON.parse(localStorage.getItem(getOperationStorageKey(sessionId)) || '{}') as Partial<HealthCheckOperationState>;
+    const parsed = storageAdapter.getItem<Partial<HealthCheckOperationState>>(getOperationStorageKey(sessionId)) ?? {};
     return normalizeHealthCheckOperationState(sessionId, parsed);
   } catch {
     return normalizeHealthCheckOperationState(sessionId);
@@ -305,9 +305,7 @@ export function normalizeOperationClassId(value: string) {
   return compact;
 }
 
-export function getOperationStorageKey(sessionId: string) {
-  return `schoolHealthHub.operation.${sessionId}`;
-}
+export { getOperationStorageKey };
 
 function normalizeHealthCheckOperationState(sessionId: string, state: Partial<HealthCheckOperationState> = {}): HealthCheckOperationState {
   return withNotice({

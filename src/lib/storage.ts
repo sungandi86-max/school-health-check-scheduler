@@ -2,21 +2,21 @@ import type { AppData, ExamType } from '../types';
 import { createDefaultData } from './defaultData';
 import { normalizeHealthCheckType, toExamType, toHealthCheckType } from './healthCheck';
 import type { HealthCheckType } from '../types/healthCheck';
+import { storageAdapter } from './storage/localStorageAdapter';
+import { ACTIVE_HEALTH_CHECK_TYPE_KEY, APP_STORAGE_KEY, getHealthCheckAppStorageKey } from './storage/storageKeys';
 
-const STORAGE_KEY = 'urine-exam-room-scheduler:v1';
-const ACTIVE_HEALTH_CHECK_TYPE_KEY = 'health-check-scheduler:active-type';
+const STORAGE_KEY = APP_STORAGE_KEY;
 export const APP_DATA_VERSION = '2026-06-health-check-scheduler-v3';
 const REQUIRED_BLOCKED_KEYWORDS = ['스생'];
 const MIXED_GRADE_NOTE = '혼합학년 수업 / 명렬표 확인 필요';
 
 export function loadAppData(options: { startAtTypeSelect?: boolean } = {}): AppData {
-  if (typeof localStorage === 'undefined') return createDefaultData();
-
   try {
-    const activeType = normalizeHealthCheckType(localStorage.getItem(ACTIVE_HEALTH_CHECK_TYPE_KEY));
-    const raw = localStorage.getItem(getHealthCheckStorageKey(activeType)) ?? localStorage.getItem(STORAGE_KEY);
-    if (!raw) return createDefaultData();
-    const parsed = JSON.parse(raw) as Partial<AppData> & { appDataVersion?: string };
+    const activeType = normalizeHealthCheckType(storageAdapter.getItem<string>(ACTIVE_HEALTH_CHECK_TYPE_KEY));
+    const parsed =
+      storageAdapter.getItem<Partial<AppData> & { appDataVersion?: string }>(getHealthCheckStorageKey(activeType)) ??
+      storageAdapter.getItem<Partial<AppData> & { appDataVersion?: string }>(STORAGE_KEY);
+    if (!parsed) return createDefaultData();
     const fallback = createDefaultData();
 
     const settings = { ...fallback.settings, ...parsed.settings };
@@ -101,7 +101,7 @@ function normalizeExamType(value: unknown): ExamType {
 }
 
 function getHealthCheckStorageKey(checkType: HealthCheckType) {
-  return `health-check-scheduler:${checkType}:v1`;
+  return getHealthCheckAppStorageKey(checkType);
 }
 
 function normalizeRoomMappings(mappings: AppData['roomMappings']): AppData['roomMappings'] {
@@ -258,12 +258,12 @@ function mergeRequiredKeywords(keywords: string[]) {
 }
 
 export function getStoredAppDataInfo() {
-  if (typeof localStorage === 'undefined') return { exists: false, versionMismatch: false };
-  const activeType = normalizeHealthCheckType(localStorage.getItem(ACTIVE_HEALTH_CHECK_TYPE_KEY));
-  const raw = localStorage.getItem(getHealthCheckStorageKey(activeType)) ?? localStorage.getItem(STORAGE_KEY);
-  if (!raw) return { exists: false, versionMismatch: false };
+  const activeType = normalizeHealthCheckType(storageAdapter.getItem<string>(ACTIVE_HEALTH_CHECK_TYPE_KEY));
+  const parsed =
+    storageAdapter.getItem<{ appDataVersion?: string }>(getHealthCheckStorageKey(activeType)) ??
+    storageAdapter.getItem<{ appDataVersion?: string }>(STORAGE_KEY);
+  if (!parsed) return { exists: false, versionMismatch: false };
   try {
-    const parsed = JSON.parse(raw) as { appDataVersion?: string };
     return {
       exists: true,
       versionMismatch: parsed.appDataVersion !== APP_DATA_VERSION,
@@ -275,10 +275,10 @@ export function getStoredAppDataInfo() {
 
 export function saveAppData(data: AppData) {
   const healthCheckType = normalizeHealthCheckType(data.settings.healthCheckType ?? data.healthCheckType);
-  localStorage.setItem(ACTIVE_HEALTH_CHECK_TYPE_KEY, healthCheckType);
-  localStorage.setItem(getHealthCheckStorageKey(healthCheckType), JSON.stringify({ ...data, healthCheckType, appDataVersion: APP_DATA_VERSION }));
+  storageAdapter.setItem(ACTIVE_HEALTH_CHECK_TYPE_KEY, healthCheckType);
+  storageAdapter.setItem(getHealthCheckStorageKey(healthCheckType), { ...data, healthCheckType, appDataVersion: APP_DATA_VERSION });
 }
 
 export function clearAppData() {
-  localStorage.clear();
+  storageAdapter.clear();
 }

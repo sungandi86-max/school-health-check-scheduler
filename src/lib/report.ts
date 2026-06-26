@@ -3,6 +3,8 @@ import { getHealthCheckLabel } from './healthCheck';
 import { formatOperationLogMessage } from './logs';
 import { normalizeOperationClassId } from './operation';
 import { getStudentSummary } from './roster';
+import { storageAdapter } from './storage/localStorageAdapter';
+import { getReportNotesStorageKey } from './storage/storageKeys';
 
 export interface OperationReportSummary {
   session?: HealthCheckSession;
@@ -23,12 +25,11 @@ export interface OperationReportSummary {
 }
 
 export function getReportNotes(sessionId: string) {
-  if (typeof localStorage === 'undefined') return '';
-  return localStorage.getItem(getReportNotesStorageKey(sessionId)) ?? '';
+  return storageAdapter.getItem<string>(getReportNotesStorageKey(sessionId)) ?? '';
 }
 
 export function saveReportNotes(sessionId: string, notes: string) {
-  localStorage.setItem(getReportNotesStorageKey(sessionId), notes);
+  storageAdapter.setItem(getReportNotesStorageKey(sessionId), notes);
 }
 
 export function buildOperationReportSummary({
@@ -110,9 +111,7 @@ export async function copyTextToClipboard(text: string) {
   await navigator.clipboard.writeText(text);
 }
 
-export function getReportNotesStorageKey(sessionId: string) {
-  return `schoolHealthHub.reportNotes.${sessionId}`;
-}
+export { getReportNotesStorageKey };
 
 function formatReportDate(value: string) {
   const date = new Date(value);
