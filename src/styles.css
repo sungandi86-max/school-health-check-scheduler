@@ -1049,6 +1049,248 @@ td select {
   margin-top: 6px;
 }
 
+.admin-dashboard-page {
+  display: grid;
+  gap: 20px;
+  max-width: 1480px;
+}
+
+.admin-dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-dashboard-header h1 {
+  font-size: 36px;
+  line-height: 1.15;
+}
+
+.admin-session-info,
+.admin-notice-panel,
+.admin-dashboard-footer,
+.admin-class-status-summary,
+.admin-student-status-summary {
+  border: 1px solid #d8e8e5;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(13, 42, 63, 0.07);
+  padding: 20px;
+}
+
+.admin-session-info {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-session-info h2 {
+  font-size: 28px;
+}
+
+.admin-session-info dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.admin-session-info dl div,
+.admin-status-grid span {
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  padding: 12px;
+}
+
+.admin-session-info dt {
+  color: #587084;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-session-info dd {
+  margin: 4px 0 0;
+  color: #0d2a3f;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.admin-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.admin-progress-card,
+.admin-flow-card {
+  display: grid;
+  align-content: space-between;
+  gap: 12px;
+  min-height: 170px;
+  border: 1px solid #d8e8e5;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(13, 42, 63, 0.07);
+  padding: 20px;
+}
+
+.admin-progress-card.primary,
+.admin-flow-card.active {
+  border-color: #59b8ad;
+  background: #ecfdf5;
+}
+
+.admin-progress-card.warn,
+.admin-flow-card.missing {
+  border-color: #f6d58f;
+  background: #fffbeb;
+}
+
+.admin-progress-card.danger,
+.admin-flow-card.danger {
+  border-color: #f3a6a6;
+  background: #fff1f2;
+}
+
+.admin-progress-card span,
+.admin-flow-card span {
+  color: #587084;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-progress-card strong,
+.admin-flow-card strong {
+  color: #0d2a3f;
+  font-size: 34px;
+  line-height: 1.05;
+}
+
+.admin-progress-card small,
+.admin-flow-card small,
+.admin-class-row small {
+  color: #587084;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-current-flow {
+  display: grid;
+  grid-template-columns: 1.25fr 1.1fr 1.35fr 1fr;
+  gap: 14px;
+}
+
+.admin-missing-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-missing-list b {
+  border-radius: 999px;
+  background: #ffffff;
+  color: #92400e;
+  padding: 7px 10px;
+}
+
+.admin-dashboard-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.8fr);
+  gap: 16px;
+}
+
+.admin-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-status-grid.student {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-status-grid span {
+  color: #0d2a3f;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.admin-class-status-summary,
+.admin-student-status-summary,
+.admin-notice-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-class-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.admin-class-row {
+  display: grid;
+  gap: 5px;
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.admin-class-row strong {
+  color: #0d2a3f;
+  font-size: 24px;
+}
+
+.admin-class-row span {
+  width: fit-content;
+  border-radius: 999px;
+  background: #e8f4f2;
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 5px 9px;
+}
+
+.admin-class-row.inProgress {
+  border-color: #59b8ad;
+  background: #ecfdf5;
+}
+
+.admin-class-row.completed span {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.admin-class-row.missing {
+  border-color: #f6d58f;
+  background: #fffbeb;
+}
+
+.admin-class-row.missing span {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-notice-panel p,
+.admin-dashboard-footer p {
+  margin: 0;
+  color: #29465a;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+.admin-dashboard-footer {
+  background: #f7fcfb;
+}
+
+.admin-dashboard-footer p + p {
+  margin-top: 6px;
+}
+
 .roster-upload-card,
 .student-status-summary,
 .student-checklist-card,
@@ -1216,6 +1458,33 @@ td select {
 
   .teacher-status-card strong {
     font-size: 42px;
+  }
+
+  .admin-dashboard-header {
+    display: grid;
+  }
+
+  .admin-dashboard-header h1 {
+    font-size: 30px;
+  }
+
+  .admin-session-info dl,
+  .admin-progress-grid,
+  .admin-current-flow,
+  .admin-dashboard-detail-grid,
+  .admin-status-grid,
+  .admin-status-grid.student {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-progress-card,
+  .admin-flow-card {
+    min-height: 132px;
+  }
+
+  .admin-progress-card strong,
+  .admin-flow-card strong {
+    font-size: 32px;
   }
 }
 

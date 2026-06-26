@@ -63,6 +63,7 @@ import { TbHelp } from './components/help/TbHelp';
 import { OperationPanel } from './components/operation/OperationPanel';
 import { OperationCenter } from './components/operation/OperationCenter';
 import { TeacherDashboard } from './components/teacher-dashboard/TeacherDashboard';
+import { AdminDashboard } from './components/admin-dashboard/AdminDashboard';
 import { HealthCheckTypeSelector } from './components/health-check/HealthCheckTypeSelector';
 import { HealthCheckSummary } from './components/health-check/HealthCheckSummary';
 import { HealthCheckSessionSelector } from './components/health-check/HealthCheckSessionSelector';
@@ -430,6 +431,7 @@ export function App() {
             ['dashboard', '대시보드'],
             ['operation-center', '검진 운영'],
             ['teacher-dashboard', '교사용 현황판'],
+            ['admin-dashboard', '교무실 현황판'],
             ['settings', '검사 조건'],
             ['locations', mode.unitMenu],
             ['timetable', data.settings.examType === 'tb' ? '학급별 검진 순서 입력' : '시간표 입력'],
@@ -502,6 +504,7 @@ export function App() {
         {activeTab === 'tb-help' && <TbHelp />}
         {activeTab === 'operation-center' && <OperationCenter checkType={data.settings.healthCheckType} session={activeSession} status={data.operationStatus ?? createOperationStatus(data.settings.healthCheckType, data.assignments)} />}
         {activeTab === 'teacher-dashboard' && <TeacherDashboard />}
+        {activeTab === 'admin-dashboard' && <AdminDashboard />}
         {activeTab === 'dashboard' && (
           <Dashboard
             data={data}
