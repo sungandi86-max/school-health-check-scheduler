@@ -62,6 +62,7 @@ import { UrineHelp } from './components/help/UrineHelp';
 import { TbHelp } from './components/help/TbHelp';
 import { OperationPanel } from './components/operation/OperationPanel';
 import { OperationCenter } from './components/operation/OperationCenter';
+import { TeacherDashboard } from './components/teacher-dashboard/TeacherDashboard';
 import { HealthCheckTypeSelector } from './components/health-check/HealthCheckTypeSelector';
 import { HealthCheckSummary } from './components/health-check/HealthCheckSummary';
 import { HealthCheckSessionSelector } from './components/health-check/HealthCheckSessionSelector';
@@ -428,6 +429,7 @@ export function App() {
             [data.settings.examType === 'urine' ? 'urine-help' : 'tb-help', data.settings.examType === 'urine' ? '소변검사 사용 안내' : '결핵검진 사용 안내'],
             ['dashboard', '대시보드'],
             ['operation-center', '검진 운영'],
+            ['teacher-dashboard', '교사용 현황판'],
             ['settings', '검사 조건'],
             ['locations', mode.unitMenu],
             ['timetable', data.settings.examType === 'tb' ? '학급별 검진 순서 입력' : '시간표 입력'],
@@ -499,6 +501,7 @@ export function App() {
         {activeTab === 'urine-help' && <UrineHelp />}
         {activeTab === 'tb-help' && <TbHelp />}
         {activeTab === 'operation-center' && <OperationCenter checkType={data.settings.healthCheckType} session={activeSession} status={data.operationStatus ?? createOperationStatus(data.settings.healthCheckType, data.assignments)} />}
+        {activeTab === 'teacher-dashboard' && <TeacherDashboard />}
         {activeTab === 'dashboard' && (
           <Dashboard
             data={data}

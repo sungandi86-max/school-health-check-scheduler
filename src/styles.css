@@ -921,6 +921,134 @@ td select {
   font-weight: 700;
 }
 
+.teacher-dashboard-page {
+  display: grid;
+  gap: 18px;
+  max-width: 1280px;
+}
+
+.teacher-dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.teacher-session-info,
+.teacher-missing-alert,
+.teacher-notice-message,
+.teacher-class-summary,
+.teacher-dashboard-footer {
+  border: 1px solid #d8e8e5;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(13, 42, 63, 0.06);
+  padding: 18px;
+}
+
+.teacher-session-info {
+  display: grid;
+  gap: 10px;
+}
+
+.teacher-session-info div,
+.teacher-class-summary div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.teacher-session-info span,
+.teacher-class-summary span {
+  border: 1px solid #d8e8e5;
+  border-radius: 999px;
+  background: #f7fcfb;
+  color: #29465a;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 7px 10px;
+}
+
+.teacher-priority-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.teacher-status-card {
+  min-height: 150px;
+  display: grid;
+  align-content: space-between;
+  gap: 12px;
+  border: 1px solid #d8e8e5;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(13, 42, 63, 0.06);
+  padding: 18px;
+}
+
+.teacher-status-card.highlight {
+  border-color: #59b8ad;
+  background: #ecfdf5;
+}
+
+.teacher-status-card.warn {
+  border-color: #f6d58f;
+  background: #fffbeb;
+}
+
+.teacher-status-card span {
+  color: #587084;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.teacher-status-card strong {
+  color: #0d2a3f;
+  font-size: 36px;
+  line-height: 1;
+}
+
+.teacher-status-card small {
+  color: #587084;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.teacher-missing-alert {
+  display: grid;
+  gap: 10px;
+  border-left: 6px solid #0f766e;
+}
+
+.teacher-missing-alert.active {
+  border-left-color: #b45309;
+  background: #fffbeb;
+}
+
+.teacher-missing-alert p,
+.teacher-notice-message p,
+.teacher-dashboard-footer p {
+  margin: 0;
+  color: #29465a;
+  font-weight: 700;
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+.teacher-notice-message {
+  display: grid;
+  gap: 14px;
+}
+
+.teacher-dashboard-footer {
+  background: #f7fcfb;
+}
+
+.teacher-dashboard-footer p + p {
+  margin-top: 6px;
+}
+
 .roster-upload-card,
 .student-status-summary,
 .student-checklist-card,
@@ -1072,6 +1200,22 @@ td select {
 
   .class-progress-actions {
     justify-content: flex-start;
+  }
+
+  .teacher-dashboard-header {
+    display: grid;
+  }
+
+  .teacher-priority-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-status-card {
+    min-height: 132px;
+  }
+
+  .teacher-status-card strong {
+    font-size: 42px;
   }
 }
 
