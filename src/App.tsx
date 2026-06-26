@@ -1,4 +1,4 @@
-﻿import { ClipboardCopy, Download, FileInput, FileText, Printer, RotateCcw, Sparkles } from 'lucide-react';
+import { ClipboardCopy, Download, FileInput, FileText, Printer, RotateCcw, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   AppData,
@@ -60,6 +60,7 @@ import { OtterMascot } from './components/common/OtterMascot';
 import { CommonHelp } from './components/help/CommonHelp';
 import { UrineHelp } from './components/help/UrineHelp';
 import { TbHelp } from './components/help/TbHelp';
+import { OperationPanel } from './components/operation/OperationPanel';
 
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 const CATEGORIES: LocationCategory[] = ['일반교실', '특별실', '선택과목 장소', '체육시설', '수동확인'];
@@ -319,6 +320,7 @@ export function App() {
             ['timetable', data.settings.examType === 'tb' ? '학급별 검진 순서 입력' : '시간표 입력'],
             ['divisions', data.settings.examType === 'tb' ? '분반·혼합수업 참고자료' : '분반 참고'],
             ['results', data.settings.examType === 'tb' ? '학급별 검진 이동표' : '결과/출력'],
+            ['operation', '실시간 검진 운영'],
           ].map(([id, label]) => (
             <button key={id} className={activeTab === id ? 'active' : ''} onClick={() => setActiveTab(id)}>
               {label}
@@ -392,6 +394,7 @@ export function App() {
         {activeTab === 'locations' && <LocationsPanel data={data} setData={setData} mode={mode} />}
         {activeTab === 'timetable' && <TimetablePanel data={data} setData={setData} resetExamples={resetExamples} />}
         {activeTab === 'divisions' && <DivisionsPanel data={data} setData={setData} />}
+        {activeTab === 'operation' && <OperationPanel assignments={data.assignments} />}
         {activeTab === 'results' && (
           <ResultsPanel
             data={data}
