@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { getActiveSession } from '../../lib/sessions';
 import { generateNoticeMessage, getOperationState } from '../../lib/operation';
 import { getStudentsBySession } from '../../lib/roster';
+import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
+import { healthCheckOperationStateRepository } from '../../lib/repositories/HealthCheckOperationStateRepository';
 import type { HealthCheckOperationState, HealthCheckSession, HealthCheckStudent } from '../../types/healthCheck';
 import { TeacherCurrentStatusCard } from './TeacherCurrentStatusCard';
 import { TeacherMissingClassAlert } from './TeacherMissingClassAlert';
@@ -12,10 +14,20 @@ import { ShareSecurityNotice } from '../share/ShareLinkPanel';
 
 export function TeacherDashboard() {
   const [snapshot, setSnapshot] = useState(() => loadTeacherSnapshot());
-
-  const refresh = () => setSnapshot(loadTeacherSnapshot());
+  const [snapshotError, setSnapshotError] = useState('');
+  const refresh = () => {
+    setSnapshotError('');
+    void loadTeacherSnapshotAsync()
+      .then(setSnapshot)
+      .catch((error) => {
+        console.warn('[TeacherDashboard] Failed to refresh remote snapshot.', error);
+        setSnapshot(loadTeacherSnapshot());
+        setSnapshotError('운영상태를 불러오지 못해 브라우저 저장 데이터를 표시합니다.');
+      });
+  };
 
   useEffect(() => {
+    refresh();
     const onStorage = (event: StorageEvent) => {
       if (!event.key || event.key.startsWith('schoolHealthHub.')) refresh();
     };
@@ -48,6 +60,7 @@ export function TeacherDashboard() {
         </button>
       </header>
 
+      {snapshotError && <p className="table-description">{snapshotError}</p>}
       <TeacherSessionInfo session={snapshot.session} />
       <TeacherCurrentStatusCard state={snapshot.state} />
       <TeacherMissingClassAlert state={snapshot.state} />
@@ -97,4 +110,19 @@ function createClassStats(students: HealthCheckStudent[]) {
       incomplete: rows.length - completed,
     };
   });
+}
+
+
+async function loadTeacherSnapshotAsync(): Promise<{
+  session?: HealthCheckSession;
+  state: HealthCheckOperationState;
+  students: HealthCheckStudent[];
+}> {
+  const session = getActiveSession();
+  const sessionId = session?.id ?? 'teacher-dashboard-local-session';
+  const [state, students] = await Promise.all([
+    healthCheckOperationStateRepository.get(sessionId),
+    session ? healthCheckStudentRepository.listBySession(session.id, session.checkType) : Promise.resolve([]),
+  ]);
+  return { session, state, students };
 }

@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { getOperationLogs } from '../../lib/logs';
 import { generateNoticeMessage, getOperationState, normalizeOperationClassId } from '../../lib/operation';
 import { getStudentsBySession, getStudentSummary } from '../../lib/roster';
+import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
+import { healthCheckOperationStateRepository } from '../../lib/repositories/HealthCheckOperationStateRepository';
 import { getActiveSession } from '../../lib/sessions';
 import type { HealthCheckOperationLog, HealthCheckOperationState, HealthCheckSession, HealthCheckStudent } from '../../types/healthCheck';
 import { AdminClassStatusSummary, type AdminClassStatusRow } from './AdminClassStatusSummary';
@@ -15,9 +17,20 @@ import { ShareSecurityNotice } from '../share/ShareLinkPanel';
 
 export function AdminDashboard() {
   const [snapshot, setSnapshot] = useState(() => loadAdminSnapshot());
-  const refresh = () => setSnapshot(loadAdminSnapshot());
+  const [snapshotError, setSnapshotError] = useState('');
+  const refresh = () => {
+    setSnapshotError('');
+    void loadAdminSnapshotAsync()
+      .then(setSnapshot)
+      .catch((error) => {
+        console.warn('[AdminDashboard] Failed to refresh remote snapshot.', error);
+        setSnapshot(loadAdminSnapshot());
+        setSnapshotError('운영상태를 불러오지 못해 브라우저 저장 데이터를 표시합니다.');
+      });
+  };
 
   useEffect(() => {
+    refresh();
     const onStorage = (event: StorageEvent) => {
       if (!event.key || event.key.startsWith('schoolHealthHub.')) refresh();
     };
@@ -50,6 +63,7 @@ export function AdminDashboard() {
         </button>
       </header>
 
+      {snapshotError && <p className="table-description">{snapshotError}</p>}
       <AdminSessionInfo session={snapshot.session} />
       <AdminProgressCards
         studentTotal={studentSummary.total}
@@ -143,4 +157,21 @@ function formatDateTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+
+async function loadAdminSnapshotAsync(): Promise<{
+  session?: HealthCheckSession;
+  state: HealthCheckOperationState;
+  students: HealthCheckStudent[];
+  logs: HealthCheckOperationLog[];
+}> {
+  const session = getActiveSession();
+  const sessionId = session?.id ?? 'admin-dashboard-local-session';
+  const [state, students] = await Promise.all([
+    healthCheckOperationStateRepository.get(sessionId),
+    session ? healthCheckStudentRepository.listBySession(session.id, session.checkType) : Promise.resolve([]),
+  ]);
+  const logs = getOperationLogs(sessionId);
+  return { session, state, students, logs };
 }

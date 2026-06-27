@@ -6,13 +6,13 @@ import { StudentStatusSummary } from '../health-check/StudentStatusSummary';
 import { getHealthCheckLabel } from '../../lib/healthCheck';
 import { getClassesFromStudents, getStudentsBySession, STUDENT_STATUS_LABELS, updateStudentMemo, updateStudentStatus } from '../../lib/roster';
 import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
+import { healthCheckOperationStateRepository } from '../../lib/repositories/HealthCheckOperationStateRepository';
 import { addOperationLog, getOperationLogs } from '../../lib/logs';
 import {
   clearClassMissing,
   generateNoticeMessage,
   getOperationState,
   normalizeOperationClassId,
-  saveOperationState,
   setClassCompleted,
   setClassMissing,
   setCurrentClass,
@@ -45,12 +45,29 @@ export function OperationCenter({
   const [operationLogs, setOperationLogs] = useState(() => getOperationLogs(sessionId));
   const [selectedClass, setSelectedClass] = useState('');
   const [studentError, setStudentError] = useState('');
+  const [operationError, setOperationError] = useState('');
+  const [operationStateLoaded, setOperationStateLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setStudentError('');
-    setOperationState(getOperationState(sessionId));
+    setOperationError('');
+    setOperationStateLoaded(false);
     setOperationLogs(getOperationLogs(sessionId));
+    void healthCheckOperationStateRepository
+      .get(sessionId)
+      .then((loadedState) => {
+        if (cancelled) return;
+        setOperationState(loadedState);
+        setOperationStateLoaded(true);
+      })
+      .catch((error) => {
+        console.warn('[OperationCenter] Failed to load operation state.', error);
+        if (cancelled) return;
+        setOperationState(getOperationState(sessionId));
+        setOperationStateLoaded(true);
+        setOperationError('운영상태를 불러오지 못해 브라우저 저장 데이터를 사용합니다.');
+      });
     void healthCheckStudentRepository
       .listBySession(sessionId, checkType)
       .then((loaded) => {
@@ -72,8 +89,12 @@ export function OperationCenter({
   }, [checkType, sessionId]);
 
   useEffect(() => {
-    saveOperationState(sessionId, operationState);
-  }, [operationState, sessionId]);
+    if (!operationStateLoaded) return;
+    void healthCheckOperationStateRepository.save(operationState).catch((error) => {
+      console.warn('[OperationCenter] Failed to save operation state.', error);
+      setOperationError('운영상태 저장 중 오류가 발생했습니다. 브라우저 저장 데이터로 계속 진행합니다.');
+    });
+  }, [operationState, operationStateLoaded]);
 
   const classIds = useMemo(() => {
     const fromStudents = getClassesFromStudents(students).map(normalizeOperationClassId);
@@ -270,6 +291,7 @@ export function OperationCenter({
         <section className="operation-student-panel">
           <RosterUpload checkType={checkType} sessionId={sessionId} sessionTitle={session ? formatSessionTitle(session) : undefined} students={students} onUpload={handleUpload} />
           {studentError && <p className="table-description">{studentError}</p>}
+          {operationError && <p className="table-description">{operationError}</p>}
           <StudentStatusSummary students={students} />
           <div className="card operation-class-selector-card">
             <ClassSelector students={students} value={selectedClass} onChange={setSelectedClass} />
