@@ -71,15 +71,7 @@ import { HealthCheckSummary } from './components/health-check/HealthCheckSummary
 import { HealthCheckSessionSelector } from './components/health-check/HealthCheckSessionSelector';
 import { createOperationStatus } from './lib/operation';
 import { getHealthCheckLabel, normalizeHealthCheckType, toExamType } from './lib/healthCheck';
-import {
-  createHealthCheckSession,
-  createSessionFromDefaults,
-  deleteHealthCheckSession,
-  getActiveSessionId,
-  getHealthCheckSessions,
-  setActiveSessionId,
-  updateHealthCheckSession,
-} from './lib/sessions';
+import { healthCheckSessionRepository } from './lib/repositories/HealthCheckSessionRepository';
 import type { HealthCheckSession, HealthCheckSessionStatus, HealthCheckType } from './types/healthCheck';
 
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
@@ -99,8 +91,10 @@ export function App() {
   const [entryNotice, setEntryNotice] = useState('');
   const [showCommonHelp, setShowCommonHelp] = useState(false);
   const [validationMessages, setValidationMessages] = useState<string[]>([]);
-  const [sessions, setSessions] = useState<HealthCheckSession[]>(() => getHealthCheckSessions());
-  const [activeSessionIdState, setActiveSessionIdState] = useState(() => getActiveSessionId());
+  const [sessions, setSessions] = useState<HealthCheckSession[]>([]);
+  const [activeSessionIdState, setActiveSessionIdState] = useState('');
+  const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  const [creatingDefaultSession, setCreatingDefaultSession] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -136,26 +130,54 @@ export function App() {
     }));
   };
 
-  const refreshSessions = () => setSessions(getHealthCheckSessions());
+  const refreshSessions = async () => {
+    try {
+      const [nextSessions, activeId] = await Promise.all([
+        healthCheckSessionRepository.list(),
+        healthCheckSessionRepository.getActiveSessionId(),
+      ]);
+      setSessions(nextSessions);
+      setActiveSessionIdState(activeId || nextSessions[0]?.id || '');
+      setSessionsLoaded(true);
+      return nextSessions;
+    } catch (error) {
+      console.warn('[App] Failed to refresh health check sessions.', error);
+      setSessionsLoaded(true);
+      return [];
+    }
+  };
 
   useEffect(() => {
-    if (!data.hasSelectedExamType) return;
+    void refreshSessions();
+  }, []);
+
+  useEffect(() => {
+    if (!data.hasSelectedExamType || !sessionsLoaded || creatingDefaultSession) return;
     if (sessions.length === 0) {
-      const created = createSessionFromDefaults({
-        checkType: data.settings.healthCheckType,
-        date: data.settings.examDate,
-        targetGrades: data.settings.targetGrades,
-        location: data.settings.examVenue,
-      });
-      refreshSessions();
-      setActiveSessionIdState(created.id);
+      setCreatingDefaultSession(true);
+      void (async () => {
+        try {
+          const created = await healthCheckSessionRepository.createFromDefaults({
+            checkType: data.settings.healthCheckType,
+            date: data.settings.examDate,
+            targetGrades: data.settings.targetGrades,
+            location: data.settings.examVenue,
+          });
+          await refreshSessions();
+          setActiveSessionIdState(created.id);
+        } catch (error) {
+          console.warn('[App] Failed to create default health check session.', error);
+        } finally {
+          setCreatingDefaultSession(false);
+        }
+      })();
       return;
     }
     if (!activeSessionIdState && sessions[0]) {
-      setActiveSessionId(sessions[0].id);
+      void healthCheckSessionRepository.setActiveSessionId(sessions[0].id);
       setActiveSessionIdState(sessions[0].id);
     }
-  }, [activeSessionIdState, data.hasSelectedExamType, data.settings.examDate, data.settings.examVenue, data.settings.healthCheckType, data.settings.targetGrades, sessions]);
+  }, [activeSessionIdState, creatingDefaultSession, data.hasSelectedExamType, data.settings.examDate, data.settings.examVenue, data.settings.healthCheckType, data.settings.targetGrades, sessions, sessionsLoaded]);
 
   const manualRows = useMemo(
     () => createManualConfirmRows(data.divisions, data.assignments, data.judgements),
@@ -200,18 +222,18 @@ export function App() {
       : getGuideText(data.settings.examType);
   const mode = getModeCopy(data.settings.examType);
   const checkLabel = getHealthCheckLabel(data.settings.healthCheckType);
-  const startFreshExamType = (checkType: HealthCheckType) => {
+  const startFreshExamType = async (checkType: HealthCheckType) => {
     const fresh = createDefaultData();
     const healthCheckType = normalizeHealthCheckType(checkType);
     const examType = toExamType(healthCheckType);
     const keywordSet = examType === 'tb' ? fresh.keywordSets.tb : fresh.keywordSets.urine;
-    const session = createSessionFromDefaults({
+    const session = await healthCheckSessionRepository.createFromDefaults({
       checkType: healthCheckType,
       date: fresh.settings.examDate,
       targetGrades: fresh.settings.targetGrades,
       location: fresh.settings.examVenue,
     });
-    refreshSessions();
+    await refreshSessions();
     setActiveSessionIdState(session.id);
     setData({
       ...fresh,
@@ -234,7 +256,7 @@ export function App() {
   };
   const selectExamType = (checkType: HealthCheckType) => {
     if (storedInfo.exists && !window.confirm(NEW_SCHEDULE_WARNING)) return;
-    startFreshExamType(checkType);
+    void startFreshExamType(checkType);
   };
   const continueStoredWork = () => {
     const restored = loadAppData({ startAtTypeSelect: false });
@@ -242,6 +264,7 @@ export function App() {
     setActiveTab(getRouteTab() ?? restored.currentView ?? 'dashboard');
     setEntryNotice('');
     setStoredInfo(getStoredAppDataInfo());
+    void refreshSessions();
   };
   const resetStoredData = () => {
     if (!window.confirm(RESET_STORAGE_WARNING)) return;
@@ -251,6 +274,9 @@ export function App() {
     setShowTypeConfirm(false);
     setStoredInfo(getStoredAppDataInfo());
     setEntryNotice('저장 데이터가 초기화되었습니다. 검사 유형을 선택해 새 시간표를 만들어 주세요.');
+    setSessions([]);
+    setActiveSessionIdState('');
+    setSessionsLoaded(true);
   };
   const confirmReselectType = () => {
     setShowTypeConfirm(true);
@@ -262,10 +288,10 @@ export function App() {
   };
   const startNewSchedule = () => {
     if (window.confirm(NEW_SCHEDULE_WARNING)) {
-      startFreshExamType(data.settings.healthCheckType);
+      void startFreshExamType(data.settings.healthCheckType);
     }
   };
-  const createSession = (input: {
+  const createSession = async (input: {
     title: string;
     checkType: HealthCheckType;
     date: string;
@@ -273,31 +299,49 @@ export function App() {
     location: string;
     status: HealthCheckSessionStatus;
   }) => {
-    const session = createHealthCheckSession(input);
-    refreshSessions();
-    setActiveSessionIdState(session.id);
-    applySessionToData(session);
-    return session;
+    try {
+      const session = await healthCheckSessionRepository.create(input);
+      await refreshSessions();
+      setActiveSessionIdState(session.id);
+      applySessionToData(session);
+      return session;
+    } catch (error) {
+      console.warn('[App] Failed to create health check session.', error);
+      return undefined;
+    }
   };
-  const selectSession = (sessionId: string) => {
+  const selectSession = async (sessionId: string) => {
     const session = sessions.find((item) => item.id === sessionId);
     if (!session) return;
-    setActiveSessionId(session.id);
-    setActiveSessionIdState(session.id);
-    applySessionToData(session);
+    try {
+      await healthCheckSessionRepository.setActiveSessionId(session.id);
+      setActiveSessionIdState(session.id);
+      applySessionToData(session);
+    } catch (error) {
+      console.warn('[App] Failed to select health check session.', error);
+    }
   };
-  const removeSession = (sessionId: string) => {
+  const removeSession = async (sessionId: string) => {
     if (!window.confirm('이 검진 세션을 삭제하시겠습니까? 세션 기반 데이터 연결은 다음 단계에서 더 정리됩니다.')) return;
-    const next = deleteHealthCheckSession(sessionId);
-    setSessions(next);
-    const nextActive = next[0];
-    setActiveSessionIdState(nextActive?.id ?? '');
-    if (nextActive) applySessionToData(nextActive);
+    try {
+      const next = await healthCheckSessionRepository.delete(sessionId);
+      setSessions(next);
+      const activeId = await healthCheckSessionRepository.getActiveSessionId();
+      const nextActive = next.find((session) => session.id === activeId) ?? next[0];
+      setActiveSessionIdState(nextActive?.id ?? '');
+      if (nextActive) applySessionToData(nextActive);
+    } catch (error) {
+      console.warn('[App] Failed to delete health check session.', error);
+    }
   };
-  const changeSessionStatus = (sessionId: string, status: HealthCheckSessionStatus) => {
-    const updated = updateHealthCheckSession(sessionId, { status });
-    refreshSessions();
-    if (updated && sessionId === activeSession?.id) applySessionToData(updated);
+  const changeSessionStatus = async (sessionId: string, status: HealthCheckSessionStatus) => {
+    try {
+      const updated = await healthCheckSessionRepository.update(sessionId, { status });
+      await refreshSessions();
+      if (updated && sessionId === activeSession?.id) applySessionToData(updated);
+    } catch (error) {
+      console.warn('[App] Failed to update health check session.', error);
+    }
   };
   const saveCurrentTemplate = () => {
     const defaultName = `${data.settings.examDate.slice(0, 4) || new Date().getFullYear()} ${mode.shortLabel}`;

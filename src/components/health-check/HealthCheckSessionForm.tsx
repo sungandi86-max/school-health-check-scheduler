@@ -21,7 +21,7 @@ export function HealthCheckSessionForm({
     targetGrades: string[];
     location: string;
     status: HealthCheckSessionStatus;
-  }) => HealthCheckSession | void;
+  }) => HealthCheckSession | void | Promise<HealthCheckSession | void | undefined>;
 }) {
   const [title, setTitle] = useState('');
   const [checkType, setCheckType] = useState<HealthCheckType>(defaultCheckType);

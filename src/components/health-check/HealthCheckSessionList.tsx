@@ -12,9 +12,9 @@ export function HealthCheckSessionList({
 }: {
   sessions: HealthCheckSession[];
   activeSessionId: string;
-  onSelect: (sessionId: string) => void;
-  onDelete: (sessionId: string) => void;
-  onStatusChange: (sessionId: string, status: HealthCheckSessionStatus) => void;
+  onSelect: (sessionId: string) => void | Promise<void>;
+  onDelete: (sessionId: string) => void | Promise<void>;
+  onStatusChange: (sessionId: string, status: HealthCheckSessionStatus) => void | Promise<void>;
 }) {
   return (
     <div className="session-list">

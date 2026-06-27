@@ -23,9 +23,9 @@ export function HealthCheckSessionSelector({
   defaultGrades: string[];
   defaultLocation: string;
   onCreate: Parameters<typeof HealthCheckSessionForm>[0]['onSubmit'];
-  onSelect: (sessionId: string) => void;
-  onDelete: (sessionId: string) => void;
-  onStatusChange: (sessionId: string, status: HealthCheckSessionStatus) => void;
+  onSelect: (sessionId: string) => void | Promise<void>;
+  onDelete: (sessionId: string) => void | Promise<void>;
+  onStatusChange: (sessionId: string, status: HealthCheckSessionStatus) => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
 
