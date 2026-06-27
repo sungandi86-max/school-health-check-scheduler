@@ -1,4 +1,4 @@
-import { ClipboardCopy } from 'lucide-react';
+﻿import { ClipboardCopy } from 'lucide-react';
 import { useState } from 'react';
 import { copyToClipboard } from '../../lib/share';
 

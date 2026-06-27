@@ -1,17 +1,19 @@
-import { RefreshCcw } from 'lucide-react';
+﻿import { RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { getActiveSession } from '../../lib/sessions';
+import { useHealthCheckRealtime } from '../../hooks/useHealthCheckRealtime';
 import { generateNoticeMessage, getOperationState } from '../../lib/operation';
-import { getStudentsBySession } from '../../lib/roster';
-import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
+import { canUseSupabaseRealtime } from '../../lib/realtime/realtime';
 import { healthCheckOperationStateRepository } from '../../lib/repositories/HealthCheckOperationStateRepository';
+import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
+import { getStudentsBySession } from '../../lib/roster';
+import { getActiveSession } from '../../lib/sessions';
+import { getStorageMode } from '../../lib/storage/storageProvider';
 import type { HealthCheckOperationState, HealthCheckSession, HealthCheckStudent } from '../../types/healthCheck';
+import { ShareSecurityNotice } from '../share/ShareLinkPanel';
 import { TeacherCurrentStatusCard } from './TeacherCurrentStatusCard';
 import { TeacherMissingClassAlert } from './TeacherMissingClassAlert';
 import { TeacherNoticeMessage } from './TeacherNoticeMessage';
 import { TeacherSessionInfo } from './TeacherSessionInfo';
-import { ShareSecurityNotice } from '../share/ShareLinkPanel';
-import { useHealthCheckRealtime } from '../../hooks/useHealthCheckRealtime';
 
 export function TeacherDashboard() {
   const [snapshot, setSnapshot] = useState(() => loadTeacherSnapshot());
@@ -55,8 +57,8 @@ export function TeacherDashboard() {
     <section className="teacher-dashboard-page">
       <header className="teacher-dashboard-header">
         <div>
-          <p className="eyebrow">교사용 현황판</p>
-          <h1>학교 건강검진 실시간 현황</h1>
+          <p className="eyebrow">교사용 실시간 현황</p>
+          <h1>학생건강검진 안내 화면</h1>
         </div>
         <button type="button" onClick={refresh}>
           <RefreshCcw size={16} />
@@ -65,15 +67,16 @@ export function TeacherDashboard() {
       </header>
 
       {snapshotError && <p className="table-description">{snapshotError}</p>}
-      <TeacherSessionInfo session={snapshot.session} />
+      <TeacherRealtimeStatus updatedAt={snapshot.state.updatedAt} />
       <TeacherCurrentStatusCard state={snapshot.state} />
       <TeacherMissingClassAlert state={snapshot.state} />
+      <TeacherSessionInfo session={snapshot.session} />
       <TeacherNoticeMessage message={notice} />
 
       {classStats.length > 0 && (
         <section className="teacher-class-summary">
-          <p className="eyebrow">명렬표 기준</p>
-          <h2>학급별 학생 처리 현황</h2>
+          <p className="eyebrow">학급 단위 처리 현황</p>
+          <h2>학생 이름은 표시하지 않습니다</h2>
           <div>
             {classStats.map((item) => (
               <span key={item.className}>{item.className} 완료 {item.completed}명 / 미검 {item.incomplete}명</span>
@@ -84,9 +87,21 @@ export function TeacherDashboard() {
 
       <footer className="teacher-dashboard-footer">
         <p>이 화면은 보건실에서 입력한 현황을 기준으로 표시됩니다.</p>
-        <p>방송 안내를 최소화하기 위한 교사용 확인 화면입니다.</p>
+        <p>링크는 교직원 내부 안내용입니다.</p>
+        <p>학생 개인정보 보호를 위해 외부 공유를 금지합니다.</p>
         <ShareSecurityNotice />
       </footer>
+    </section>
+  );
+}
+
+function TeacherRealtimeStatus({ updatedAt }: { updatedAt: string }) {
+  const isSupabaseMode = getStorageMode() === 'supabase';
+  const realtimeReady = canUseSupabaseRealtime();
+  return (
+    <section className={`teacher-realtime-status ${realtimeReady ? 'connected' : 'local'}`}>
+      <strong>{realtimeReady ? '실시간 연결됨' : '이 기기 기준 데이터'}</strong>
+      <span>{isSupabaseMode ? `마지막 업데이트: ${formatTime(updatedAt)}` : '다른 기기와 실시간 공유하려면 Supabase 설정이 필요합니다.'}</span>
     </section>
   );
 }
@@ -116,6 +131,11 @@ function createClassStats(students: HealthCheckStudent[]) {
   });
 }
 
+function formatTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '--:--';
+  return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+}
 
 async function loadTeacherSnapshotAsync(): Promise<{
   session?: HealthCheckSession;
