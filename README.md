@@ -136,10 +136,12 @@ npm run build
 - [Product Roadmap](docs/PRODUCT_ROADMAP.md)
 - [Project Board](docs/PROJECT_BOARD.md)
 - [Sprint Guide](docs/SPRINT_GUIDE.md)
+- [GitHub Workflow](docs/GITHUB_WORKFLOW.md)
 - [Release Plan](docs/RELEASE_PLAN.md)
 - [Changelog](docs/CHANGELOG.md)
 - [Supabase 설정 안내](docs/SUPABASE_SETUP.md)
 - [데이터베이스 스키마](docs/DATABASE_SCHEMA.md)
 - [기존 로드맵](docs/ROADMAP.md)
 - [v3.0.0 릴리스 노트 초안](docs/RELEASE_NOTES_v3.0.0.md)
+
 
