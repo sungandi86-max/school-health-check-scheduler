@@ -11,6 +11,7 @@ import { TeacherMissingClassAlert } from './TeacherMissingClassAlert';
 import { TeacherNoticeMessage } from './TeacherNoticeMessage';
 import { TeacherSessionInfo } from './TeacherSessionInfo';
 import { ShareSecurityNotice } from '../share/ShareLinkPanel';
+import { useHealthCheckRealtime } from '../../hooks/useHealthCheckRealtime';
 
 export function TeacherDashboard() {
   const [snapshot, setSnapshot] = useState(() => loadTeacherSnapshot());
@@ -25,6 +26,9 @@ export function TeacherDashboard() {
         setSnapshotError('운영상태를 불러오지 못해 브라우저 저장 데이터를 표시합니다.');
       });
   };
+
+  const realtimeSessionId = snapshot.session?.id ?? 'teacher-dashboard-local-session';
+  useHealthCheckRealtime(realtimeSessionId, refresh);
 
   useEffect(() => {
     refresh();

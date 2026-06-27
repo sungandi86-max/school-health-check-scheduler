@@ -15,6 +15,7 @@ import { AdminRecentLogs } from './AdminRecentLogs';
 import { AdminSessionInfo } from './AdminSessionInfo';
 import { AdminStudentStatusSummary } from './AdminStudentStatusSummary';
 import { ShareSecurityNotice } from '../share/ShareLinkPanel';
+import { useHealthCheckRealtime } from '../../hooks/useHealthCheckRealtime';
 
 export function AdminDashboard() {
   const [snapshot, setSnapshot] = useState(() => loadAdminSnapshot());
@@ -29,6 +30,9 @@ export function AdminDashboard() {
         setSnapshotError('운영상태를 불러오지 못해 브라우저 저장 데이터를 표시합니다.');
       });
   };
+
+  const realtimeSessionId = snapshot.session?.id ?? 'admin-dashboard-local-session';
+  useHealthCheckRealtime(realtimeSessionId, refresh);
 
   useEffect(() => {
     refresh();

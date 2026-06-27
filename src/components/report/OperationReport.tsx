@@ -21,6 +21,7 @@ import { ReportLogSummary } from './ReportLogSummary';
 import { ReportSessionInfo } from './ReportSessionInfo';
 import { ReportStudentSummary } from './ReportStudentSummary';
 import { ShareSecurityNotice } from '../share/ShareLinkPanel';
+import { useHealthCheckRealtime } from '../../hooks/useHealthCheckRealtime';
 
 export function OperationReport() {
   const [snapshot, setSnapshot] = useState(() => loadReportSnapshot());
@@ -35,6 +36,9 @@ export function OperationReport() {
         setSnapshotError('운영 로그를 불러오지 못해 브라우저 저장 데이터를 표시합니다.');
       });
   };
+
+  const realtimeSessionId = snapshot.session?.id ?? 'report-local-session';
+  useHealthCheckRealtime(realtimeSessionId, refresh);
 
   useEffect(() => {
     refresh();

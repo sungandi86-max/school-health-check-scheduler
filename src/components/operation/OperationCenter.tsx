@@ -30,6 +30,7 @@ import { OperationMemo } from './OperationMemo';
 import { OperationLogPanel } from './OperationLogPanel';
 import { ShareLinkPanel } from '../share/ShareLinkPanel';
 import { ShareMessageBox } from '../share/ShareMessageBox';
+import { useHealthCheckRealtime } from '../../hooks/useHealthCheckRealtime';
 
 export function OperationCenter({
   checkType,
@@ -109,6 +110,23 @@ export function OperationCenter({
       setOperationError('운영상태 저장 중 오류가 발생했습니다. 브라우저 저장 데이터로 계속 진행합니다.');
     });
   }, [operationState, operationStateLoaded]);
+
+  useHealthCheckRealtime(sessionId, () => {
+    void Promise.all([
+      healthCheckOperationStateRepository.get(sessionId),
+      healthCheckOperationLogRepository.listBySession(sessionId),
+      healthCheckStudentRepository.listBySession(sessionId, checkType),
+    ])
+      .then(([nextState, nextLogs, nextStudents]) => {
+        setOperationState(nextState);
+        setOperationLogs(nextLogs);
+        setStudents(nextStudents);
+        setSelectedClass((prev) => prev || nextStudents[0]?.className || '');
+      })
+      .catch((error) => {
+        console.warn('[OperationCenter] Failed to refresh realtime data.', error);
+      });
+  });
 
   const classIds = useMemo(() => {
     const fromStudents = getClassesFromStudents(students).map(normalizeOperationClassId);
