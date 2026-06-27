@@ -66,13 +66,16 @@ import { TeacherDashboard } from './components/teacher-dashboard/TeacherDashboar
 import { AdminDashboard } from './components/admin-dashboard/AdminDashboard';
 import { OperationReport } from './components/report/OperationReport';
 import { StorageSettingsPanel } from './components/settings/StorageSettingsPanel';
+import { SchoolSettingsPanel } from './components/settings/SchoolSettingsPanel';
 import { HealthCheckTypeSelector } from './components/health-check/HealthCheckTypeSelector';
 import { HealthCheckSummary } from './components/health-check/HealthCheckSummary';
 import { HealthCheckSessionSelector } from './components/health-check/HealthCheckSessionSelector';
 import { createOperationStatus } from './lib/operation';
 import { getHealthCheckLabel, normalizeHealthCheckType, toExamType } from './lib/healthCheck';
 import { healthCheckSessionRepository } from './lib/repositories/HealthCheckSessionRepository';
+import { loadSchoolSettings, resetSchoolSettings, saveSchoolSettings } from './lib/settings';
 import type { HealthCheckSession, HealthCheckSessionStatus, HealthCheckType } from './types/healthCheck';
+import type { SchoolSettings } from './types/settings';
 
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
 const CATEGORIES: LocationCategory[] = ['일반교실', '특별실', '선택과목 장소', '체육시설', '수동확인'];
@@ -95,6 +98,7 @@ export function App() {
   const [activeSessionIdState, setActiveSessionIdState] = useState('');
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [creatingDefaultSession, setCreatingDefaultSession] = useState(false);
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(() => loadSchoolSettings());
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -161,7 +165,7 @@ export function App() {
             checkType: data.settings.healthCheckType,
             date: data.settings.examDate,
             targetGrades: data.settings.targetGrades,
-            location: data.settings.examVenue,
+            location: data.settings.examVenue || schoolSettings.defaultLocation,
           });
           await refreshSessions();
           setActiveSessionIdState(created.id);
@@ -177,7 +181,7 @@ export function App() {
       void healthCheckSessionRepository.setActiveSessionId(sessions[0].id);
       setActiveSessionIdState(sessions[0].id);
     }
-  }, [activeSessionIdState, creatingDefaultSession, data.hasSelectedExamType, data.settings.examDate, data.settings.examVenue, data.settings.healthCheckType, data.settings.targetGrades, sessions, sessionsLoaded]);
+  }, [activeSessionIdState, creatingDefaultSession, data.hasSelectedExamType, data.settings.examDate, data.settings.examVenue, data.settings.healthCheckType, data.settings.targetGrades, schoolSettings.defaultLocation, sessions, sessionsLoaded]);
 
   const manualRows = useMemo(
     () => createManualConfirmRows(data.divisions, data.assignments, data.judgements),
@@ -216,12 +220,30 @@ export function App() {
   }, [data, manualRows.length]);
 
   const setSettings = (settings: ExamSettings) => setData((prev) => ({ ...prev, settings, needsReschedule: true }));
-  const guideText =
+  const baseGuideText =
     data.settings.examType === 'tb'
       ? `${getGuideText(data.settings.examType)}\n${tbGradeTimeGuideSentence(data.settings)}`
       : getGuideText(data.settings.examType);
+  const guideText = [baseGuideText, schoolSettings.defaultNoticeMessage].filter(Boolean).join('\n');
   const mode = getModeCopy(data.settings.examType);
   const checkLabel = getHealthCheckLabel(data.settings.healthCheckType);
+  const applySchoolDefaultsToExamSettings = (settings: ExamSettings, source = schoolSettings): ExamSettings => ({
+    ...settings,
+    startTime: source.defaultStartTime || settings.startTime,
+    endTime: source.defaultEndTime || settings.endTime,
+    travelMinutes: source.defaultMoveMinutes,
+    examVenue: source.defaultLocation || settings.examVenue,
+  });
+  const saveSchoolSettingsFromPanel = (nextSettings: SchoolSettings) => {
+    const saved = saveSchoolSettings(nextSettings);
+    setSchoolSettings(saved);
+    setData((prev) => ({ ...prev, settings: applySchoolDefaultsToExamSettings(prev.settings, saved), needsReschedule: true }));
+  };
+  const resetSchoolSettingsFromPanel = () => {
+    const nextSettings = resetSchoolSettings();
+    setSchoolSettings(nextSettings);
+    setData((prev) => ({ ...prev, settings: applySchoolDefaultsToExamSettings(prev.settings, nextSettings), needsReschedule: true }));
+  };
   const startFreshExamType = async (checkType: HealthCheckType) => {
     const fresh = createDefaultData();
     const healthCheckType = normalizeHealthCheckType(checkType);
@@ -231,7 +253,7 @@ export function App() {
       checkType: healthCheckType,
       date: fresh.settings.examDate,
       targetGrades: fresh.settings.targetGrades,
-      location: fresh.settings.examVenue,
+      location: schoolSettings.defaultLocation || fresh.settings.examVenue,
     });
     await refreshSessions();
     setActiveSessionIdState(session.id);
@@ -247,6 +269,10 @@ export function App() {
         operationMode: examType === 'tb' ? 'move' : 'visit',
         blockedKeywords: keywordSet.blockedKeywords,
         cautionKeywords: keywordSet.cautionKeywords,
+        startTime: schoolSettings.defaultStartTime || fresh.settings.startTime,
+        endTime: schoolSettings.defaultEndTime || fresh.settings.endTime,
+        travelMinutes: schoolSettings.defaultMoveMinutes,
+        examVenue: schoolSettings.defaultLocation || fresh.settings.examVenue,
       },
       activeTemplateId: '',
       hasSelectedExamType: true,
@@ -490,6 +516,7 @@ export function App() {
             ['admin-dashboard', '교무실 현황판'],
             ['report', '운영 보고서'],
             ['settings', '검사 조건'],
+            ['school-settings', '학교 설정'],
             ['locations', mode.unitMenu],
             ['timetable', data.settings.examType === 'tb' ? '학급별 검진 순서 입력' : '시간표 입력'],
             ['divisions', data.settings.examType === 'tb' ? '분반·혼합수업 참고자료' : '분반 참고'],
@@ -541,7 +568,7 @@ export function App() {
           defaultCheckType={data.settings.healthCheckType}
           defaultDate={data.settings.examDate}
           defaultGrades={data.settings.targetGrades}
-          defaultLocation={data.settings.examVenue}
+          defaultLocation={data.settings.examVenue || schoolSettings.defaultLocation}
           onCreate={createSession}
           onSelect={selectSession}
           onDelete={removeSession}
@@ -582,6 +609,7 @@ export function App() {
           />
         )}
         {activeTab === 'settings' && <SettingsPanel data={data} setData={setData} settings={data.settings} setSettings={setSettings} />}
+        {activeTab === 'school-settings' && <SchoolSettingsPanel settings={schoolSettings} onSave={saveSchoolSettingsFromPanel} onReset={resetSchoolSettingsFromPanel} />}
         {activeTab === 'locations' && <LocationsPanel data={data} setData={setData} mode={mode} />}
         {activeTab === 'timetable' && <TimetablePanel data={data} setData={setData} resetExamples={resetExamples} />}
         {activeTab === 'divisions' && <DivisionsPanel data={data} setData={setData} />}

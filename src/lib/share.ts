@@ -1,5 +1,6 @@
 ﻿import type { HealthCheckSession } from '../types/healthCheck';
 import { getHealthCheckLabel } from './healthCheck';
+import { loadSchoolSettings } from './settings';
 
 export function buildTeacherDashboardUrl(origin = getCurrentOrigin()) {
   return `${origin}/teacher-dashboard`;
@@ -20,14 +21,18 @@ export function buildLiroSchoolShareMessage({
   session?: HealthCheckSession;
   teacherDashboardUrl?: string;
 } = {}) {
+  const schoolSettings = loadSchoolSettings();
+  const location = session?.location || schoolSettings.defaultLocation;
   const detailLines = [
+    `학교: ${schoolSettings.schoolName}`,
     session ? `검진 종류: ${getHealthCheckLabel(session.checkType)}` : '',
     session?.date ? `검진일: ${session.date}` : '',
-    session?.location ? `검진 장소: ${session.location}` : '',
+    location ? `검진 장소: ${location}` : '',
+    schoolSettings.contactInfo ? `문의: ${schoolSettings.contactInfo}` : '',
   ].filter(Boolean);
 
   return [
-    '금일 학생건강검진이 진행됩니다.',
+    `${schoolSettings.schoolName} 학생건강검진이 진행됩니다.`,
     '',
     ...detailLines,
     detailLines.length ? '' : '',
@@ -38,6 +43,7 @@ export function buildLiroSchoolShareMessage({
     '실시간 현황 링크:',
     teacherDashboardUrl,
     '',
+    schoolSettings.defaultNoticeMessage ? `※ ${schoolSettings.defaultNoticeMessage}` : '',
     '※ 방송 안내를 최소화하기 위한 교사용 확인 화면입니다.',
     '※ 학생 개인정보가 포함될 수 있으므로 교직원 내부에서만 사용해 주세요.',
   ].filter((line, index, lines) => line || lines[index - 1] !== '').join('\n');

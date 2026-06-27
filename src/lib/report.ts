@@ -3,6 +3,7 @@ import { getHealthCheckLabel } from './healthCheck';
 import { formatOperationLogMessage } from './logs';
 import { normalizeOperationClassId } from './operation';
 import { getStudentSummary } from './roster';
+import { loadSchoolSettings } from './settings';
 import { storageAdapter } from './storage/storageProvider';
 import { getReportNotesStorageKey } from './storage/storageKeys';
 
@@ -83,10 +84,12 @@ export function buildOperationReportSummary({
 
 export function buildAdminReportText(summary: OperationReportSummary) {
   const session = summary.session;
-  const dateText = session?.date ? formatReportDate(session.date) : '검진일 미지정';
+  const schoolSettings = loadSchoolSettings();
+  const dateText = session?.date ? formatReportDate(session.date) : '검진일 미입력';
   const title = session?.title || '선택된 검진';
   const checkType = session ? getHealthCheckLabel(session.checkType) : '건강검진';
-  const targetGrades = session?.targetGrades.length ? `${session.targetGrades.join(', ')}학년` : '대상 학년 미지정';
+  const targetGrades = session?.targetGrades.length ? `${session.targetGrades.join(', ')}학년` : '대상 학년 미입력';
+  const location = session?.location || schoolSettings.defaultLocation || '미입력';
   const logHighlights = summary.logs
     .filter((log) => ['classMissing', 'delayUpdated', 'manualNote', 'studentStatusChanged'].includes(log.type))
     .slice()
@@ -95,18 +98,19 @@ export function buildAdminReportText(summary: OperationReportSummary) {
     .map(formatOperationLogMessage);
 
   return [
-    `${dateText} 실시한 ${title} 운영 결과입니다.`,
+    `${schoolSettings.schoolName} ${dateText} ${title} 운영 결과입니다.`,
     '',
-    `검사 종류는 ${checkType}이며, 대상은 ${targetGrades}, 장소는 ${session?.location || '미지정'}입니다.`,
+    `검진 종류는 ${checkType}이며, 대상은 ${targetGrades}, 장소는 ${location}입니다.`,
+    schoolSettings.defaultHealthTeacherName ? `담당 보건교사: ${schoolSettings.defaultHealthTeacherName}` : '',
+    schoolSettings.contactInfo ? `문의 연락처: ${schoolSettings.contactInfo}` : '',
     `전체 대상자는 ${summary.student.total}명이며, 검진 완료자는 ${summary.student.completed}명, 미검자는 ${summary.student.incomplete}명입니다.`,
-    `운영 중 미도착 학급 ${summary.class.missingOccurred}개, 지연 ${summary.class.delayedMinutes}분이 발생하였습니다.`,
+    `운영 중 미도착 학급 ${summary.class.missingOccurred}개, 지연 ${summary.class.delayedMinutes}분이 기록되었습니다.`,
     '',
     logHighlights.length ? `주요 운영 기록:\n${logHighlights.map((item) => `- ${item}`).join('\n')}` : '주요 운영 기록은 아직 없습니다.',
     '',
     summary.notes ? `개선 필요사항:\n${summary.notes}` : '개선 필요사항은 추후 입력 예정입니다.',
-  ].join('\n');
+  ].filter((line, index, lines) => line || lines[index - 1] !== '').join('\n');
 }
-
 export async function copyTextToClipboard(text: string) {
   await navigator.clipboard.writeText(text);
 }

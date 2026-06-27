@@ -3607,3 +3607,39 @@ button.ghost {
 .access-notice.readonly {
   border-left: 5px solid #587084;
 }
+
+
+.school-name-line {
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0;
+  margin: 0 0 4px;
+}
+
+.school-settings-panel {
+  max-width: 980px;
+}
+
+.school-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.school-settings-grid .wide {
+  grid-column: 1 / -1;
+}
+
+.school-settings-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .school-settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
