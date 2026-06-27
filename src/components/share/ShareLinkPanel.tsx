@@ -17,19 +17,19 @@ export function ShareLinkPanel({ session }: { session?: HealthCheckSession }) {
       <div className="share-role-grid">
         <ShareLinkCard
           title="보건실 운영센터"
-          description="입력, 수정, 학생 체크, 운영 상태 변경, 로그 기록을 진행하는 내부 화면입니다."
+          description="입력, 수정, 학생 체크, 운영 상태 변경, 로그 기록을 진행하는 내부 화면입니다. 보건교사용 링크는 외부 공유 금지입니다."
           urlLabel="현재 화면"
         />
         <ShareLinkCard
           title="교사용 현황판"
-          description="수업 중 모바일로 확인하는 화면입니다. 지금 이동이 필요한 학급과 안내 문구를 우선 표시합니다."
+          description="수업 중 학생 이동 안내용 보기 전용 링크입니다. 학생 이름 전체 목록은 표시하지 않습니다."
           urlLabel={teacherUrl}
           copyText={teacherUrl}
           copyLabel="교사용 링크 복사"
         />
         <ShareLinkCard
           title="교무실 현황판"
-          description="교무실 또는 관리자 PC에서 전체 진행 상황과 최근 로그를 확인하는 화면입니다."
+          description="교무실 또는 관리자 PC에서 전체 진행률, 미검 수, 최근 로그를 확인하는 보기 전용 링크입니다."
           urlLabel={adminUrl}
           copyText={adminUrl}
           copyLabel="교무실 현황판 링크 복사"

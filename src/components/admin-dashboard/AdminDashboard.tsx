@@ -16,6 +16,8 @@ import { AdminSessionInfo } from './AdminSessionInfo';
 import { AdminStudentStatusSummary } from './AdminStudentStatusSummary';
 import { ShareSecurityNotice } from '../share/ShareLinkPanel';
 import { useHealthCheckRealtime } from '../../hooks/useHealthCheckRealtime';
+import { AccessNotice } from '../common/AccessNotice';
+import { RoleBadge } from '../common/RoleBadge';
 
 export function AdminDashboard() {
   const [snapshot, setSnapshot] = useState(() => loadAdminSnapshot());
@@ -59,6 +61,7 @@ export function AdminDashboard() {
     <section className="admin-dashboard-page">
       <header className="admin-dashboard-header">
         <div>
+          <div className="role-header-line"><RoleBadge role="admin" /></div>
           <p className="eyebrow">School Health Hub</p>
           <h1>학생건강검진 전체 현황</h1>
         </div>
@@ -69,6 +72,7 @@ export function AdminDashboard() {
       </header>
 
       {snapshotError && <p className="table-description">{snapshotError}</p>}
+      <AccessNotice role="admin" />
       <AdminSessionInfo session={snapshot.session} />
       <AdminProgressCards
         studentTotal={studentSummary.total}

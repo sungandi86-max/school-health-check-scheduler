@@ -22,6 +22,8 @@ import { ReportSessionInfo } from './ReportSessionInfo';
 import { ReportStudentSummary } from './ReportStudentSummary';
 import { ShareSecurityNotice } from '../share/ShareLinkPanel';
 import { useHealthCheckRealtime } from '../../hooks/useHealthCheckRealtime';
+import { AccessNotice } from '../common/AccessNotice';
+import { RoleBadge } from '../common/RoleBadge';
 
 export function OperationReport() {
   const [snapshot, setSnapshot] = useState(() => loadReportSnapshot());
@@ -76,6 +78,7 @@ export function OperationReport() {
     <section className="operation-report-page">
       <header className="operation-report-header">
         <div>
+          <div className="role-header-line"><RoleBadge role="viewer" /></div>
           <p className="eyebrow">운영 보고서</p>
           <h1>학생건강검진 운영 보고서 요약</h1>
         </div>
@@ -86,6 +89,7 @@ export function OperationReport() {
       </header>
 
       {snapshotError && <p className="table-description">{snapshotError}</p>}
+      <AccessNotice role="viewer" />
       <ReportSessionInfo session={summary.session} />
       <div className="report-two-column">
         <ReportStudentSummary summary={summary.student} />

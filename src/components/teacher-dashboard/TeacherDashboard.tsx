@@ -10,6 +10,8 @@ import { getActiveSession } from '../../lib/sessions';
 import { getStorageMode } from '../../lib/storage/storageProvider';
 import type { HealthCheckOperationState, HealthCheckSession, HealthCheckStudent } from '../../types/healthCheck';
 import { ShareSecurityNotice } from '../share/ShareLinkPanel';
+import { AccessNotice } from '../common/AccessNotice';
+import { RoleBadge } from '../common/RoleBadge';
 import { TeacherCurrentStatusCard } from './TeacherCurrentStatusCard';
 import { TeacherMissingClassAlert } from './TeacherMissingClassAlert';
 import { TeacherNoticeMessage } from './TeacherNoticeMessage';
@@ -57,6 +59,7 @@ export function TeacherDashboard() {
     <section className="teacher-dashboard-page">
       <header className="teacher-dashboard-header">
         <div>
+          <div className="role-header-line"><RoleBadge role="teacher" /></div>
           <p className="eyebrow">교사용 실시간 현황</p>
           <h1>학생건강검진 안내 화면</h1>
         </div>
@@ -67,6 +70,7 @@ export function TeacherDashboard() {
       </header>
 
       {snapshotError && <p className="table-description">{snapshotError}</p>}
+      <AccessNotice role="teacher" />
       <TeacherRealtimeStatus updatedAt={snapshot.state.updatedAt} />
       <TeacherCurrentStatusCard state={snapshot.state} />
       <TeacherMissingClassAlert state={snapshot.state} />

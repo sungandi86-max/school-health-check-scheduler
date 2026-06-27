@@ -31,6 +31,8 @@ import { OperationLogPanel } from './OperationLogPanel';
 import { ShareLinkPanel } from '../share/ShareLinkPanel';
 import { ShareMessageBox } from '../share/ShareMessageBox';
 import { useHealthCheckRealtime } from '../../hooks/useHealthCheckRealtime';
+import { AccessNotice } from '../common/AccessNotice';
+import { RoleBadge } from '../common/RoleBadge';
 
 export function OperationCenter({
   checkType,
@@ -278,9 +280,12 @@ export function OperationCenter({
   return (
     <section className="stack operation-center">
       <div className="operation-header">
+        <div className="role-header-line"><RoleBadge role="healthTeacher" /></div>
         <p className="eyebrow">검진 운영</p>
         <h2>학교 건강검진 운영센터</h2>
       </div>
+
+      <AccessNotice role="healthTeacher" />
 
       <section className="card operation-session-card">
         <HealthCheckSessionBadge session={session} />

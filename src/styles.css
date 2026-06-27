@@ -3548,3 +3548,62 @@ button.ghost {
     grid-template-columns: 1fr;
   }
 }
+
+.role-header-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border: 1px solid #9bd7ba;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  padding: 6px 10px;
+}
+
+.role-badge.role-healthTeacher {
+  border-color: #59b8ad;
+  background: #e8f7f5;
+  color: #0d5b55;
+}
+
+.role-badge.role-admin,
+.role-badge.role-viewer {
+  border-color: #b8c7d3;
+  background: #f4f8fb;
+  color: #29465a;
+}
+
+.access-notice {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #f7fcfb;
+  color: #29465a;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.55;
+  padding: 12px 14px;
+}
+
+.access-notice strong {
+  color: #0d2a3f;
+}
+
+.access-notice.editable {
+  border-left: 5px solid #0f766e;
+}
+
+.access-notice.readonly {
+  border-left: 5px solid #587084;
+}
