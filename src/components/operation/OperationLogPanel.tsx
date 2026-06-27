@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import type { HealthCheckOperationLog } from '../../types/healthCheck';
 import { formatOperationLogMessage } from '../../lib/logs';
 import { ManualLogInput } from './ManualLogInput';
@@ -21,7 +21,7 @@ export function OperationLogPanel({
           <h2>검진 운영 기록</h2>
         </div>
         {logs.length > 10 && (
-          <button type="button" onClick={() => setExpanded((value) => !value)}>
+          <button type="button" aria-label={expanded ? "최근 운영 로그 10개만 보기" : "전체 운영 로그 보기"} onClick={() => setExpanded((value) => !value)}>
             {expanded ? '최근 10개만' : '전체 로그 보기'}
           </button>
         )}
@@ -37,3 +37,4 @@ export function OperationLogPanel({
     </section>
   );
 }
+

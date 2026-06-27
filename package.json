@@ -9,7 +9,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "check:urine-room-rules": "node scripts/check-urine-room-rules.mjs",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "tsc -b --pretty false"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

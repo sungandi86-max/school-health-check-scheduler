@@ -63,7 +63,7 @@ export function TeacherDashboard() {
           <p className="eyebrow">교사용 실시간 현황</p>
           <h1>학생건강검진 안내 화면</h1>
         </div>
-        <button type="button" onClick={refresh}>
+        <button type="button" aria-label="교사용 현황 새로고침" onClick={refresh}>
           <RefreshCcw size={16} />
           새로고침
         </button>
@@ -154,3 +154,4 @@ async function loadTeacherSnapshotAsync(): Promise<{
   ]);
   return { session, state, students };
 }
+

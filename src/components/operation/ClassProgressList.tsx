@@ -1,4 +1,4 @@
-import type { HealthCheckOperationState, HealthCheckStudent } from '../../types/healthCheck';
+﻿import type { HealthCheckOperationState, HealthCheckStudent } from '../../types/healthCheck';
 import { getClassStudentStats } from '../../lib/operation';
 
 export function ClassProgressList({
@@ -19,29 +19,37 @@ export function ClassProgressList({
   onClearMissing: (classId: string) => void;
 }) {
   return (
-    <section className="card class-progress-card">
+    <section className="card class-progress-card" aria-labelledby="class-progress-title">
       <div className="section-title compact">
-        <h2>학급 진행 관리</h2>
+        <h2 id="class-progress-title">학급 진행 관리</h2>
       </div>
-      <div className="class-progress-list">
+      <div className="class-progress-list" role="list" aria-label="학급별 검진 진행 상태">
         {classIds.length === 0 && <p className="empty">명렬표를 업로드하면 학급 목록이 표시됩니다.</p>}
         {classIds.map((classId) => {
           const status = getClassStatus(classId, state);
           const stats = getClassStudentStats(students, classId);
           return (
-            <article className={`class-progress-row status-${status}`} key={classId}>
+            <article className={`class-progress-row status-${status}`} key={classId} role="listitem">
               <div>
                 <strong>{classId}</strong>
-                <span>{CLASS_STATUS_LABELS[status]}</span>
+                <span>상태: {CLASS_STATUS_LABELS[status]}</span>
                 {stats.hasRoster && <small>완료 {stats.completed}명 / 미검 {stats.incomplete}명</small>}
               </div>
-              <div className="class-progress-actions">
-                <button type="button" onClick={() => onSetCurrent(classId)}>현재 검사로 지정</button>
-                <button type="button" onClick={() => onComplete(classId)}>완료 처리</button>
+              <div className="class-progress-actions" aria-label={`${classId} 운영 처리 버튼`}>
+                <button type="button" className="class-action-current" aria-label={`${classId}을 현재 검사 학급으로 지정`} onClick={() => onSetCurrent(classId)}>
+                  현재 검사 지정
+                </button>
+                <button type="button" className="class-action-complete" aria-label={`${classId} 검진 완료 처리`} onClick={() => onComplete(classId)}>
+                  완료 처리
+                </button>
                 {status === 'missing' ? (
-                  <button type="button" onClick={() => onClearMissing(classId)}>미도착 해제</button>
+                  <button type="button" className="class-action-clear" aria-label={`${classId} 미도착 표시 해제`} onClick={() => onClearMissing(classId)}>
+                    미도착 해제
+                  </button>
                 ) : (
-                  <button type="button" onClick={() => onMissing(classId)}>미도착 표시</button>
+                  <button type="button" className="class-action-missing" aria-label={`${classId} 미도착 학급으로 표시`} onClick={() => onMissing(classId)}>
+                    미도착 표시
+                  </button>
                 )}
               </div>
             </article>
@@ -54,7 +62,7 @@ export function ClassProgressList({
 
 const CLASS_STATUS_LABELS = {
   waiting: '대기',
-  active: '진행중',
+  active: '진행 중',
   completed: '완료',
   missing: '미도착',
 } as const;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useId, useState } from 'react';
 
 export function OperationMemo({
   value,
@@ -8,6 +8,7 @@ export function OperationMemo({
   onSave: (memo: string) => void;
 }) {
   const [memo, setMemo] = useState(value);
+  const memoId = useId();
 
   useEffect(() => {
     setMemo(value);
@@ -15,12 +16,19 @@ export function OperationMemo({
 
   return (
     <section className="card operation-memo-card">
-      <label className="field">
+      <label className="field" htmlFor={memoId}>
         <span>운영 메모</span>
-        <textarea value={memo} placeholder="검진 운영 중 공유할 메모를 입력하세요." onChange={(event) => setMemo(event.target.value)} />
+        <textarea
+          id={memoId}
+          value={memo}
+          placeholder="검진 운영 중 공유할 메모를 입력하세요"
+          onChange={(event) => setMemo(event.target.value)}
+        />
       </label>
       <div className="actions">
-        <button type="button" className="primary" onClick={() => onSave(memo)}>메모 저장</button>
+        <button type="button" className="primary" aria-label="운영 메모 저장" onClick={() => onSave(memo)}>
+          메모 저장
+        </button>
       </div>
     </section>
   );

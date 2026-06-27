@@ -1,4 +1,4 @@
-import { RefreshCcw } from 'lucide-react';
+﻿import { RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { getOperationLogs } from '../../lib/logs';
 import { healthCheckOperationLogRepository } from '../../lib/repositories/HealthCheckOperationLogRepository';
@@ -65,7 +65,7 @@ export function AdminDashboard() {
           <p className="eyebrow">School Health Hub</p>
           <h1>학생건강검진 전체 현황</h1>
         </div>
-        <button type="button" onClick={refresh}>
+        <button type="button" aria-label="관리자 현황 새로고침" onClick={refresh}>
           <RefreshCcw size={16} />
           새로고침
         </button>
@@ -184,3 +184,4 @@ async function loadAdminSnapshotAsync(): Promise<{
   ]);
   return { session, state, students, logs };
 }
+

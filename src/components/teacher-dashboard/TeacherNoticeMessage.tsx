@@ -17,7 +17,7 @@ export function TeacherNoticeMessage({ message }: { message: string }) {
           <p className="eyebrow">안내 문구</p>
           <h2>교사용 안내</h2>
         </div>
-        <button type="button" onClick={copy}>
+        <button type="button" aria-label="교사용 안내 문구 복사" onClick={copy}>
           <ClipboardCopy size={16} />
           {copied ? '복사되었습니다' : '안내 문구 복사'}
         </button>
@@ -26,3 +26,4 @@ export function TeacherNoticeMessage({ message }: { message: string }) {
     </section>
   );
 }
+
