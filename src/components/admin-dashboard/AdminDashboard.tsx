@@ -1,6 +1,7 @@
 import { RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { getOperationLogs } from '../../lib/logs';
+import { healthCheckOperationLogRepository } from '../../lib/repositories/HealthCheckOperationLogRepository';
 import { generateNoticeMessage, getOperationState, normalizeOperationClassId } from '../../lib/operation';
 import { getStudentsBySession, getStudentSummary } from '../../lib/roster';
 import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
@@ -168,10 +169,10 @@ async function loadAdminSnapshotAsync(): Promise<{
 }> {
   const session = getActiveSession();
   const sessionId = session?.id ?? 'admin-dashboard-local-session';
-  const [state, students] = await Promise.all([
+  const [state, students, logs] = await Promise.all([
     healthCheckOperationStateRepository.get(sessionId),
     session ? healthCheckStudentRepository.listBySession(session.id, session.checkType) : Promise.resolve([]),
+    healthCheckOperationLogRepository.recent(sessionId, 80),
   ]);
-  const logs = getOperationLogs(sessionId);
   return { session, state, students, logs };
 }

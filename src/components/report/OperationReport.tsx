@@ -1,6 +1,9 @@
 import { RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { getOperationLogs } from '../../lib/logs';
+import { healthCheckOperationLogRepository } from '../../lib/repositories/HealthCheckOperationLogRepository';
+import { healthCheckOperationStateRepository } from '../../lib/repositories/HealthCheckOperationStateRepository';
+import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
 import { getOperationState } from '../../lib/operation';
 import { getStudentsBySession } from '../../lib/roster';
 import { getActiveSession } from '../../lib/sessions';
@@ -21,9 +24,20 @@ import { ShareSecurityNotice } from '../share/ShareLinkPanel';
 
 export function OperationReport() {
   const [snapshot, setSnapshot] = useState(() => loadReportSnapshot());
-  const refresh = () => setSnapshot(loadReportSnapshot());
+  const [snapshotError, setSnapshotError] = useState('');
+  const refresh = () => {
+    setSnapshotError('');
+    void loadReportSnapshotAsync()
+      .then(setSnapshot)
+      .catch((error) => {
+        console.warn('[OperationReport] Failed to refresh remote snapshot.', error);
+        setSnapshot(loadReportSnapshot());
+        setSnapshotError('운영 로그를 불러오지 못해 브라우저 저장 데이터를 표시합니다.');
+      });
+  };
 
   useEffect(() => {
+    refresh();
     const onStorage = (event: StorageEvent) => {
       if (!event.key || event.key.startsWith('schoolHealthHub.')) refresh();
     };
@@ -67,6 +81,7 @@ export function OperationReport() {
         </button>
       </header>
 
+      {snapshotError && <p className="table-description">{snapshotError}</p>}
       <ReportSessionInfo session={summary.session} />
       <div className="report-two-column">
         <ReportStudentSummary summary={summary.student} />
@@ -88,6 +103,19 @@ function loadReportSnapshot() {
   const state = getOperationState(sessionId);
   const students = session ? getStudentsBySession(session.id, session.checkType) : [];
   const logs = getOperationLogs(sessionId);
+  const notes = getReportNotes(sessionId);
+  return { session, sessionId, state, students, logs, notes };
+}
+
+
+async function loadReportSnapshotAsync() {
+  const session = getActiveSession();
+  const sessionId = session?.id ?? 'report-local-session';
+  const [state, students, logs] = await Promise.all([
+    healthCheckOperationStateRepository.get(sessionId),
+    session ? healthCheckStudentRepository.listBySession(session.id, session.checkType) : Promise.resolve([]),
+    healthCheckOperationLogRepository.listBySession(sessionId),
+  ]);
   const notes = getReportNotes(sessionId);
   return { session, sessionId, state, students, logs, notes };
 }

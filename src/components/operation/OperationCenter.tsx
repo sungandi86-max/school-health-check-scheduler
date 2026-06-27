@@ -8,6 +8,7 @@ import { getClassesFromStudents, getStudentsBySession, STUDENT_STATUS_LABELS, up
 import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
 import { healthCheckOperationStateRepository } from '../../lib/repositories/HealthCheckOperationStateRepository';
 import { addOperationLog, getOperationLogs } from '../../lib/logs';
+import { healthCheckOperationLogRepository } from '../../lib/repositories/HealthCheckOperationLogRepository';
 import {
   clearClassMissing,
   generateNoticeMessage,
@@ -46,6 +47,7 @@ export function OperationCenter({
   const [selectedClass, setSelectedClass] = useState('');
   const [studentError, setStudentError] = useState('');
   const [operationError, setOperationError] = useState('');
+  const [logError, setLogError] = useState('');
   const [operationStateLoaded, setOperationStateLoaded] = useState(false);
 
   useEffect(() => {
@@ -53,7 +55,19 @@ export function OperationCenter({
     setStudentError('');
     setOperationError('');
     setOperationStateLoaded(false);
-    setOperationLogs(getOperationLogs(sessionId));
+    setLogError('');
+    void healthCheckOperationLogRepository
+      .listBySession(sessionId)
+      .then((logs) => {
+        if (cancelled) return;
+        setOperationLogs(logs);
+      })
+      .catch((error) => {
+        console.warn('[OperationCenter] Failed to load operation logs.', error);
+        if (cancelled) return;
+        setOperationLogs(getOperationLogs(sessionId));
+        setLogError('운영 로그를 불러오지 못해 브라우저 저장 데이터를 사용합니다.');
+      });
     void healthCheckOperationStateRepository
       .get(sessionId)
       .then((loadedState) => {
@@ -162,8 +176,16 @@ export function OperationCenter({
   });
 
   const recordLog = (input: Parameters<typeof addOperationLog>[1]) => {
-    addOperationLog(sessionId, input);
-    setOperationLogs(getOperationLogs(sessionId));
+    setLogError('');
+    void healthCheckOperationLogRepository.add(sessionId, input)
+      .then((savedLog) => {
+        setOperationLogs((prev) => [savedLog, ...prev.filter((log) => log.id !== savedLog.id)].slice(0, 500));
+      })
+      .catch((error) => {
+        console.warn('[OperationCenter] Failed to save operation log.', error);
+        setOperationLogs(getOperationLogs(sessionId));
+        setLogError('운영 로그 저장 중 오류가 발생했습니다. 브라우저 저장 데이터로 계속 진행합니다.');
+      });
   };
 
   const handleSetCurrent = (classId: string) => {
@@ -292,6 +314,7 @@ export function OperationCenter({
           <RosterUpload checkType={checkType} sessionId={sessionId} sessionTitle={session ? formatSessionTitle(session) : undefined} students={students} onUpload={handleUpload} />
           {studentError && <p className="table-description">{studentError}</p>}
           {operationError && <p className="table-description">{operationError}</p>}
+          {logError && <p className="table-description">{logError}</p>}
           <StudentStatusSummary students={students} />
           <div className="card operation-class-selector-card">
             <ClassSelector students={students} value={selectedClass} onChange={setSelectedClass} />
