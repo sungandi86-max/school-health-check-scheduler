@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+﻿import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const env = import.meta.env as unknown as {
   VITE_SUPABASE_URL?: string;
@@ -18,13 +18,13 @@ export function getSupabaseConfigStatus() {
   return isSupabaseConfigured()
     ? {
         enabled: true,
-        storageMode: 'localStorage',
-        message: 'Supabase 환경변수가 설정되어 있습니다. 현재 앱 데이터 저장은 아직 localStorage fallback을 사용합니다.',
+        storageMode: 'Supabase 사용 가능',
+        message: 'Supabase 환경변수가 설정되어 있습니다. 원격 저장 모드를 사용할 수 있습니다.',
       }
     : {
         enabled: false,
         storageMode: 'localStorage',
-        message: 'Supabase 환경변수가 미설정되어 localStorage로 동작합니다.',
+        message: 'Supabase 환경변수가 없어 브라우저 저장 모드로 동작합니다.',
       };
 }
 

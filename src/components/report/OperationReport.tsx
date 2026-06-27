@@ -1,4 +1,4 @@
-import { Printer, RefreshCcw } from 'lucide-react';
+﻿import { Printer, RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { getOperationLogs } from '../../lib/logs';
 import { getHealthCheckLabel } from '../../lib/healthCheck';
@@ -37,7 +37,7 @@ export function OperationReport() {
       .catch((error) => {
         console.warn('[OperationReport] Failed to refresh remote snapshot.', error);
         setSnapshot(loadReportSnapshot());
-        setSnapshotError('운영 로그를 불러오지 못해 브라우저 저장 데이터를 표시합니다.');
+        setSnapshotError('운영 보고서 데이터를 불러오지 못해 브라우저 저장 데이터를 표시합니다.');
       });
   };
 
@@ -82,7 +82,7 @@ export function OperationReport() {
   const printReport = () => window.print();
 
   const showPdfGuide = () => {
-    alert('인쇄 창에서 대상을 PDF 저장으로 선택한 뒤 파일명을 ' + recommendedPdfFileName + ' 으로 저장해 주세요.');
+    alert(`인쇄 창에서 대상을 PDF 저장으로 선택한 뒤 파일명을 ${recommendedPdfFileName} 으로 저장해 주세요.`);
   };
 
   return (
@@ -156,7 +156,6 @@ function loadReportSnapshot() {
   return { session, sessionId, state, students, logs, notes };
 }
 
-
 async function loadReportSnapshotAsync() {
   const session = getActiveSession();
   const sessionId = session?.id ?? 'report-local-session';
@@ -172,7 +171,7 @@ async function loadReportSnapshotAsync() {
 function buildRecommendedPdfFileName(summary: ReturnType<typeof buildOperationReportSummary>) {
   const date = summary.session?.date || new Date().toISOString().slice(0, 10);
   const type = summary.session ? getHealthCheckLabel(summary.session.checkType) : '건강검진';
-  return date + '_' + sanitizeFileName(type) + '_운영보고서.pdf';
+  return `${date}_${sanitizeFileName(type)}_운영보고서.pdf`;
 }
 
 function sanitizeFileName(value: string) {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { isSupabaseConfigured } from '../../lib/supabase/client';
 import { getStorageMode, isRemoteStorageAvailable, setStorageMode } from '../../lib/storage/storageProvider';
 import type { StorageMode } from '../../lib/storage/storageAdapter';
@@ -9,19 +9,19 @@ export function StorageSettingsPanel() {
   const [notice, setNotice] = useState('');
   const supabaseConfigured = isSupabaseConfigured();
   const remoteAvailable = isRemoteStorageAvailable();
-  const effectiveMode = mode === 'supabase' && remoteAvailable ? 'localStorage fallback' : 'localStorage';
+  const effectiveMode = mode === 'supabase' && remoteAvailable ? 'Supabase' : 'localStorage';
 
   const changeMode = (nextMode: StorageMode) => {
     if (nextMode === 'supabase' && !remoteAvailable) {
-      setNotice('Supabase 환경변수가 없어 선택할 수 없습니다.');
+      setNotice('Supabase 환경변수가 없어 원격 저장 모드를 선택할 수 없습니다. 현재 브라우저 저장 모드로 계속 사용할 수 있습니다.');
       return;
     }
     setStorageMode(nextMode);
     setMode(nextMode);
     setNotice(
       nextMode === 'supabase'
-        ? 'Supabase 모드가 선택되었습니다. 단, 실제 원격 저장은 다음 Sprint에서 연결되며 현재는 localStorage fallback을 사용합니다.'
-        : 'localStorage 모드로 설정되었습니다. 이 브라우저에 데이터가 저장됩니다.',
+        ? 'Supabase 모드가 선택되었습니다. 연결 실패 시 앱은 자동으로 localStorage fallback을 사용합니다.'
+        : 'localStorage 모드로 설정했습니다. 이 브라우저에 데이터가 저장됩니다.',
     );
   };
 
@@ -41,7 +41,7 @@ export function StorageSettingsPanel() {
           <input type="radio" name="storage-mode" checked={mode === 'local'} onChange={() => changeMode('local')} />
           <span>
             <strong>localStorage 사용</strong>
-            <small>현재 브라우저에 저장합니다. 기본 저장 방식입니다.</small>
+            <small>현재 브라우저에 데이터를 저장합니다. Supabase 설정이 없어도 사용할 수 있는 기본 방식입니다.</small>
           </span>
         </label>
         <label className={`storage-option-card ${mode === 'supabase' ? 'selected' : ''} ${!remoteAvailable ? 'disabled' : ''}`}>
@@ -56,16 +56,16 @@ export function StorageSettingsPanel() {
             <strong>Supabase 사용</strong>
             <small>
               {supabaseConfigured
-                ? '여러 기기 실시간 공유를 위한 원격 저장 모드입니다. 실제 DB 쓰기는 아직 준비 중입니다.'
-                : '환경변수와 DB 설정이 필요합니다.'}
+                ? '여러 기기에서 세션, 명렬표, 운영상태, 운영 로그를 공유하는 원격 저장 모드입니다.'
+                : '환경변수 VITE_SUPABASE_URL과 VITE_SUPABASE_ANON_KEY 설정이 필요합니다.'}
             </small>
           </span>
         </label>
       </div>
 
       <div className="storage-warning">
-        <p>※ Supabase 사용 시 여러 기기에서 실시간 공유가 가능하지만, 환경변수와 DB 설정이 필요합니다.</p>
-        <p>※ 이번 버전에서는 Supabase를 선택해도 기존 기능 보호를 위해 localStorage fallback을 유지합니다.</p>
+        <p>Supabase 연결이 실패해도 앱은 종료되지 않고 브라우저 저장 데이터로 계속 동작합니다.</p>
+        <p>학생 이름 등 명렬표 정보는 내부 운영용으로만 사용하고 외부 공유 화면에는 전체 목록을 노출하지 않습니다.</p>
       </div>
       {notice && <p className="storage-mode-notice">{notice}</p>}
     </section>

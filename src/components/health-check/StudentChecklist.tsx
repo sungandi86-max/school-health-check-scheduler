@@ -19,13 +19,14 @@ export function StudentChecklist({
     <section className="card student-checklist-card">
       <div>
         <p className="eyebrow">학생 체크</p>
-        <h2>학생 체크 영역</h2>
+        <h2>학생 검진 상태 관리</h2>
         <p className="table-description">학생별 검진 상태를 변경하고 필요한 메모를 남길 수 있습니다.</p>
       </div>
 
       <div className="student-checklist">
-        {!selectedClass && <p className="empty">학년/반을 선택해 주세요.</p>}
-        {selectedClass && visibleStudents.length === 0 && <p className="empty">선택한 학급의 학생이 없습니다.</p>}
+        {!students.length && <p className="empty">명렬표가 업로드되지 않았습니다. 먼저 현재 세션에 명렬표를 업로드해 주세요.</p>}
+        {students.length > 0 && !selectedClass && <p className="empty">학년/반을 선택해 주세요.</p>}
+        {selectedClass && visibleStudents.length === 0 && <p className="empty">선택한 학급의 학생이 없습니다. 명렬표의 학급 표기를 확인해 주세요.</p>}
         {visibleStudents.map((student) => (
           <article className="student-check-row" key={student.id}>
             <div className="student-check-identity">

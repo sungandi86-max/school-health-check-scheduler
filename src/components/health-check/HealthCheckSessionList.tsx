@@ -18,7 +18,7 @@ export function HealthCheckSessionList({
 }) {
   return (
     <div className="session-list">
-      {sessions.length === 0 && <p className="empty">아직 생성된 검진 세션이 없습니다.</p>}
+      {sessions.length === 0 && <p className="empty">선택된 세션이 없습니다. 먼저 검진 세션을 생성해 주세요.</p>}
       {sessions.map((session) => (
         <article className={`session-list-item ${session.id === activeSessionId ? 'active' : ''}`} key={session.id}>
           <button type="button" className="session-select-button" onClick={() => onSelect(session.id)}>
