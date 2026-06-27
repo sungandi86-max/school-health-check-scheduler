@@ -3643,3 +3643,177 @@ button.ghost {
     grid-template-columns: 1fr;
   }
 }
+
+
+.report-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.report-print-cover {
+  display: grid;
+  gap: 16px;
+  border: 1px solid #c8ded9;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f7fcfb 0%, #ffffff 100%);
+  padding: 24px;
+}
+
+.report-print-cover h2 {
+  color: #0d2a3f;
+  font-size: 30px;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.report-print-cover dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.report-print-cover dl div {
+  border: 1px solid #d8e8e5;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.report-print-cover dt {
+  color: #587084;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.report-print-cover dd {
+  margin: 4px 0 0;
+  color: #0d2a3f;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.report-file-name {
+  color: #29465a;
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.report-future-suggestions ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.report-future-suggestions li {
+  color: #29465a;
+  font-weight: 800;
+  line-height: 1.6;
+  margin: 6px 0;
+}
+
+.report-submit-note p {
+  color: #0d2a3f;
+  font-size: 15px;
+  font-weight: 900;
+  margin: 0;
+}
+
+
+@media print {
+  @page operationReportPortrait {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  .operation-report-page {
+    page: operationReportPortrait;
+    display: block;
+    max-width: none;
+    color: #000000;
+    font-size: 10.5pt;
+  }
+
+  .operation-report-page .access-notice,
+  .operation-report-page .report-copy-box,
+  .operation-report-page .share-security-notice {
+    display: none !important;
+  }
+
+  .operation-report-header {
+    align-items: flex-start;
+    border-bottom: 1px solid #000000;
+    display: block;
+    margin-bottom: 8mm;
+    padding-bottom: 4mm;
+  }
+
+  .operation-report-header h1 {
+    color: #000000;
+    font-size: 20pt;
+    margin: 0;
+  }
+
+  .operation-report-page .role-header-line,
+  .operation-report-page .eyebrow {
+    color: #000000;
+  }
+
+  .operation-report-page .report-card,
+  .operation-report-page .report-print-cover {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid #bdbdbd;
+    border-radius: 0;
+    background: #ffffff;
+    margin: 0 0 6mm;
+    padding: 5mm;
+  }
+
+  .operation-report-page .report-print-cover {
+    page-break-after: avoid;
+  }
+
+  .operation-report-page .report-print-cover h2 {
+    color: #000000;
+    font-size: 18pt;
+  }
+
+  .operation-report-page .report-print-cover dl,
+  .operation-report-page .report-session-info dl,
+  .operation-report-page .report-two-column {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .operation-report-page .report-print-cover dl div,
+  .operation-report-page .report-session-info dl div,
+  .operation-report-page .report-metric,
+  .operation-report-page .report-log-list article {
+    border-color: #c7c7c7;
+    border-radius: 0;
+    background: #ffffff;
+  }
+
+  .operation-report-page h2,
+  .operation-report-page dt,
+  .operation-report-page dd,
+  .operation-report-page span,
+  .operation-report-page strong,
+  .operation-report-page p,
+  .operation-report-page li {
+    color: #000000 !important;
+  }
+
+  .operation-report-page textarea {
+    border: 1px solid #c7c7c7;
+    min-height: 35mm;
+  }
+
+  .operation-report-page .actions,
+  .operation-report-page button {
+    display: none !important;
+  }
+}

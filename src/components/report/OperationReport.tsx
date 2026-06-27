@@ -1,12 +1,14 @@
-import { RefreshCcw } from 'lucide-react';
+import { Printer, RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { getOperationLogs } from '../../lib/logs';
+import { getHealthCheckLabel } from '../../lib/healthCheck';
 import { healthCheckOperationLogRepository } from '../../lib/repositories/HealthCheckOperationLogRepository';
 import { healthCheckOperationStateRepository } from '../../lib/repositories/HealthCheckOperationStateRepository';
 import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
 import { getOperationState } from '../../lib/operation';
 import { getStudentsBySession } from '../../lib/roster';
 import { getActiveSession } from '../../lib/sessions';
+import { loadSchoolSettings } from '../../lib/settings';
 import {
   buildAdminReportText,
   buildOperationReportSummary,
@@ -63,6 +65,9 @@ export function OperationReport() {
     [snapshot],
   );
   const reportText = useMemo(() => buildAdminReportText(summary), [summary]);
+  const schoolSettings = useMemo(() => loadSchoolSettings(), []);
+  const recommendedPdfFileName = useMemo(() => buildRecommendedPdfFileName(summary), [summary]);
+  const reportWrittenAt = useMemo(() => formatReportDate(new Date().toISOString()), []);
 
   const saveNotes = (notes: string) => {
     saveReportNotes(snapshot.sessionId, notes);
@@ -71,7 +76,13 @@ export function OperationReport() {
 
   const copyReport = async () => {
     await copyTextToClipboard(reportText);
-    alert('관리자 보고용 문구를 복사했습니다.');
+    alert('관리자 보고서 문구를 복사했습니다.');
+  };
+
+  const printReport = () => window.print();
+
+  const showPdfGuide = () => {
+    alert('인쇄 창에서 대상을 PDF 저장으로 선택한 뒤 파일명을 ' + recommendedPdfFileName + ' 으로 저장해 주세요.');
   };
 
   return (
@@ -82,14 +93,34 @@ export function OperationReport() {
           <p className="eyebrow">운영 보고서</p>
           <h1>학생건강검진 운영 보고서 요약</h1>
         </div>
-        <button type="button" onClick={refresh}>
-          <RefreshCcw size={16} />
-          새로고침
-        </button>
+        <div className="report-actions no-print">
+          <button type="button" onClick={refresh}>
+            <RefreshCcw size={16} />
+            새로고침
+          </button>
+          <button type="button" className="primary" onClick={printReport}>
+            <Printer size={16} />
+            인쇄하기
+          </button>
+          <button type="button" onClick={showPdfGuide}>PDF 저장 안내</button>
+        </div>
       </header>
 
       {snapshotError && <p className="table-description">{snapshotError}</p>}
       <AccessNotice role="viewer" />
+      <section className="report-print-cover">
+        <p className="eyebrow">{schoolSettings.schoolName}</p>
+        <h2>학생건강검진 운영 보고서</h2>
+        <dl>
+          <div><dt>검진명</dt><dd>{summary.session?.title || '선택된 검진'}</dd></div>
+          <div><dt>검진일</dt><dd>{summary.session?.date || '-'}</dd></div>
+          <div><dt>검사 종류</dt><dd>{summary.session ? getHealthCheckLabel(summary.session.checkType) : '-'}</dd></div>
+          <div><dt>대상 학년</dt><dd>{summary.session?.targetGrades.length ? `${summary.session.targetGrades.join(', ')}학년` : '-'}</dd></div>
+          <div><dt>검진 장소</dt><dd>{summary.session?.location || schoolSettings.defaultLocation || '-'}</dd></div>
+          <div><dt>작성일</dt><dd>{reportWrittenAt}</dd></div>
+        </dl>
+        <p className="report-file-name no-print">추천 PDF 파일명: <strong>{recommendedPdfFileName}</strong></p>
+      </section>
       <ReportSessionInfo session={summary.session} />
       <div className="report-two-column">
         <ReportStudentSummary summary={summary.student} />
@@ -97,8 +128,18 @@ export function OperationReport() {
       </div>
       <ReportLogSummary logs={summary.logs} />
       <ReportImprovementNotes value={snapshot.notes} onSave={saveNotes} />
+      <section className="report-card report-future-suggestions">
+        <p className="eyebrow">향후 개선 제안</p>
+        <h2>다음 운영 개선 검토</h2>
+        <ul>
+          <li>미도착 학급이 반복된 시간대와 이동 안내 방식을 확인합니다.</li>
+          <li>검진 장소 혼잡, 지연 시간, 교사 공유 링크 확인 여부를 다음 검진 계획에 반영합니다.</li>
+          <li>운영 로그와 특이사항을 바탕으로 방송 안내와 리로스쿨 안내 문구를 조정합니다.</li>
+        </ul>
+      </section>
       <ReportCopyBox text={reportText} onCopy={copyReport} />
-      <section className="report-card">
+      <section className="report-card report-submit-note">
+        <p>본 보고서는 School Health Hub에 기록된 검진 운영 데이터를 바탕으로 작성되었습니다.</p>
         <ShareSecurityNotice />
       </section>
     </section>
@@ -126,4 +167,20 @@ async function loadReportSnapshotAsync() {
   ]);
   const notes = getReportNotes(sessionId);
   return { session, sessionId, state, students, logs, notes };
+}
+
+function buildRecommendedPdfFileName(summary: ReturnType<typeof buildOperationReportSummary>) {
+  const date = summary.session?.date || new Date().toISOString().slice(0, 10);
+  const type = summary.session ? getHealthCheckLabel(summary.session.checkType) : '건강검진';
+  return date + '_' + sanitizeFileName(type) + '_운영보고서.pdf';
+}
+
+function sanitizeFileName(value: string) {
+  return value.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_') || '건강검진';
+}
+
+function formatReportDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
