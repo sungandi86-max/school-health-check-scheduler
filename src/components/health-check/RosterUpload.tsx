@@ -14,7 +14,7 @@ export function RosterUpload({
   sessionId: string;
   sessionTitle?: string;
   students: HealthCheckStudent[];
-  onUpload: (students: HealthCheckStudent[]) => void;
+  onUpload: (students: HealthCheckStudent[]) => void | Promise<void>;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState('');

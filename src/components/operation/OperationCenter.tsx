@@ -4,7 +4,8 @@ import { RosterUpload } from '../health-check/RosterUpload';
 import { StudentChecklist } from '../health-check/StudentChecklist';
 import { StudentStatusSummary } from '../health-check/StudentStatusSummary';
 import { getHealthCheckLabel } from '../../lib/healthCheck';
-import { getClassesFromStudents, getStudentsBySession, saveStudentsBySession, STUDENT_STATUS_LABELS, updateStudentMemo, updateStudentStatus } from '../../lib/roster';
+import { getClassesFromStudents, getStudentsBySession, STUDENT_STATUS_LABELS, updateStudentMemo, updateStudentStatus } from '../../lib/roster';
+import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
 import { addOperationLog, getOperationLogs } from '../../lib/logs';
 import {
   clearClassMissing,
@@ -43,18 +44,32 @@ export function OperationCenter({
   const [operationState, setOperationState] = useState<HealthCheckOperationState>(() => getOperationState(sessionId));
   const [operationLogs, setOperationLogs] = useState(() => getOperationLogs(sessionId));
   const [selectedClass, setSelectedClass] = useState('');
+  const [studentError, setStudentError] = useState('');
 
   useEffect(() => {
-    const loaded = getStudentsBySession(sessionId, checkType);
-    setStudents(loaded);
+    let cancelled = false;
+    setStudentError('');
     setOperationState(getOperationState(sessionId));
     setOperationLogs(getOperationLogs(sessionId));
-    setSelectedClass(loaded[0]?.className ?? '');
+    void healthCheckStudentRepository
+      .listBySession(sessionId, checkType)
+      .then((loaded) => {
+        if (cancelled) return;
+        setStudents(loaded);
+        setSelectedClass(loaded[0]?.className ?? '');
+      })
+      .catch((error) => {
+        console.warn('[OperationCenter] Failed to load students.', error);
+        if (cancelled) return;
+        const fallbackStudents = getStudentsBySession(sessionId, checkType);
+        setStudents(fallbackStudents);
+        setSelectedClass(fallbackStudents[0]?.className ?? '');
+        setStudentError('학생 명렬표를 불러오지 못해 브라우저 저장 데이터를 사용합니다.');
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [checkType, sessionId]);
-
-  useEffect(() => {
-    saveStudentsBySession(sessionId, checkType, students);
-  }, [checkType, sessionId, students]);
 
   useEffect(() => {
     saveOperationState(sessionId, operationState);
@@ -79,9 +94,18 @@ export function OperationCenter({
     [selectedClass, students],
   );
 
-  const handleUpload = (nextStudents: HealthCheckStudent[]) => {
+  const handleUpload = async (nextStudents: HealthCheckStudent[]) => {
+    setStudentError('');
     setStudents(nextStudents);
     setSelectedClass(nextStudents[0]?.className ?? '');
+    try {
+      const saved = await healthCheckStudentRepository.replaceForSession(sessionId, checkType, nextStudents);
+      setStudents(saved);
+      setSelectedClass(saved[0]?.className ?? '');
+    } catch (error) {
+      console.warn('[OperationCenter] Failed to save uploaded students.', error);
+      setStudentError('명렬표 저장 중 오류가 발생했습니다. 브라우저 저장 데이터로 계속 진행합니다.');
+    }
   };
 
   const updateStatus = (studentId: string, statusValue: HealthCheckStudentStatus) => {
@@ -95,10 +119,20 @@ export function OperationCenter({
       });
     }
     setStudents((prev) => updateStudentStatus(prev, studentId, statusValue));
+    setStudentError('');
+    void healthCheckStudentRepository.updateStatus(sessionId, checkType, studentId, statusValue).catch((error) => {
+      console.warn('[OperationCenter] Failed to update student status.', error);
+      setStudentError('학생 상태 저장 중 오류가 발생했습니다. 브라우저 저장 데이터로 계속 진행합니다.');
+    });
   };
 
   const updateMemo = (studentId: string, memo: string) => {
     setStudents((prev) => updateStudentMemo(prev, studentId, memo));
+    setStudentError('');
+    void healthCheckStudentRepository.updateMemo(sessionId, checkType, studentId, memo).catch((error) => {
+      console.warn('[OperationCenter] Failed to update student memo.', error);
+      setStudentError('학생 메모 저장 중 오류가 발생했습니다. 브라우저 저장 데이터로 계속 진행합니다.');
+    });
   };
 
   const noticeMessage = generateNoticeMessage(operationState, {
@@ -235,6 +269,7 @@ export function OperationCenter({
       <div className="operation-layout">
         <section className="operation-student-panel">
           <RosterUpload checkType={checkType} sessionId={sessionId} sessionTitle={session ? formatSessionTitle(session) : undefined} students={students} onUpload={handleUpload} />
+          {studentError && <p className="table-description">{studentError}</p>}
           <StudentStatusSummary students={students} />
           <div className="card operation-class-selector-card">
             <ClassSelector students={students} value={selectedClass} onChange={setSelectedClass} />
