@@ -1,4 +1,4 @@
-﻿import type { HealthCheckSession, HealthCheckSessionStatus, HealthCheckType } from '../../types/healthCheck';
+import type { HealthCheckSession, HealthCheckSessionStatus, HealthCheckType } from '../../types/healthCheck';
 import { getHealthCheckLabel, normalizeHealthCheckType } from '../healthCheck';
 import { localStorageAdapter } from '../storage/localStorageAdapter';
 import { ACTIVE_HEALTH_CHECK_SESSION_ID_KEY, HEALTH_CHECK_SESSIONS_KEY } from '../storage/storageKeys';
@@ -43,9 +43,22 @@ export class HealthCheckSessionRepository {
           .order('date', { ascending: false })
           .order('title', { ascending: true });
         if (error) throw error;
-        return (data ?? []).map(fromRow).sort(compareSessions);
+        return ((data ?? []) as HealthCheckSessionRow[]).map(fromRow).sort(compareSessions);
       },
       () => this.listLocal(),
+    );
+  }
+
+  async get(sessionId: string): Promise<HealthCheckSession | undefined> {
+    return this.withSupabase(
+      'get session',
+      async () => {
+        const client = requireSupabaseClient();
+        const { data, error } = await client.from(TABLE_NAME).select('*').eq('id', sessionId).maybeSingle();
+        if (error) throw error;
+        return data ? fromRow(data as HealthCheckSessionRow) : undefined;
+      },
+      () => this.listLocal().find((session) => session.id === sessionId),
     );
   }
 
@@ -55,17 +68,30 @@ export class HealthCheckSessionRepository {
       async () => {
         const client = requireSupabaseClient();
         const session = buildSession(input);
-        const { data, error } = await client
-          .from(TABLE_NAME)
-          .upsert(toRow(session), { onConflict: 'id' })
-          .select('*')
-          .single();
+        const { data, error } = await client.from(TABLE_NAME).upsert(toRow(session), { onConflict: 'id' }).select('*').single();
         if (error) throw error;
-        const created = fromRow(data);
+        const created = fromRow(data as HealthCheckSessionRow);
         this.setActiveSessionIdLocal(created.id);
         return created;
       },
       () => this.createLocal(input),
+    );
+  }
+
+  async createExisting(session: HealthCheckSession): Promise<HealthCheckSession> {
+    return this.withSupabase(
+      'create existing session',
+      async () => {
+        const client = requireSupabaseClient();
+        const { data, error } = await client.from(TABLE_NAME).upsert(toRow(normalizeSession(session)), { onConflict: 'id' }).select('*').single();
+        if (error) throw error;
+        return fromRow(data as HealthCheckSessionRow);
+      },
+      () => {
+        const normalized = normalizeSession(session);
+        this.saveLocal([...this.listLocal().filter((item) => item.id !== normalized.id), normalized]);
+        return normalized;
+      },
     );
   }
 
@@ -74,14 +100,9 @@ export class HealthCheckSessionRepository {
       'update session',
       async () => {
         const client = requireSupabaseClient();
-        const { data, error } = await client
-          .from(TABLE_NAME)
-          .update(toUpdateRow(patch))
-          .eq('id', sessionId)
-          .select('*')
-          .maybeSingle();
+        const { data, error } = await client.from(TABLE_NAME).update(toUpdateRow(patch)).eq('id', sessionId).select('*').maybeSingle();
         if (error) throw error;
-        return data ? fromRow(data) : undefined;
+        return data ? fromRow(data as HealthCheckSessionRow) : undefined;
       },
       () => this.updateLocal(sessionId, patch),
     );
@@ -209,6 +230,26 @@ export class HealthCheckSessionRepository {
 }
 
 export const healthCheckSessionRepository = new HealthCheckSessionRepository();
+
+export function listSessions() {
+  return healthCheckSessionRepository.list();
+}
+
+export async function getSession(id: string) {
+  return healthCheckSessionRepository.get(id);
+}
+
+export function createSession(session: HealthCheckSession) {
+  return healthCheckSessionRepository.createExisting(session);
+}
+
+export function updateSession(id: string, patch: UpdateHealthCheckSessionInput) {
+  return healthCheckSessionRepository.update(id, patch);
+}
+
+export async function deleteSession(id: string) {
+  await healthCheckSessionRepository.delete(id);
+}
 
 function shouldUseSupabaseSessions() {
   return getStorageMode() === 'supabase' && isSupabaseConfigured() && Boolean(supabase);

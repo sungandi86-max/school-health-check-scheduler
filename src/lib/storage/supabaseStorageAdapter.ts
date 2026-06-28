@@ -10,7 +10,8 @@ export const supabaseStorageAdapter: StorageAdapter = {
 
   setItem<T>(_key: string, _value: T): void {
     // TODO: Upsert to Supabase tables by key domain:
-    // sessions, students, operation states, operation logs, report notes.
+    // students, operation states, operation logs, report notes.
+    // Session CRUD is available in HealthCheckSessionRepository.
   },
 
   removeItem(_key: string): void {
