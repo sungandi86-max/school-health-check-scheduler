@@ -1,12 +1,9 @@
 ﻿import { RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useHealthCheckRealtime } from '../../hooks/useHealthCheckRealtime';
-import { generateNoticeMessage, getOperationState } from '../../lib/operation';
+import { generateNoticeMessage } from '../../lib/operation';
 import { canUseSupabaseRealtime } from '../../lib/realtime/realtime';
-import { healthCheckOperationStateRepository } from '../../lib/repositories/HealthCheckOperationStateRepository';
-import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
-import { getStudentsBySession } from '../../lib/roster';
-import { getActiveSession } from '../../lib/sessions';
+import { healthCheckDataService } from '../../lib/services/healthCheckDataService';
 import { getStorageMode } from '../../lib/storage/storageProvider';
 import type { HealthCheckOperationState, HealthCheckSession, HealthCheckStudent } from '../../types/healthCheck';
 import { ShareSecurityNotice } from '../share/ShareLinkPanel';
@@ -18,7 +15,7 @@ import { TeacherNoticeMessage } from './TeacherNoticeMessage';
 import { TeacherSessionInfo } from './TeacherSessionInfo';
 
 export function TeacherDashboard() {
-  const [snapshot, setSnapshot] = useState(() => loadTeacherSnapshot());
+  const [snapshot, setSnapshot] = useState(() => createEmptyTeacherSnapshot());
   const [snapshotError, setSnapshotError] = useState('');
   const refresh = () => {
     setSnapshotError('');
@@ -26,7 +23,6 @@ export function TeacherDashboard() {
       .then(setSnapshot)
       .catch((error) => {
         console.warn('[TeacherDashboard] Failed to refresh remote snapshot.', error);
-        setSnapshot(loadTeacherSnapshot());
         setSnapshotError('운영상태를 불러오지 못해 브라우저 저장 데이터를 표시합니다.');
       });
   };
@@ -110,16 +106,15 @@ function TeacherRealtimeStatus({ updatedAt }: { updatedAt: string }) {
   );
 }
 
-function loadTeacherSnapshot(): {
+function createEmptyTeacherSnapshot(): {
   session?: HealthCheckSession;
   state: HealthCheckOperationState;
   students: HealthCheckStudent[];
 } {
-  const session = getActiveSession();
-  const sessionId = session?.id ?? 'teacher-dashboard-local-session';
-  const state = getOperationState(sessionId);
-  const students = session ? getStudentsBySession(session.id, session.checkType) : [];
-  return { session, state, students };
+  return {
+    state: createInitialOperationState('teacher-dashboard-local-session'),
+    students: [],
+  };
 }
 
 function createClassStats(students: HealthCheckStudent[]) {
@@ -146,12 +141,34 @@ async function loadTeacherSnapshotAsync(): Promise<{
   state: HealthCheckOperationState;
   students: HealthCheckStudent[];
 }> {
-  const session = getActiveSession();
+  const session = await getActiveSessionFromService();
   const sessionId = session?.id ?? 'teacher-dashboard-local-session';
   const [state, students] = await Promise.all([
-    healthCheckOperationStateRepository.get(sessionId),
-    session ? healthCheckStudentRepository.listBySession(session.id, session.checkType) : Promise.resolve([]),
+    healthCheckDataService.getOperationState(sessionId),
+    session ? healthCheckDataService.listStudents(session.id, session.checkType) : Promise.resolve([]),
   ]);
   return { session, state, students };
+}
+
+async function getActiveSessionFromService() {
+  const [sessions, activeSessionId] = await Promise.all([
+    healthCheckDataService.listSessions(),
+    healthCheckDataService.getActiveSessionId(),
+  ]);
+  return sessions.find((session) => session.id === activeSessionId) ?? sessions[0];
+}
+
+function createInitialOperationState(sessionId: string): HealthCheckOperationState {
+  return {
+    sessionId,
+    currentClassId: '',
+    nextClassId: '',
+    completedClassIds: [],
+    missingClassIds: [],
+    delayedMinutes: 0,
+    noticeMessage: '',
+    operationMemo: '',
+    updatedAt: new Date().toISOString(),
+  };
 }
 

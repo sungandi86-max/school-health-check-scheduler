@@ -1,12 +1,8 @@
 ﻿import { RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { getOperationLogs } from '../../lib/logs';
-import { healthCheckOperationLogRepository } from '../../lib/repositories/HealthCheckOperationLogRepository';
-import { generateNoticeMessage, getOperationState, normalizeOperationClassId } from '../../lib/operation';
-import { getStudentsBySession, getStudentSummary } from '../../lib/roster';
-import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
-import { healthCheckOperationStateRepository } from '../../lib/repositories/HealthCheckOperationStateRepository';
-import { getActiveSession } from '../../lib/sessions';
+import { generateNoticeMessage, normalizeOperationClassId } from '../../lib/operation';
+import { getStudentSummary } from '../../lib/roster';
+import { healthCheckDataService } from '../../lib/services/healthCheckDataService';
 import type { HealthCheckOperationLog, HealthCheckOperationState, HealthCheckSession, HealthCheckStudent } from '../../types/healthCheck';
 import { AdminClassStatusSummary, type AdminClassStatusRow } from './AdminClassStatusSummary';
 import { AdminCurrentFlow } from './AdminCurrentFlow';
@@ -20,7 +16,7 @@ import { AccessNotice } from '../common/AccessNotice';
 import { RoleBadge } from '../common/RoleBadge';
 
 export function AdminDashboard() {
-  const [snapshot, setSnapshot] = useState(() => loadAdminSnapshot());
+  const [snapshot, setSnapshot] = useState(() => createEmptyAdminSnapshot());
   const [snapshotError, setSnapshotError] = useState('');
   const refresh = () => {
     setSnapshotError('');
@@ -28,7 +24,6 @@ export function AdminDashboard() {
       .then(setSnapshot)
       .catch((error) => {
         console.warn('[AdminDashboard] Failed to refresh remote snapshot.', error);
-        setSnapshot(loadAdminSnapshot());
         setSnapshotError('운영상태를 불러오지 못해 브라우저 저장 데이터를 표시합니다.');
       });
   };
@@ -114,18 +109,17 @@ export function AdminDashboard() {
   );
 }
 
-function loadAdminSnapshot(): {
+function createEmptyAdminSnapshot(): {
   session?: HealthCheckSession;
   state: HealthCheckOperationState;
   students: HealthCheckStudent[];
   logs: HealthCheckOperationLog[];
 } {
-  const session = getActiveSession();
-  const sessionId = session?.id ?? 'admin-dashboard-local-session';
-  const state = getOperationState(sessionId);
-  const students = session ? getStudentsBySession(session.id, session.checkType) : [];
-  const logs = getOperationLogs(sessionId);
-  return { session, state, students, logs };
+  return {
+    state: createInitialOperationState('admin-dashboard-local-session'),
+    students: [],
+    logs: [],
+  };
 }
 
 function createClassRows(state: HealthCheckOperationState, students: HealthCheckStudent[]): AdminClassStatusRow[] {
@@ -175,13 +169,35 @@ async function loadAdminSnapshotAsync(): Promise<{
   students: HealthCheckStudent[];
   logs: HealthCheckOperationLog[];
 }> {
-  const session = getActiveSession();
+  const session = await getActiveSessionFromService();
   const sessionId = session?.id ?? 'admin-dashboard-local-session';
   const [state, students, logs] = await Promise.all([
-    healthCheckOperationStateRepository.get(sessionId),
-    session ? healthCheckStudentRepository.listBySession(session.id, session.checkType) : Promise.resolve([]),
-    healthCheckOperationLogRepository.recent(sessionId, 80),
+    healthCheckDataService.getOperationState(sessionId),
+    session ? healthCheckDataService.listStudents(session.id, session.checkType) : Promise.resolve([]),
+    healthCheckDataService.listRecentLogs(sessionId, 80),
   ]);
   return { session, state, students, logs };
+}
+
+async function getActiveSessionFromService() {
+  const [sessions, activeSessionId] = await Promise.all([
+    healthCheckDataService.listSessions(),
+    healthCheckDataService.getActiveSessionId(),
+  ]);
+  return sessions.find((session) => session.id === activeSessionId) ?? sessions[0];
+}
+
+function createInitialOperationState(sessionId: string): HealthCheckOperationState {
+  return {
+    sessionId,
+    currentClassId: '',
+    nextClassId: '',
+    completedClassIds: [],
+    missingClassIds: [],
+    delayedMinutes: 0,
+    noticeMessage: '',
+    operationMemo: '',
+    updatedAt: new Date().toISOString(),
+  };
 }
 

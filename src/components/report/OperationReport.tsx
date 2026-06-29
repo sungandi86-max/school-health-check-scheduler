@@ -1,13 +1,7 @@
 ﻿import { Printer, RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { getOperationLogs } from '../../lib/logs';
 import { getHealthCheckLabel } from '../../lib/healthCheck';
-import { healthCheckOperationLogRepository } from '../../lib/repositories/HealthCheckOperationLogRepository';
-import { healthCheckOperationStateRepository } from '../../lib/repositories/HealthCheckOperationStateRepository';
-import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
-import { getOperationState } from '../../lib/operation';
-import { getStudentsBySession } from '../../lib/roster';
-import { getActiveSession } from '../../lib/sessions';
+import { healthCheckDataService } from '../../lib/services/healthCheckDataService';
 import { loadSchoolSettings } from '../../lib/settings';
 import {
   buildAdminReportText,
@@ -26,9 +20,19 @@ import { ShareSecurityNotice } from '../share/ShareLinkPanel';
 import { useHealthCheckRealtime } from '../../hooks/useHealthCheckRealtime';
 import { AccessNotice } from '../common/AccessNotice';
 import { RoleBadge } from '../common/RoleBadge';
+import type { HealthCheckOperationLog, HealthCheckOperationState, HealthCheckSession, HealthCheckStudent } from '../../types/healthCheck';
+
+type ReportSnapshot = {
+  session?: HealthCheckSession;
+  sessionId: string;
+  state: HealthCheckOperationState;
+  students: HealthCheckStudent[];
+  logs: HealthCheckOperationLog[];
+  notes: string;
+};
 
 export function OperationReport() {
-  const [snapshot, setSnapshot] = useState(() => loadReportSnapshot());
+  const [snapshot, setSnapshot] = useState<ReportSnapshot>(() => createEmptyReportSnapshot());
   const [snapshotError, setSnapshotError] = useState('');
   const refresh = () => {
     setSnapshotError('');
@@ -36,7 +40,6 @@ export function OperationReport() {
       .then(setSnapshot)
       .catch((error) => {
         console.warn('[OperationReport] Failed to refresh remote snapshot.', error);
-        setSnapshot(loadReportSnapshot());
         setSnapshotError('운영 보고서 데이터를 불러오지 못해 브라우저 저장 데이터를 표시합니다.');
       });
   };
@@ -71,7 +74,7 @@ export function OperationReport() {
 
   const saveNotes = (notes: string) => {
     saveReportNotes(snapshot.sessionId, notes);
-    setSnapshot(loadReportSnapshot());
+    setSnapshot((prev) => ({ ...prev, notes }));
   };
 
   const copyReport = async () => {
@@ -146,26 +149,50 @@ export function OperationReport() {
   );
 }
 
-function loadReportSnapshot() {
-  const session = getActiveSession();
+function createEmptyReportSnapshot(): ReportSnapshot {
+  const sessionId = 'report-local-session';
+  return {
+    session: undefined,
+    sessionId,
+    state: createInitialOperationState(sessionId),
+    students: [],
+    logs: [],
+    notes: getReportNotes(sessionId),
+  };
+}
+
+async function loadReportSnapshotAsync(): Promise<ReportSnapshot> {
+  const session = await getActiveSessionFromService();
   const sessionId = session?.id ?? 'report-local-session';
-  const state = getOperationState(sessionId);
-  const students = session ? getStudentsBySession(session.id, session.checkType) : [];
-  const logs = getOperationLogs(sessionId);
+  const [state, students, logs] = await Promise.all([
+    healthCheckDataService.getOperationState(sessionId),
+    session ? healthCheckDataService.listStudents(session.id, session.checkType) : Promise.resolve([]),
+    healthCheckDataService.listLogs(sessionId),
+  ]);
   const notes = getReportNotes(sessionId);
   return { session, sessionId, state, students, logs, notes };
 }
 
-async function loadReportSnapshotAsync() {
-  const session = getActiveSession();
-  const sessionId = session?.id ?? 'report-local-session';
-  const [state, students, logs] = await Promise.all([
-    healthCheckOperationStateRepository.get(sessionId),
-    session ? healthCheckStudentRepository.listBySession(session.id, session.checkType) : Promise.resolve([]),
-    healthCheckOperationLogRepository.listBySession(sessionId),
+async function getActiveSessionFromService() {
+  const [sessions, activeSessionId] = await Promise.all([
+    healthCheckDataService.listSessions(),
+    healthCheckDataService.getActiveSessionId(),
   ]);
-  const notes = getReportNotes(sessionId);
-  return { session, sessionId, state, students, logs, notes };
+  return sessions.find((session) => session.id === activeSessionId) ?? sessions[0];
+}
+
+function createInitialOperationState(sessionId: string): HealthCheckOperationState {
+  return {
+    sessionId,
+    currentClassId: '',
+    nextClassId: '',
+    completedClassIds: [],
+    missingClassIds: [],
+    delayedMinutes: 0,
+    noticeMessage: '',
+    operationMemo: '',
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 function buildRecommendedPdfFileName(summary: ReturnType<typeof buildOperationReportSummary>) {
