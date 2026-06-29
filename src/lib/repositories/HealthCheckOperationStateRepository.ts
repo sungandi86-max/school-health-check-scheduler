@@ -1,20 +1,9 @@
-﻿import type { HealthCheckOperationState } from '../../types/healthCheck';
-import {
-  clearClassMissing,
-  getOperationState,
-  saveOperationState,
-  setClassCompleted,
-  setClassMissing,
-  setCurrentClass,
-  updateDelayedMinutes,
-  updateOperationMemo,
-} from '../operation';
-import { getStorageMode } from '../storage/storageProvider';
-import { isSupabaseConfigured, supabase } from '../supabase/client';
+import type { HealthCheckOperationState } from '../../types/healthCheck';
+import { supabase } from '../supabase/client';
 
-type OperationStatePatch = Partial<Omit<HealthCheckOperationState, 'sessionId'>>;
+const TABLE_NAME = 'health_check_operation_states';
 
-type OperationStateRow = {
+interface HealthCheckOperationStateRow {
   session_id: string;
   current_class_id: string;
   next_class_id: string;
@@ -24,105 +13,17 @@ type OperationStateRow = {
   notice_message: string;
   operation_memo: string;
   updated_at: string;
-};
+}
 
-const TABLE_NAME = 'health_check_operation_states';
+type HealthCheckOperationStatePatch = Partial<Omit<HealthCheckOperationState, 'sessionId'>>;
 
-export class HealthCheckOperationStateRepository {
-  async get(sessionId: string): Promise<HealthCheckOperationState> {
-    return this.withSupabase(
-      'get operation state',
-      async () => {
-        const client = requireSupabaseClient();
-        const { data, error } = await client.from(TABLE_NAME).select('*').eq('session_id', sessionId).maybeSingle();
-        if (error) throw error;
-        const state = data ? fromRow(data as OperationStateRow) : this.getLocal(sessionId);
-        this.saveLocal(state);
-        return state;
-      },
-      () => this.getLocal(sessionId),
+function getSupabaseClient() {
+  if (!supabase) {
+    throw new Error(
+      'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before using HealthCheckOperationStateRepository.',
     );
   }
 
-  async save(state: HealthCheckOperationState): Promise<HealthCheckOperationState> {
-    const next = normalizeState(state);
-    return this.withSupabase(
-      'save operation state',
-      async () => {
-        const client = requireSupabaseClient();
-        const { data, error } = await client.from(TABLE_NAME).upsert(toRow(next), { onConflict: 'session_id' }).select('*').single();
-        if (error) throw error;
-        const saved = fromRow(data as OperationStateRow);
-        this.saveLocal(saved);
-        return saved;
-      },
-      () => {
-        this.saveLocal(next);
-        return next;
-      },
-    );
-  }
-
-  async update(sessionId: string, patch: OperationStatePatch): Promise<HealthCheckOperationState> {
-    const current = await this.get(sessionId);
-    return this.save({ ...current, ...patch, sessionId, updatedAt: new Date().toISOString() });
-  }
-
-  async setCurrentClass(sessionId: string, classId: string, classIds: string[] = []) {
-    return this.save(setCurrentClass(await this.get(sessionId), classId, classIds));
-  }
-
-  async setClassCompleted(sessionId: string, classId: string, classIds: string[] = []) {
-    return this.save(setClassCompleted(await this.get(sessionId), classId, classIds));
-  }
-
-  async setClassMissing(sessionId: string, classId: string) {
-    return this.save(setClassMissing(await this.get(sessionId), classId));
-  }
-
-  async clearClassMissing(sessionId: string, classId: string) {
-    return this.save(clearClassMissing(await this.get(sessionId), classId));
-  }
-
-  async updateDelayedMinutes(sessionId: string, delayedMinutes: number) {
-    return this.save(updateDelayedMinutes(await this.get(sessionId), delayedMinutes));
-  }
-
-  async updateNoticeMessage(sessionId: string, noticeMessage: string) {
-    return this.update(sessionId, { noticeMessage });
-  }
-
-  async updateOperationMemo(sessionId: string, operationMemo: string) {
-    return this.save(updateOperationMemo(await this.get(sessionId), operationMemo));
-  }
-
-  private async withSupabase<T>(label: string, remote: () => Promise<T>, fallback: () => T | Promise<T>) {
-    if (!shouldUseSupabaseOperationState()) return fallback();
-    try {
-      return await remote();
-    } catch (error) {
-      console.warn(`[HealthCheckOperationStateRepository] Supabase ${label} failed. Falling back to localStorage.`, error);
-      return fallback();
-    }
-  }
-
-  private getLocal(sessionId: string) {
-    return getOperationState(sessionId);
-  }
-
-  private saveLocal(state: HealthCheckOperationState) {
-    saveOperationState(state.sessionId, state);
-  }
-}
-
-export const healthCheckOperationStateRepository = new HealthCheckOperationStateRepository();
-
-function shouldUseSupabaseOperationState() {
-  return getStorageMode() === 'supabase' && isSupabaseConfigured() && Boolean(supabase);
-}
-
-function requireSupabaseClient() {
-  if (!supabase) throw new Error('Supabase client is not configured.');
   return supabase;
 }
 
@@ -131,8 +32,12 @@ function normalizeState(state: HealthCheckOperationState): HealthCheckOperationS
     sessionId: String(state.sessionId || ''),
     currentClassId: String(state.currentClassId || ''),
     nextClassId: String(state.nextClassId || ''),
-    completedClassIds: Array.isArray(state.completedClassIds) ? state.completedClassIds.map(String).filter(Boolean) : [],
-    missingClassIds: Array.isArray(state.missingClassIds) ? state.missingClassIds.map(String).filter(Boolean) : [],
+    completedClassIds: Array.isArray(state.completedClassIds)
+      ? state.completedClassIds.map(String).filter(Boolean)
+      : [],
+    missingClassIds: Array.isArray(state.missingClassIds)
+      ? state.missingClassIds.map(String).filter(Boolean)
+      : [],
     delayedMinutes: Math.max(0, Number(state.delayedMinutes) || 0),
     noticeMessage: String(state.noticeMessage || ''),
     operationMemo: String(state.operationMemo || ''),
@@ -140,7 +45,7 @@ function normalizeState(state: HealthCheckOperationState): HealthCheckOperationS
   };
 }
 
-function fromRow(row: OperationStateRow): HealthCheckOperationState {
+function fromRow(row: HealthCheckOperationStateRow): HealthCheckOperationState {
   return normalizeState({
     sessionId: row.session_id,
     currentClassId: row.current_class_id,
@@ -154,16 +59,137 @@ function fromRow(row: OperationStateRow): HealthCheckOperationState {
   });
 }
 
-function toRow(state: HealthCheckOperationState): OperationStateRow {
+function toRow(
+  sessionId: string,
+  state: HealthCheckOperationState,
+): HealthCheckOperationStateRow {
+  const normalized = normalizeState({ ...state, sessionId });
+
   return {
-    session_id: state.sessionId,
-    current_class_id: state.currentClassId,
-    next_class_id: state.nextClassId,
-    completed_class_ids: state.completedClassIds,
-    missing_class_ids: state.missingClassIds,
-    delayed_minutes: state.delayedMinutes,
-    notice_message: state.noticeMessage,
-    operation_memo: state.operationMemo,
-    updated_at: state.updatedAt,
+    session_id: normalized.sessionId,
+    current_class_id: normalized.currentClassId,
+    next_class_id: normalized.nextClassId,
+    completed_class_ids: normalized.completedClassIds,
+    missing_class_ids: normalized.missingClassIds,
+    delayed_minutes: normalized.delayedMinutes,
+    notice_message: normalized.noticeMessage,
+    operation_memo: normalized.operationMemo,
+    updated_at: normalized.updatedAt,
   };
 }
+
+function toPatchRow(
+  patch: HealthCheckOperationStatePatch,
+): Partial<HealthCheckOperationStateRow> {
+  const row: Partial<HealthCheckOperationStateRow> = {
+    updated_at: patch.updatedAt ?? new Date().toISOString(),
+  };
+
+  if (patch.currentClassId !== undefined) row.current_class_id = patch.currentClassId;
+  if (patch.nextClassId !== undefined) row.next_class_id = patch.nextClassId;
+  if (patch.completedClassIds !== undefined) {
+    row.completed_class_ids = patch.completedClassIds.map(String).filter(Boolean);
+  }
+  if (patch.missingClassIds !== undefined) {
+    row.missing_class_ids = patch.missingClassIds.map(String).filter(Boolean);
+  }
+  if (patch.delayedMinutes !== undefined) {
+    row.delayed_minutes = Math.max(0, Number(patch.delayedMinutes) || 0);
+  }
+  if (patch.noticeMessage !== undefined) row.notice_message = patch.noticeMessage;
+  if (patch.operationMemo !== undefined) row.operation_memo = patch.operationMemo;
+
+  return row;
+}
+
+export async function getOperationState(
+  sessionId: string,
+): Promise<HealthCheckOperationState | null> {
+  const client = getSupabaseClient();
+  const { data, error } = await client
+    .from(TABLE_NAME)
+    .select('*')
+    .eq('session_id', sessionId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data ? fromRow(data as HealthCheckOperationStateRow) : null;
+}
+
+export async function upsertOperationState(
+  sessionId: string,
+  state: HealthCheckOperationState,
+): Promise<HealthCheckOperationState> {
+  const client = getSupabaseClient();
+  const row = toRow(sessionId, {
+    ...state,
+    sessionId,
+    updatedAt: state.updatedAt || new Date().toISOString(),
+  });
+
+  const { data, error } = await client
+    .from(TABLE_NAME)
+    .upsert(row, { onConflict: 'session_id' })
+    .select('*')
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return fromRow(data as HealthCheckOperationStateRow);
+}
+
+export async function updateOperationState(
+  sessionId: string,
+  patch: HealthCheckOperationStatePatch,
+): Promise<HealthCheckOperationState> {
+  const client = getSupabaseClient();
+  const { data, error } = await client
+    .from(TABLE_NAME)
+    .update(toPatchRow(patch))
+    .eq('session_id', sessionId)
+    .select('*')
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return fromRow(data as HealthCheckOperationStateRow);
+}
+
+export async function deleteOperationState(sessionId: string): Promise<void> {
+  const client = getSupabaseClient();
+  const { error } = await client.from(TABLE_NAME).delete().eq('session_id', sessionId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export const healthCheckOperationStateRepository = {
+  async get(sessionId: string): Promise<HealthCheckOperationState> {
+    const state = await getOperationState(sessionId);
+
+    if (!state) {
+      throw new Error(`Operation state not found for session: ${sessionId}`);
+    }
+
+    return state;
+  },
+
+  save(state: HealthCheckOperationState): Promise<HealthCheckOperationState> {
+    return upsertOperationState(state.sessionId, state);
+  },
+
+  update(
+    sessionId: string,
+    patch: HealthCheckOperationStatePatch,
+  ): Promise<HealthCheckOperationState> {
+    return updateOperationState(sessionId, patch);
+  },
+};
