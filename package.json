@@ -9,6 +9,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "check:urine-room-rules": "node scripts/check-urine-room-rules.mjs",
     "test": "vitest run",
+    "test:smoke": "playwright test",
     "test:watch": "vitest",
     "lint": "tsc -b --pretty false"
   },
@@ -23,6 +24,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.0.0",
