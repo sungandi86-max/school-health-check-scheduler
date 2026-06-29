@@ -4,9 +4,7 @@ import { RosterUpload } from '../health-check/RosterUpload';
 import { StudentChecklist } from '../health-check/StudentChecklist';
 import { StudentStatusSummary } from '../health-check/StudentStatusSummary';
 import { getHealthCheckLabel } from '../../lib/healthCheck';
-import { getClassesFromStudents, getStudentsBySession, STUDENT_STATUS_LABELS, updateStudentMemo, updateStudentStatus } from '../../lib/roster';
-import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
-import { getOperationLogs } from '../../lib/logs';
+import { getClassesFromStudents, STUDENT_STATUS_LABELS, updateStudentMemo, updateStudentStatus } from '../../lib/roster';
 import { healthCheckDataService, type CreateHealthCheckOperationLogInput } from '../../lib/services/healthCheckDataService';
 import {
   clearClassMissing,
@@ -18,7 +16,7 @@ import {
   updateDelayedMinutes,
   updateOperationMemo,
 } from '../../lib/operation';
-import type { HealthCheckOperationStatus, HealthCheckOperationState, HealthCheckSession, HealthCheckStudent, HealthCheckStudentStatus, HealthCheckType } from '../../types/healthCheck';
+import type { HealthCheckOperationLog, HealthCheckOperationStatus, HealthCheckOperationState, HealthCheckSession, HealthCheckStudent, HealthCheckStudentStatus, HealthCheckType } from '../../types/healthCheck';
 import { formatSessionTitle, HealthCheckSessionBadge } from '../health-check/HealthCheckSessionBadge';
 import { OperationStatusCard } from './OperationStatusCard';
 import { ClassProgressList } from './ClassProgressList';
@@ -55,9 +53,9 @@ export function OperationCenter({
   status: HealthCheckOperationStatus;
 }) {
   const sessionId = session?.id ?? `${checkType}-local-session`;
-  const [students, setStudents] = useState<HealthCheckStudent[]>(() => getStudentsBySession(sessionId, checkType));
+  const [students, setStudents] = useState<HealthCheckStudent[]>([]);
   const [operationState, setOperationState] = useState<HealthCheckOperationState>(() => createInitialOperationState(sessionId));
-  const [operationLogs, setOperationLogs] = useState(() => getOperationLogs(sessionId));
+  const [operationLogs, setOperationLogs] = useState<HealthCheckOperationLog[]>([]);
   const [selectedClass, setSelectedClass] = useState('');
   const [studentError, setStudentError] = useState('');
   const [operationError, setOperationError] = useState('');
@@ -79,7 +77,6 @@ export function OperationCenter({
       .catch((error) => {
         console.warn('[OperationCenter] Failed to load operation logs.', error);
         if (cancelled) return;
-        setOperationLogs(getOperationLogs(sessionId));
         setLogError('운영 로그를 불러오지 못해 브라우저 저장 데이터를 사용합니다.');
       });
     void healthCheckDataService
@@ -96,8 +93,8 @@ export function OperationCenter({
         setOperationStateLoaded(true);
         setOperationError('운영상태를 불러오지 못해 브라우저 저장 데이터를 사용합니다.');
       });
-    void healthCheckStudentRepository
-      .listBySession(sessionId, checkType)
+    void healthCheckDataService
+      .listStudents(sessionId, checkType)
       .then((loaded) => {
         if (cancelled) return;
         setStudents(loaded);
@@ -106,9 +103,6 @@ export function OperationCenter({
       .catch((error) => {
         console.warn('[OperationCenter] Failed to load students.', error);
         if (cancelled) return;
-        const fallbackStudents = getStudentsBySession(sessionId, checkType);
-        setStudents(fallbackStudents);
-        setSelectedClass(fallbackStudents[0]?.className ?? '');
         setStudentError('학생 명렬표를 불러오지 못해 브라우저 저장 데이터를 사용합니다.');
       });
     return () => {
@@ -128,7 +122,7 @@ export function OperationCenter({
     void Promise.all([
       healthCheckDataService.getOperationState(sessionId),
       healthCheckDataService.listLogs(sessionId),
-      healthCheckStudentRepository.listBySession(sessionId, checkType),
+      healthCheckDataService.listStudents(sessionId, checkType),
     ])
       .then(([nextState, nextLogs, nextStudents]) => {
         setOperationState(nextState);
@@ -165,7 +159,7 @@ export function OperationCenter({
     setStudents(nextStudents);
     setSelectedClass(nextStudents[0]?.className ?? '');
     try {
-      const saved = await healthCheckStudentRepository.replaceForSession(sessionId, checkType, nextStudents);
+      const saved = await healthCheckDataService.replaceStudents(sessionId, checkType, nextStudents);
       setStudents(saved);
       setSelectedClass(saved[0]?.className ?? '');
     } catch (error) {
@@ -186,7 +180,7 @@ export function OperationCenter({
     }
     setStudents((prev) => updateStudentStatus(prev, studentId, statusValue));
     setStudentError('');
-    void healthCheckStudentRepository.updateStatus(sessionId, checkType, studentId, statusValue).catch((error) => {
+    void healthCheckDataService.updateStudentStatus(sessionId, checkType, studentId, statusValue).catch((error) => {
       console.warn('[OperationCenter] Failed to update student status.', error);
       setStudentError('학생 상태 저장 중 오류가 발생했습니다. 브라우저 저장 데이터로 계속 진행합니다.');
     });
@@ -195,7 +189,7 @@ export function OperationCenter({
   const updateMemo = (studentId: string, memo: string) => {
     setStudents((prev) => updateStudentMemo(prev, studentId, memo));
     setStudentError('');
-    void healthCheckStudentRepository.updateMemo(sessionId, checkType, studentId, memo).catch((error) => {
+    void healthCheckDataService.updateStudentMemo(sessionId, checkType, studentId, memo).catch((error) => {
       console.warn('[OperationCenter] Failed to update student memo.', error);
       setStudentError('학생 메모 저장 중 오류가 발생했습니다. 브라우저 저장 데이터로 계속 진행합니다.');
     });
@@ -214,7 +208,6 @@ export function OperationCenter({
       })
       .catch((error) => {
         console.warn('[OperationCenter] Failed to save operation log.', error);
-        setOperationLogs(getOperationLogs(sessionId));
         setLogError('운영 로그 저장 중 오류가 발생했습니다. 브라우저 저장 데이터로 계속 진행합니다.');
       });
   };
