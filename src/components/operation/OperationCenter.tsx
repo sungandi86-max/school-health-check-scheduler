@@ -6,9 +6,8 @@ import { StudentStatusSummary } from '../health-check/StudentStatusSummary';
 import { getHealthCheckLabel } from '../../lib/healthCheck';
 import { getClassesFromStudents, getStudentsBySession, STUDENT_STATUS_LABELS, updateStudentMemo, updateStudentStatus } from '../../lib/roster';
 import { healthCheckStudentRepository } from '../../lib/repositories/HealthCheckStudentRepository';
-import { addOperationLog, getOperationLogs } from '../../lib/logs';
-import { healthCheckDataService } from '../../lib/services/healthCheckDataService';
-import { healthCheckOperationLogRepository } from '../../lib/repositories/HealthCheckOperationLogRepository';
+import { getOperationLogs } from '../../lib/logs';
+import { healthCheckDataService, type CreateHealthCheckOperationLogInput } from '../../lib/services/healthCheckDataService';
 import {
   clearClassMissing,
   generateNoticeMessage,
@@ -71,8 +70,8 @@ export function OperationCenter({
     setOperationError('');
     setOperationStateLoaded(false);
     setLogError('');
-    void healthCheckOperationLogRepository
-      .listBySession(sessionId)
+    void healthCheckDataService
+      .listLogs(sessionId)
       .then((logs) => {
         if (cancelled) return;
         setOperationLogs(logs);
@@ -128,7 +127,7 @@ export function OperationCenter({
   useHealthCheckRealtime(sessionId, () => {
     void Promise.all([
       healthCheckDataService.getOperationState(sessionId),
-      healthCheckOperationLogRepository.listBySession(sessionId),
+      healthCheckDataService.listLogs(sessionId),
       healthCheckStudentRepository.listBySession(sessionId, checkType),
     ])
       .then(([nextState, nextLogs, nextStudents]) => {
@@ -207,9 +206,9 @@ export function OperationCenter({
     location: session?.location,
   });
 
-  const recordLog = (input: Parameters<typeof addOperationLog>[1]) => {
+  const recordLog = (input: CreateHealthCheckOperationLogInput) => {
     setLogError('');
-    void healthCheckOperationLogRepository.add(sessionId, input)
+    void healthCheckDataService.createLog(sessionId, input)
       .then((savedLog) => {
         setOperationLogs((prev) => [savedLog, ...prev.filter((log) => log.id !== savedLog.id)].slice(0, 500));
       })

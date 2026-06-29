@@ -11,6 +11,7 @@ import {
   addOperationLog as addLocalOperationLog,
   clearOperationLogs as clearLocalOperationLogs,
   getOperationLogs as getLocalOperationLogs,
+  saveOperationLogs as saveLocalOperationLogs,
 } from '../logs';
 import {
   getOperationState as getLocalOperationState,
@@ -83,6 +84,7 @@ type HealthCheckDataProvider = {
   listLogs(sessionId: string): Promise<HealthCheckOperationLog[]>;
   listRecentLogs(sessionId: string, limit: number): Promise<HealthCheckOperationLog[]>;
   createLog(sessionId: string, input: CreateHealthCheckOperationLogInput): Promise<HealthCheckOperationLog>;
+  deleteLog(sessionId: string, logId: string): Promise<void>;
   clearLogs(sessionId: string): Promise<void>;
 };
 
@@ -180,6 +182,10 @@ const localProvider: HealthCheckDataProvider = {
     return addLocalOperationLog(sessionId, input);
   },
 
+  async deleteLog(sessionId, logId) {
+    saveLocalOperationLogs(sessionId, getLocalOperationLogs(sessionId).filter((log) => log.id !== logId));
+  },
+
   async clearLogs(sessionId) {
     clearLocalOperationLogs(sessionId);
   },
@@ -212,6 +218,9 @@ const supabaseProvider: HealthCheckDataProvider = {
   listLogs: (sessionId) => healthCheckOperationLogRepository.listBySession(sessionId),
   listRecentLogs: (sessionId, limit) => healthCheckOperationLogRepository.recent(sessionId, limit),
   createLog: (sessionId, input) => healthCheckOperationLogRepository.add(sessionId, input),
+  async deleteLog(sessionId, logId) {
+    await healthCheckOperationLogRepository.delete(sessionId, logId);
+  },
   async clearLogs(sessionId) {
     await healthCheckOperationLogRepository.clear(sessionId);
   },
@@ -242,6 +251,7 @@ export const healthCheckDataService: HealthCheckDataProvider = {
   listLogs: (sessionId) => getHealthCheckDataProvider().listLogs(sessionId),
   listRecentLogs: (sessionId, limit) => getHealthCheckDataProvider().listRecentLogs(sessionId, limit),
   createLog: (sessionId, input) => getHealthCheckDataProvider().createLog(sessionId, input),
+  deleteLog: (sessionId, logId) => getHealthCheckDataProvider().deleteLog(sessionId, logId),
   clearLogs: (sessionId) => getHealthCheckDataProvider().clearLogs(sessionId),
 };
 
