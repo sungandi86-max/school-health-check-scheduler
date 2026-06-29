@@ -65,7 +65,6 @@ import { OperationCenter } from './components/operation/OperationCenter';
 import { TeacherDashboard } from './components/teacher-dashboard/TeacherDashboard';
 import { AdminDashboard } from './components/admin-dashboard/AdminDashboard';
 import { OperationReport } from './components/report/OperationReport';
-import { StorageSettingsPanel } from './components/settings/StorageSettingsPanel';
 import { SchoolSettingsPanel } from './components/settings/SchoolSettingsPanel';
 import { HealthCheckTypeSelector } from './components/health-check/HealthCheckTypeSelector';
 import { HealthCheckSummary } from './components/health-check/HealthCheckSummary';
@@ -1004,7 +1003,6 @@ function SettingsPanel({
   return (
     <section className="card stack">
       <h2>검사 조건 설정</h2>
-      <StorageSettingsPanel />
       <div className="form-grid">
         <Field label="검사 유형">
           <input value={getHealthCheckLabel(settings.healthCheckType)} readOnly />
