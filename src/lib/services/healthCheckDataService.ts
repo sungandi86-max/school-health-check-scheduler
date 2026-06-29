@@ -36,7 +36,7 @@ import { healthCheckOperationLogRepository } from '../repositories/HealthCheckOp
 import { healthCheckOperationStateRepository } from '../repositories/HealthCheckOperationStateRepository';
 import { healthCheckSessionRepository } from '../repositories/HealthCheckSessionRepository';
 import { healthCheckStudentRepository } from '../repositories/HealthCheckStudentRepository';
-import { getStorageMode } from '../storage/storageProvider';
+import { getStorageMode, isRemoteStorageAvailable } from '../storage/storageProvider';
 import type { StorageMode } from '../storage/storageAdapter';
 
 export type CreateHealthCheckSessionInput = {
@@ -89,7 +89,7 @@ type HealthCheckDataProvider = {
 };
 
 function isSupabaseMode() {
-  return getStorageMode() === 'supabase';
+  return getStorageMode() === 'supabase' && isRemoteStorageAvailable();
 }
 
 function createOperationLog(sessionId: string, input: CreateHealthCheckOperationLogInput): HealthCheckOperationLog {
