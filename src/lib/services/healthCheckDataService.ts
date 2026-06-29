@@ -1,12 +1,12 @@
 import type {
   HealthCheckOperationLog,
+  HealthCheckOperationLogType,
   HealthCheckOperationState,
   HealthCheckSession,
   HealthCheckStudent,
   HealthCheckStudentStatus,
   HealthCheckType,
 } from '../../types/healthCheck';
-import type { HealthCheckOperationLogInput } from '../logs';
 import {
   addOperationLog as addLocalOperationLog,
   clearOperationLogs as clearLocalOperationLogs,
@@ -25,36 +25,19 @@ import {
 import {
   createHealthCheckSession as createLocalHealthCheckSession,
   deleteHealthCheckSession as deleteLocalHealthCheckSession,
+  getActiveSessionId as getLocalActiveSessionId,
   getHealthCheckSessions as getLocalHealthCheckSessions,
+  setActiveSessionId as setLocalActiveSessionId,
   updateHealthCheckSession as updateLocalHealthCheckSession,
 } from '../sessions';
+import { healthCheckOperationLogRepository } from '../repositories/HealthCheckOperationLogRepository';
+import { healthCheckOperationStateRepository } from '../repositories/HealthCheckOperationStateRepository';
+import { healthCheckSessionRepository } from '../repositories/HealthCheckSessionRepository';
+import { healthCheckStudentRepository } from '../repositories/HealthCheckStudentRepository';
 import { getStorageMode } from '../storage/storageProvider';
-import {
-  healthCheckSessionRepository,
-} from '../repositories/HealthCheckSessionRepository';
-import {
-  createStudent,
-  deleteStudent,
-  getStudent,
-  listStudents,
-  replaceStudents,
-  updateStudent,
-} from '../repositories/HealthCheckStudentRepository';
-import {
-  deleteOperationState as deleteRemoteOperationState,
-  getOperationState as getRemoteOperationState,
-  updateOperationState as updateRemoteOperationState,
-  upsertOperationState,
-} from '../repositories/HealthCheckOperationStateRepository';
-import {
-  clearLogs as clearRemoteLogs,
-  createLog,
-  deleteLog,
-  listLogs,
-  listRecentLogs,
-} from '../repositories/HealthCheckOperationLogRepository';
+import type { StorageMode } from '../storage/storageAdapter';
 
-type CreateHealthCheckSessionInput = {
+export type CreateHealthCheckSessionInput = {
   title: string;
   checkType: HealthCheckType;
   date: string;
@@ -63,206 +46,188 @@ type CreateHealthCheckSessionInput = {
   status: HealthCheckSession['status'];
 };
 
-type UpdateHealthCheckSessionInput = Partial<Omit<HealthCheckSession, 'id' | 'createdAt'>>;
-type UpdateHealthCheckStudentInput = Partial<Omit<HealthCheckStudent, 'id' | 'sessionId'>>;
-type UpdateHealthCheckOperationStateInput = Partial<Omit<HealthCheckOperationState, 'sessionId'>>;
+export type UpdateHealthCheckSessionInput = Partial<Omit<HealthCheckSession, 'id' | 'createdAt'>>;
+export type UpdateHealthCheckStudentInput = Partial<Omit<HealthCheckStudent, 'id' | 'sessionId'>>;
+export type UpdateHealthCheckOperationStateInput = Partial<Omit<HealthCheckOperationState, 'sessionId'>>;
+export type CreateHealthCheckOperationLogInput = {
+  type: HealthCheckOperationLogType;
+  message: string;
+  relatedClassId?: string;
+  relatedStudentId?: string;
+};
 
-function shouldUseSupabase() {
+type HealthCheckDataProvider = {
+  mode: StorageMode;
+  listSessions(): Promise<HealthCheckSession[]>;
+  getActiveSessionId(): Promise<string>;
+  setActiveSessionId(sessionId: string): Promise<void>;
+  createSession(input: CreateHealthCheckSessionInput): Promise<HealthCheckSession>;
+  updateSession(sessionId: string, patch: UpdateHealthCheckSessionInput): Promise<HealthCheckSession | undefined>;
+  deleteSession(sessionId: string): Promise<HealthCheckSession[]>;
+  listStudents(sessionId: string, checkType: HealthCheckType): Promise<HealthCheckStudent[]>;
+  replaceStudents(sessionId: string, checkType: HealthCheckType, students: HealthCheckStudent[]): Promise<HealthCheckStudent[]>;
+  updateStudentStatus(sessionId: string, checkType: HealthCheckType, studentId: string, status: HealthCheckStudentStatus): Promise<HealthCheckStudent | undefined>;
+  updateStudentMemo(sessionId: string, checkType: HealthCheckType, studentId: string, memo: string): Promise<HealthCheckStudent | undefined>;
+  getOperationState(sessionId: string): Promise<HealthCheckOperationState>;
+  saveOperationState(sessionId: string, state: HealthCheckOperationState): Promise<HealthCheckOperationState>;
+  updateOperationState(sessionId: string, patch: UpdateHealthCheckOperationStateInput): Promise<HealthCheckOperationState>;
+  listLogs(sessionId: string): Promise<HealthCheckOperationLog[]>;
+  listRecentLogs(sessionId: string, limit: number): Promise<HealthCheckOperationLog[]>;
+  createLog(sessionId: string, input: CreateHealthCheckOperationLogInput): Promise<HealthCheckOperationLog>;
+  clearLogs(sessionId: string): Promise<void>;
+};
+
+function isSupabaseMode() {
   return getStorageMode() === 'supabase';
 }
 
-function buildOperationLog(sessionId: string, input: HealthCheckOperationLogInput): HealthCheckOperationLog {
+function createOperationLog(sessionId: string, input: CreateHealthCheckOperationLogInput): HealthCheckOperationLog {
   return {
-    ...input,
     id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     sessionId,
     createdAt: new Date().toISOString(),
+    ...input,
   };
 }
 
-export const healthCheckDataService = {
-  getStorageMode,
+const localProvider: HealthCheckDataProvider = {
+  mode: 'local',
 
-  async listSessions(): Promise<HealthCheckSession[]> {
-    if (shouldUseSupabase()) return healthCheckSessionRepository.list();
+  async listSessions() {
     return getLocalHealthCheckSessions();
   },
 
-  async getSession(sessionId: string): Promise<HealthCheckSession | undefined> {
-    if (shouldUseSupabase()) return healthCheckSessionRepository.get(sessionId);
-    return getLocalHealthCheckSessions().find((session) => session.id === sessionId);
+  async getActiveSessionId() {
+    return getLocalActiveSessionId();
   },
 
-  async createSession(input: CreateHealthCheckSessionInput): Promise<HealthCheckSession> {
-    if (shouldUseSupabase()) return healthCheckSessionRepository.create(input);
+  async setActiveSessionId(sessionId) {
+    setLocalActiveSessionId(sessionId);
+  },
+
+  async createSession(input) {
     return createLocalHealthCheckSession(input);
   },
 
-  async updateSession(
-    sessionId: string,
-    patch: UpdateHealthCheckSessionInput,
-  ): Promise<HealthCheckSession | undefined> {
-    if (shouldUseSupabase()) return healthCheckSessionRepository.update(sessionId, patch);
+  async updateSession(sessionId, patch) {
     return updateLocalHealthCheckSession(sessionId, patch);
   },
 
-  async deleteSession(sessionId: string): Promise<HealthCheckSession[]> {
-    if (shouldUseSupabase()) return healthCheckSessionRepository.delete(sessionId);
+  async deleteSession(sessionId) {
     return deleteLocalHealthCheckSession(sessionId);
   },
 
-  async listStudents(sessionId: string, checkType: HealthCheckType): Promise<HealthCheckStudent[]> {
-    if (shouldUseSupabase()) {
-      const students = await listStudents(sessionId);
-      return students.filter((student) => student.checkType === checkType);
-    }
-
+  async listStudents(sessionId, checkType) {
     return getLocalStudentsBySession(sessionId, checkType);
   },
 
-  async getStudent(studentId: string): Promise<HealthCheckStudent | null> {
-    if (shouldUseSupabase()) return getStudent(studentId);
-    return null;
-  },
-
-  async createStudent(student: HealthCheckStudent): Promise<HealthCheckStudent> {
-    if (shouldUseSupabase()) return createStudent(student);
-    const students = [...getLocalStudentsBySession(student.sessionId, student.checkType), student];
-    saveLocalStudentsBySession(student.sessionId, student.checkType, students);
-    return student;
-  },
-
-  async updateStudent(
-    sessionId: string,
-    checkType: HealthCheckType,
-    studentId: string,
-    patch: UpdateHealthCheckStudentInput,
-  ): Promise<HealthCheckStudent | undefined> {
-    if (shouldUseSupabase()) return updateStudent(studentId, patch);
-
-    let students = getLocalStudentsBySession(sessionId, checkType);
-    if (patch.status !== undefined) {
-      students = updateLocalStudentStatus(students, studentId, patch.status);
-    }
-    if (patch.memo !== undefined) {
-      students = updateLocalStudentMemo(students, studentId, patch.memo);
-    }
-
-    const next = students.map((student) =>
-      student.id === studentId
-        ? { ...student, ...patch, id: student.id, sessionId: student.sessionId }
-        : student,
-    );
-    saveLocalStudentsBySession(sessionId, checkType, next);
-    return next.find((student) => student.id === studentId);
-  },
-
-  async updateStudentStatus(
-    sessionId: string,
-    checkType: HealthCheckType,
-    studentId: string,
-    status: HealthCheckStudentStatus,
-  ): Promise<HealthCheckStudent | undefined> {
-    return this.updateStudent(sessionId, checkType, studentId, { status });
-  },
-
-  async updateStudentMemo(
-    sessionId: string,
-    checkType: HealthCheckType,
-    studentId: string,
-    memo: string,
-  ): Promise<HealthCheckStudent | undefined> {
-    return this.updateStudent(sessionId, checkType, studentId, { memo });
-  },
-
-  async deleteStudent(
-    sessionId: string,
-    checkType: HealthCheckType,
-    studentId: string,
-  ): Promise<void> {
-    if (shouldUseSupabase()) {
-      await deleteStudent(studentId);
-      return;
-    }
-
-    const students = getLocalStudentsBySession(sessionId, checkType).filter(
-      (student) => student.id !== studentId,
-    );
-    saveLocalStudentsBySession(sessionId, checkType, students);
-  },
-
-  async replaceStudents(
-    sessionId: string,
-    checkType: HealthCheckType,
-    students: HealthCheckStudent[],
-  ): Promise<HealthCheckStudent[]> {
+  async replaceStudents(sessionId, checkType, students) {
     const nextStudents = students.map((student) => ({ ...student, sessionId, checkType }));
-    if (shouldUseSupabase()) return replaceStudents(sessionId, nextStudents);
-
     saveLocalStudentsBySession(sessionId, checkType, nextStudents);
     return nextStudents;
   },
 
-  async getOperationState(sessionId: string): Promise<HealthCheckOperationState | null> {
-    if (shouldUseSupabase()) return getRemoteOperationState(sessionId);
+  async updateStudentStatus(sessionId, checkType, studentId, status) {
+    const students = updateLocalStudentStatus(getLocalStudentsBySession(sessionId, checkType), studentId, status);
+    saveLocalStudentsBySession(sessionId, checkType, students);
+    return students.find((student) => student.id === studentId);
+  },
+
+  async updateStudentMemo(sessionId, checkType, studentId, memo) {
+    const students = updateLocalStudentMemo(getLocalStudentsBySession(sessionId, checkType), studentId, memo);
+    saveLocalStudentsBySession(sessionId, checkType, students);
+    return students.find((student) => student.id === studentId);
+  },
+
+  async getOperationState(sessionId) {
     return getLocalOperationState(sessionId);
   },
 
-  async saveOperationState(
-    sessionId: string,
-    state: HealthCheckOperationState,
-  ): Promise<HealthCheckOperationState> {
-    if (shouldUseSupabase()) return upsertOperationState(sessionId, state);
-
+  async saveOperationState(sessionId, state) {
     const nextState = { ...state, sessionId };
     saveLocalOperationState(sessionId, nextState);
     return nextState;
   },
 
-  async updateOperationState(
-    sessionId: string,
-    patch: UpdateHealthCheckOperationStateInput,
-  ): Promise<HealthCheckOperationState> {
-    if (shouldUseSupabase()) return updateRemoteOperationState(sessionId, patch);
-
-    const current = getLocalOperationState(sessionId);
-    const nextState = { ...current, ...patch, sessionId, updatedAt: new Date().toISOString() };
+  async updateOperationState(sessionId, patch) {
+    const nextState = { ...getLocalOperationState(sessionId), ...patch, sessionId, updatedAt: new Date().toISOString() };
     saveLocalOperationState(sessionId, nextState);
     return nextState;
   },
 
-  async deleteOperationState(sessionId: string): Promise<void> {
-    if (shouldUseSupabase()) await deleteRemoteOperationState(sessionId);
-  },
-
-  async listLogs(sessionId: string): Promise<HealthCheckOperationLog[]> {
-    if (shouldUseSupabase()) return listLogs(sessionId);
+  async listLogs(sessionId) {
     return getLocalOperationLogs(sessionId);
   },
 
-  async listRecentLogs(sessionId: string, limit: number): Promise<HealthCheckOperationLog[]> {
-    if (shouldUseSupabase()) return listRecentLogs(sessionId, limit);
+  async listRecentLogs(sessionId, limit) {
     return getLocalOperationLogs(sessionId).slice(0, Math.max(0, limit));
   },
 
-  async createLog(
-    sessionId: string,
-    input: HealthCheckOperationLogInput,
-  ): Promise<HealthCheckOperationLog> {
-    if (shouldUseSupabase()) return createLog(buildOperationLog(sessionId, input));
+  async createLog(sessionId, input) {
     return addLocalOperationLog(sessionId, input);
   },
 
-  async deleteLog(_sessionId: string, logId: string): Promise<void> {
-    if (shouldUseSupabase()) await deleteLog(logId);
-  },
-
-  async clearLogs(sessionId: string): Promise<void> {
-    if (shouldUseSupabase()) {
-      await clearRemoteLogs(sessionId);
-      return;
-    }
-
+  async clearLogs(sessionId) {
     clearLocalOperationLogs(sessionId);
   },
 };
+
+const supabaseProvider: HealthCheckDataProvider = {
+  mode: 'supabase',
+
+  listSessions: () => healthCheckSessionRepository.list(),
+  getActiveSessionId: () => healthCheckSessionRepository.getActiveSessionId(),
+  setActiveSessionId: (sessionId) => healthCheckSessionRepository.setActiveSessionId(sessionId),
+  createSession: (input) => healthCheckSessionRepository.create(input),
+  updateSession: (sessionId, patch) => healthCheckSessionRepository.update(sessionId, patch),
+  deleteSession: (sessionId) => healthCheckSessionRepository.delete(sessionId),
+
+  async listStudents(sessionId, checkType) {
+    const students = await healthCheckStudentRepository.listBySession(sessionId, checkType);
+    return students;
+  },
+
+  replaceStudents: (sessionId, checkType, students) => healthCheckStudentRepository.replaceForSession(sessionId, checkType, students),
+  updateStudentStatus: (sessionId, checkType, studentId, status) => healthCheckStudentRepository.updateStatus(sessionId, checkType, studentId, status),
+  updateStudentMemo: (sessionId, checkType, studentId, memo) => healthCheckStudentRepository.updateMemo(sessionId, checkType, studentId, memo),
+
+  getOperationState: (sessionId) => healthCheckOperationStateRepository.get(sessionId),
+  saveOperationState: (sessionId, state) => healthCheckOperationStateRepository.save({ ...state, sessionId }),
+  updateOperationState: (sessionId, patch) => healthCheckOperationStateRepository.update(sessionId, patch),
+
+  listLogs: (sessionId) => healthCheckOperationLogRepository.listBySession(sessionId),
+  listRecentLogs: (sessionId, limit) => healthCheckOperationLogRepository.recent(sessionId, limit),
+  createLog: (sessionId, input) => healthCheckOperationLogRepository.add(sessionId, input),
+  async clearLogs(sessionId) {
+    await healthCheckOperationLogRepository.clear(sessionId);
+  },
+};
+
+export function getHealthCheckDataProvider(): HealthCheckDataProvider {
+  return isSupabaseMode() ? supabaseProvider : localProvider;
+}
+
+export const healthCheckDataService: HealthCheckDataProvider = {
+  get mode() {
+    return getHealthCheckDataProvider().mode;
+  },
+  listSessions: () => getHealthCheckDataProvider().listSessions(),
+  getActiveSessionId: () => getHealthCheckDataProvider().getActiveSessionId(),
+  setActiveSessionId: (sessionId) => getHealthCheckDataProvider().setActiveSessionId(sessionId),
+  createSession: (input) => getHealthCheckDataProvider().createSession(input),
+  updateSession: (sessionId, patch) => getHealthCheckDataProvider().updateSession(sessionId, patch),
+  deleteSession: (sessionId) => getHealthCheckDataProvider().deleteSession(sessionId),
+  listStudents: (sessionId, checkType) => getHealthCheckDataProvider().listStudents(sessionId, checkType),
+  replaceStudents: (sessionId, checkType, students) => getHealthCheckDataProvider().replaceStudents(sessionId, checkType, students),
+  updateStudentStatus: (sessionId, checkType, studentId, status) => getHealthCheckDataProvider().updateStudentStatus(sessionId, checkType, studentId, status),
+  updateStudentMemo: (sessionId, checkType, studentId, memo) => getHealthCheckDataProvider().updateStudentMemo(sessionId, checkType, studentId, memo),
+  getOperationState: (sessionId) => getHealthCheckDataProvider().getOperationState(sessionId),
+  saveOperationState: (sessionId, state) => getHealthCheckDataProvider().saveOperationState(sessionId, state),
+  updateOperationState: (sessionId, patch) => getHealthCheckDataProvider().updateOperationState(sessionId, patch),
+  listLogs: (sessionId) => getHealthCheckDataProvider().listLogs(sessionId),
+  listRecentLogs: (sessionId, limit) => getHealthCheckDataProvider().listRecentLogs(sessionId, limit),
+  createLog: (sessionId, input) => getHealthCheckDataProvider().createLog(sessionId, input),
+  clearLogs: (sessionId) => getHealthCheckDataProvider().clearLogs(sessionId),
+};
+
+export { createOperationLog };
