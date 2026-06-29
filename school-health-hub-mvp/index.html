@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>School Health Hub</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, Pretendard, "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #eef7f5;
+        color: #122334;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 1180px;
+        background: #eef7f5;
+      }
+
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 38px;
+        border: 1px solid #cfe1df;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #143047;
+        cursor: pointer;
+        padding: 8px 12px;
+        white-space: nowrap;
+        font: inherit;
+        font-weight: 800;
+      }
+
+      button:hover,
+      button.active {
+        border-color: #59b8ad;
+        background: #f2fbfa;
+      }
+
+      .app-shell {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 22px;
+        background: #0d2a3f;
+        color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand-mark {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: #7dd3c7;
+        color: #0d2a3f;
+        display: grid;
+        place-items: center;
+        font-weight: 900;
+      }
+
+      .brand strong,
+      .brand span {
+        display: block;
+      }
+
+      .brand span {
+        color: #b9d3d8;
+        font-size: 13px;
+        margin-top: 3px;
+      }
+
+      nav {
+        display: grid;
+        gap: 8px;
+      }
+
+      nav button {
+        justify-content: flex-start;
+        border-color: transparent;
+        background: transparent;
+        color: #d9edf0;
+      }
+
+      nav button.active,
+      nav button:hover {
+        background: #154761;
+        color: #ffffff;
+        border-color: #2b6178;
+      }
+
+      .sidebar-note {
+        margin-top: auto;
+        border-top: 1px solid rgba(185, 211, 216, 0.18);
+        color: #b9d3d8;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.6;
+        padding-top: 14px;
+      }
+
+      main {
+        padding: 28px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 22px;
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: #0f766e;
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        color: #0d2a3f;
+        font-size: 28px;
+      }
+
+      h2 {
+        color: #0d2a3f;
+        font-size: 18px;
+      }
+
+      h3 {
+        color: #17384f;
+        font-size: 15px;
+      }
+
+      .topbar-subtitle,
+      .muted {
+        color: #587084;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.6;
+      }
+
+      .topbar-subtitle {
+        margin-top: 6px;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .primary {
+        border-color: #0f766e;
+        background: #0f766e;
+        color: #ffffff;
+      }
+
+      .primary:hover {
+        border-color: #0b615a;
+        background: #0b615a;
+      }
+
+      .stack {
+        display: grid;
+        gap: 16px;
+      }
+
+      .card,
+      .metric-card {
+        border: 1px solid #d8e8e5;
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 12px 30px rgba(13, 42, 63, 0.06);
+        padding: 18px;
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 14px;
+      }
+
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .metric-card {
+        min-height: 116px;
+      }
+
+      .metric-card span {
+        display: block;
+        color: #587084;
+        font-size: 13px;
+        font-weight: 800;
+        margin-bottom: 14px;
+      }
+
+      .metric-card strong {
+        color: #0d2a3f;
+        font-size: 28px;
+      }
+
+      .list {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .list li,
+      .flow-step,
+      .quick-card {
+        border: 1px solid #d8e8e5;
+        border-radius: 10px;
+        background: #f7fcfb;
+        color: #29465a;
+        font-size: 14px;
+        font-weight: 800;
+        line-height: 1.5;
+        padding: 12px;
+      }
+
+      .list strong {
+        color: #0d2a3f;
+      }
+
+      .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .quick-card {
+        min-height: 118px;
+        display: grid;
+        align-content: space-between;
+        gap: 12px;
+        text-align: left;
+      }
+
+      .quick-card span {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: #e8f7f5;
+        color: #0d5b55;
+        font-weight: 900;
+      }
+
+      .quick-card small,
+      .flow-step small {
+        color: #587084;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.5;
+      }
+
+      .flow-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .flow-step {
+        display: grid;
+        gap: 10px;
+        min-height: 154px;
+      }
+
+      .flow-step em {
+        width: fit-content;
+        border-radius: 999px;
+        background: #e7f4f2;
+        color: #0f766e;
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 900;
+        padding: 6px 10px;
+      }
+
+      .progress-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .progress-row {
+        display: grid;
+        grid-template-columns: 120px 1fr 46px;
+        gap: 10px;
+        align-items: center;
+        color: #29465a;
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .bar {
+        height: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #edf3f2;
+      }
+
+      .bar span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: #0f766e;
+      }
+
+      .placeholder-page {
+        min-height: 420px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+      }
+
+      .placeholder-page div {
+        display: grid;
+        gap: 8px;
+      }
+
+      @media (max-width: 1180px) {
+        body {
+          min-width: 0;
+        }
+
+        .app-shell,
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .sidebar {
+          position: static;
+          height: auto;
+        }
+
+        .quick-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .metric-grid,
+        .flow-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 760px) {
+        main {
+          padding: 16px;
+        }
+
+        .topbar {
+          display: grid;
+        }
+
+        .quick-grid,
+        .metric-grid,
+        .flow-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .progress-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">SH</div>
+          <div>
+            <strong>School Health Hub</strong>
+            <span>스마일보건 업무 홈</span>
+          </div>
+        </div>
+        <nav aria-label="기본 메뉴">
+          <button class="active" type="button" data-page="home">Home</button>
+          <button type="button" data-page="work">업무</button>
+          <button type="button" data-page="resources">자료</button>
+          <button type="button" data-page="community">커뮤니티</button>
+          <button type="button" data-page="settings">설정</button>
+        </nav>
+        <p class="sidebar-note">Sprint 1: 화면 배치와 네비게이션 골격만 구성되어 있습니다.</p>
+      </aside>
+
+      <main>
+        <section id="home-page" class="stack page">
+          <div class="topbar">
+            <div>
+              <p class="eyebrow">School Health Hub Home</p>
+              <h1>오늘의 보건 업무를 한 화면에서 확인합니다</h1>
+              <p class="topbar-subtitle">학생건강검진, 교직원 검진, 보건소식지, 자료 업무의 시작점을 모았습니다.</p>
+            </div>
+            <div class="actions">
+              <button class="primary" type="button">새 업무 시작</button>
+              <button type="button">자료 열기</button>
+            </div>
+          </div>
+
+          <section class="dashboard-grid" aria-label="Home Dashboard">
+            <div class="stack">
+              <div class="metric-grid">
+                <article class="metric-card">
+                  <span>오늘 해야 할 일</span>
+                  <strong>4건</strong>
+                </article>
+                <article class="metric-card">
+                  <span>일정</span>
+                  <strong>3건</strong>
+                </article>
+                <article class="metric-card">
+                  <span>주요 알림</span>
+                  <strong>2건</strong>
+                </article>
+                <article class="metric-card">
+                  <span>업무 진행 현황</span>
+                  <strong>68%</strong>
+                </article>
+              </div>
+
+              <article class="card">
+                <div class="section-title">
+                  <h2>오늘 해야 할 일</h2>
+                  <button type="button">전체 보기</button>
+                </div>
+                <ul class="list">
+                  <li><strong>학생건강검진</strong> 검진 대상 학급 확인</li>
+                  <li><strong>교직원 검진</strong> 미응답자 안내 문구 점검</li>
+                  <li><strong>보건소식지</strong> 이번 달 초안 검토</li>
+                </ul>
+              </article>
+            </div>
+
+            <div class="stack">
+              <article class="card">
+                <div class="section-title">
+                  <h2>일정</h2>
+                  <button type="button">추가</button>
+                </div>
+                <ul class="list">
+                  <li><strong>09:30</strong> 2학년 건강검진 준비</li>
+                  <li><strong>11:00</strong> 검진기관 연락 확인</li>
+                  <li><strong>15:20</strong> 보건소식지 발송 점검</li>
+                </ul>
+              </article>
+
+              <article class="card">
+                <div class="section-title">
+                  <h2>주요 알림</h2>
+                </div>
+                <ul class="list">
+                  <li>공개자료 게시 전 개인정보 포함 여부를 확인하세요.</li>
+                  <li>검진 일정 변경 사항이 있으면 업무 흐름에서 먼저 반영하세요.</li>
+                </ul>
+              </article>
+            </div>
+          </section>
+
+          <section class="card" aria-label="Quick Access">
+            <div class="section-title">
+              <h2>Quick Access</h2>
+            </div>
+            <div class="quick-grid">
+              <button class="quick-card" type="button"><span>학</span><strong>학생건강검진</strong><small>검진 일정과 대상 관리</small></button>
+              <button class="quick-card" type="button"><span>교</span><strong>교직원 검진</strong><small>응답과 안내 관리</small></button>
+              <button class="quick-card" type="button"><span>AI</span><strong>AI 업무도우미</strong><small>문구와 업무 초안 지원</small></button>
+              <button class="quick-card" type="button"><span>소</span><strong>보건소식지</strong><small>월별 소식지 작성</small></button>
+              <button class="quick-card" type="button"><span>공</span><strong>공개자료</strong><small>배포 자료 정리</small></button>
+              <button class="quick-card" type="button"><span>커</span><strong>커뮤니티</strong><small>사례와 자료 공유</small></button>
+            </div>
+          </section>
+
+          <section class="card" aria-label="업무 흐름">
+            <div class="section-title">
+              <h2>업무 흐름</h2>
+            </div>
+            <div class="flow-grid">
+              <article class="flow-step">
+                <em>01</em>
+                <h3>학생건강검진</h3>
+                <small>대상 확인, 일정 배정, 검진 진행 현황을 이어서 관리합니다.</small>
+              </article>
+              <article class="flow-step">
+                <em>02</em>
+                <h3>교직원 검진</h3>
+                <small>검진 유형 선택, 응답 취합, 안내 발송을 준비합니다.</small>
+              </article>
+              <article class="flow-step">
+                <em>03</em>
+                <h3>보건소식지</h3>
+                <small>월별 주제, 초안 작성, 배포 전 검토 흐름을 둡니다.</small>
+              </article>
+              <article class="flow-step">
+                <em>04</em>
+                <h3>자료 관리</h3>
+                <small>공개자료와 내부자료를 분리해 정리하는 골격입니다.</small>
+              </article>
+            </div>
+          </section>
+
+          <section class="card" aria-label="업무 진행 현황">
+            <div class="section-title">
+              <h2>업무 진행 현황</h2>
+            </div>
+            <div class="progress-list">
+              <div class="progress-row"><span>학생건강검진</span><div class="bar"><span style="width: 72%"></span></div><strong>72%</strong></div>
+              <div class="progress-row"><span>교직원 검진</span><div class="bar"><span style="width: 48%"></span></div><strong>48%</strong></div>
+              <div class="progress-row"><span>보건소식지</span><div class="bar"><span style="width: 35%"></span></div><strong>35%</strong></div>
+              <div class="progress-row"><span>자료 관리</span><div class="bar"><span style="width: 82%"></span></div><strong>82%</strong></div>
+            </div>
+          </section>
+        </section>
+
+        <section id="work-page" class="card placeholder-page page" hidden>
+          <div>
+            <p class="eyebrow">업무</p>
+            <h1>업무 화면은 다음 Sprint에서 연결합니다</h1>
+            <p class="muted">학생건강검진, 교직원 검진, 보건소식지 업무 진입점을 배치할 예정입니다.</p>
+          </div>
+        </section>
+
+        <section id="resources-page" class="card placeholder-page page" hidden>
+          <div>
+            <p class="eyebrow">자료</p>
+            <h1>자료 관리 화면</h1>
+            <p class="muted">공개자료와 내부자료의 목록 골격을 다음 단계에서 확장합니다.</p>
+          </div>
+        </section>
+
+        <section id="community-page" class="card placeholder-page page" hidden>
+          <div>
+            <p class="eyebrow">커뮤니티</p>
+            <h1>커뮤니티 화면</h1>
+            <p class="muted">사례 공유와 질문 게시 흐름을 위한 자리입니다.</p>
+          </div>
+        </section>
+
+        <section id="settings-page" class="card placeholder-page page" hidden>
+          <div>
+            <p class="eyebrow">설정</p>
+            <h1>설정 화면</h1>
+            <p class="muted">학교 기본값과 서비스 설정을 이후 Sprint에서 연결합니다.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const buttons = document.querySelectorAll("nav button");
+      const pages = document.querySelectorAll(".page");
+
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const page = button.dataset.page;
+          buttons.forEach((item) => item.classList.toggle("active", item === button));
+          pages.forEach((item) => {
+            item.hidden = item.id !== `${page}-page`;
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
