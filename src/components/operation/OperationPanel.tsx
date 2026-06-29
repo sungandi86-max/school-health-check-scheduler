@@ -1,3 +1,5 @@
+// Deprecated: legacy operation panel kept for the existing scheduler tab.
+// New health check operation work should use OperationCenter and healthCheckDataService.
 import { ClipboardCopy, FileInput, MonitorSmartphone, RefreshCcw, ShieldCheck } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
