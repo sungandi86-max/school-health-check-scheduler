@@ -24,6 +24,7 @@ import {
 } from '../roster';
 import {
   createHealthCheckSession as createLocalHealthCheckSession,
+  createSessionFromDefaults as createLocalSessionFromDefaults,
   deleteHealthCheckSession as deleteLocalHealthCheckSession,
   getActiveSessionId as getLocalActiveSessionId,
   getHealthCheckSessions as getLocalHealthCheckSessions,
@@ -46,6 +47,13 @@ export type CreateHealthCheckSessionInput = {
   status: HealthCheckSession['status'];
 };
 
+export type CreateHealthCheckSessionFromDefaultsInput = {
+  checkType: HealthCheckType;
+  date: string;
+  targetGrades: string[];
+  location: string;
+};
+
 export type UpdateHealthCheckSessionInput = Partial<Omit<HealthCheckSession, 'id' | 'createdAt'>>;
 export type UpdateHealthCheckStudentInput = Partial<Omit<HealthCheckStudent, 'id' | 'sessionId'>>;
 export type UpdateHealthCheckOperationStateInput = Partial<Omit<HealthCheckOperationState, 'sessionId'>>;
@@ -62,6 +70,7 @@ type HealthCheckDataProvider = {
   getActiveSessionId(): Promise<string>;
   setActiveSessionId(sessionId: string): Promise<void>;
   createSession(input: CreateHealthCheckSessionInput): Promise<HealthCheckSession>;
+  createSessionFromDefaults(input: CreateHealthCheckSessionFromDefaultsInput): Promise<HealthCheckSession>;
   updateSession(sessionId: string, patch: UpdateHealthCheckSessionInput): Promise<HealthCheckSession | undefined>;
   deleteSession(sessionId: string): Promise<HealthCheckSession[]>;
   listStudents(sessionId: string, checkType: HealthCheckType): Promise<HealthCheckStudent[]>;
@@ -107,6 +116,10 @@ const localProvider: HealthCheckDataProvider = {
 
   async createSession(input) {
     return createLocalHealthCheckSession(input);
+  },
+
+  async createSessionFromDefaults(input) {
+    return createLocalSessionFromDefaults(input);
   },
 
   async updateSession(sessionId, patch) {
@@ -179,6 +192,7 @@ const supabaseProvider: HealthCheckDataProvider = {
   getActiveSessionId: () => healthCheckSessionRepository.getActiveSessionId(),
   setActiveSessionId: (sessionId) => healthCheckSessionRepository.setActiveSessionId(sessionId),
   createSession: (input) => healthCheckSessionRepository.create(input),
+  createSessionFromDefaults: (input) => healthCheckSessionRepository.createFromDefaults(input),
   updateSession: (sessionId, patch) => healthCheckSessionRepository.update(sessionId, patch),
   deleteSession: (sessionId) => healthCheckSessionRepository.delete(sessionId),
 
@@ -215,6 +229,7 @@ export const healthCheckDataService: HealthCheckDataProvider = {
   getActiveSessionId: () => getHealthCheckDataProvider().getActiveSessionId(),
   setActiveSessionId: (sessionId) => getHealthCheckDataProvider().setActiveSessionId(sessionId),
   createSession: (input) => getHealthCheckDataProvider().createSession(input),
+  createSessionFromDefaults: (input) => getHealthCheckDataProvider().createSessionFromDefaults(input),
   updateSession: (sessionId, patch) => getHealthCheckDataProvider().updateSession(sessionId, patch),
   deleteSession: (sessionId) => getHealthCheckDataProvider().deleteSession(sessionId),
   listStudents: (sessionId, checkType) => getHealthCheckDataProvider().listStudents(sessionId, checkType),

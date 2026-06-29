@@ -72,7 +72,7 @@ import { HealthCheckSummary } from './components/health-check/HealthCheckSummary
 import { HealthCheckSessionSelector } from './components/health-check/HealthCheckSessionSelector';
 import { createOperationStatus } from './lib/operation';
 import { getHealthCheckLabel, normalizeHealthCheckType, toExamType } from './lib/healthCheck';
-import { healthCheckSessionRepository } from './lib/repositories/HealthCheckSessionRepository';
+import { healthCheckDataService } from './lib/services/healthCheckDataService';
 import { loadSchoolSettings, resetSchoolSettings, saveSchoolSettings } from './lib/settings';
 import type { HealthCheckSession, HealthCheckSessionStatus, HealthCheckType } from './types/healthCheck';
 import type { SchoolSettings } from './types/settings';
@@ -137,8 +137,8 @@ export function App() {
   const refreshSessions = async () => {
     try {
       const [nextSessions, activeId] = await Promise.all([
-        healthCheckSessionRepository.list(),
-        healthCheckSessionRepository.getActiveSessionId(),
+        healthCheckDataService.listSessions(),
+        healthCheckDataService.getActiveSessionId(),
       ]);
       setSessions(nextSessions);
       setActiveSessionIdState(activeId || nextSessions[0]?.id || '');
@@ -161,7 +161,7 @@ export function App() {
       setCreatingDefaultSession(true);
       void (async () => {
         try {
-          const created = await healthCheckSessionRepository.createFromDefaults({
+          const created = await healthCheckDataService.createSessionFromDefaults({
             checkType: data.settings.healthCheckType,
             date: data.settings.examDate,
             targetGrades: data.settings.targetGrades,
@@ -178,7 +178,7 @@ export function App() {
       return;
     }
     if (!activeSessionIdState && sessions[0]) {
-      void healthCheckSessionRepository.setActiveSessionId(sessions[0].id);
+      void healthCheckDataService.setActiveSessionId(sessions[0].id);
       setActiveSessionIdState(sessions[0].id);
     }
   }, [activeSessionIdState, creatingDefaultSession, data.hasSelectedExamType, data.settings.examDate, data.settings.examVenue, data.settings.healthCheckType, data.settings.targetGrades, schoolSettings.defaultLocation, sessions, sessionsLoaded]);
@@ -249,7 +249,7 @@ export function App() {
     const healthCheckType = normalizeHealthCheckType(checkType);
     const examType = toExamType(healthCheckType);
     const keywordSet = examType === 'tb' ? fresh.keywordSets.tb : fresh.keywordSets.urine;
-    const session = await healthCheckSessionRepository.createFromDefaults({
+    const session = await healthCheckDataService.createSessionFromDefaults({
       checkType: healthCheckType,
       date: fresh.settings.examDate,
       targetGrades: fresh.settings.targetGrades,
@@ -326,7 +326,7 @@ export function App() {
     status: HealthCheckSessionStatus;
   }) => {
     try {
-      const session = await healthCheckSessionRepository.create(input);
+      const session = await healthCheckDataService.createSession(input);
       await refreshSessions();
       setActiveSessionIdState(session.id);
       applySessionToData(session);
@@ -340,7 +340,7 @@ export function App() {
     const session = sessions.find((item) => item.id === sessionId);
     if (!session) return;
     try {
-      await healthCheckSessionRepository.setActiveSessionId(session.id);
+      await healthCheckDataService.setActiveSessionId(session.id);
       setActiveSessionIdState(session.id);
       applySessionToData(session);
     } catch (error) {
@@ -350,9 +350,9 @@ export function App() {
   const removeSession = async (sessionId: string) => {
     if (!window.confirm('이 검진 세션을 삭제하시겠습니까? 세션 기반 데이터 연결은 다음 단계에서 더 정리됩니다.')) return;
     try {
-      const next = await healthCheckSessionRepository.delete(sessionId);
+      const next = await healthCheckDataService.deleteSession(sessionId);
       setSessions(next);
-      const activeId = await healthCheckSessionRepository.getActiveSessionId();
+      const activeId = await healthCheckDataService.getActiveSessionId();
       const nextActive = next.find((session) => session.id === activeId) ?? next[0];
       setActiveSessionIdState(nextActive?.id ?? '');
       if (nextActive) applySessionToData(nextActive);
@@ -362,7 +362,7 @@ export function App() {
   };
   const changeSessionStatus = async (sessionId: string, status: HealthCheckSessionStatus) => {
     try {
-      const updated = await healthCheckSessionRepository.update(sessionId, { status });
+      const updated = await healthCheckDataService.updateSession(sessionId, { status });
       await refreshSessions();
       if (updated && sessionId === activeSession?.id) applySessionToData(updated);
     } catch (error) {
