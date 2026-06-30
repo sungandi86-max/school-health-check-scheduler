@@ -33,7 +33,9 @@ export function HealthCheckSessionSelector({
     <section className="card session-selector">
       <div className="session-selector-header">
         <HealthCheckSessionBadge session={activeSession} />
-        <button type="button" onClick={() => setOpen((prev) => !prev)}>{open ? '세션 관리 닫기' : '세션 관리'}</button>
+        <button type="button" className="session-manage-button" onClick={() => setOpen((prev) => !prev)}>
+          {open ? '세션 관리 닫기' : '세션 관리'}
+        </button>
       </div>
       {open && (
         <div className="session-manager">

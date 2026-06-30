@@ -1003,6 +1003,12 @@ function SettingsPanel({
   return (
     <section className="card stack">
       <h2>검사 조건 설정</h2>
+      <div className="settings-section-heading">
+        <div>
+          <strong>기본 설정</strong>
+          <p>검사 유형, 운영 방식, 날짜와 장소처럼 자동배정 전에 꼭 확인할 항목입니다.</p>
+        </div>
+      </div>
       <div className="form-grid">
         <Field label="검사 유형">
           <input value={getHealthCheckLabel(settings.healthCheckType)} readOnly />
@@ -1028,99 +1034,103 @@ function SettingsPanel({
           <input type="time" value={settings.endTime} onChange={(event) => update('endTime', event.target.value)} />
         </Field>
         <div className="form-help">업체가 실제 검사를 시작·종료할 수 있는 시간을 입력해 주세요. 자동배정은 학교 일과표와 업체 가능 시간이 겹치는 시간 안에서만 진행됩니다.</div>
-        <Field label={settings.examType === 'tb' ? '학급당 검진 소요시간(분)' : '장소당 검사 소요시간(분)'}>
-          <input type="number" min={1} value={settings.durationMinutes} onChange={(event) => update('durationMinutes', Number(event.target.value))} />
+        <Field label="검진 장소">
+          <input value={settings.examVenue} onChange={(event) => update('examVenue', event.target.value)} />
         </Field>
-        <Field label={settings.examType === 'tb' ? '검진 라인 수' : '검사팀 수'}>
-          <input type="number" min={1} value={settings.teamCount} onChange={(event) => update('teamCount', Number(event.target.value))} />
-        </Field>
-        {settings.examType === 'urine' && (
-          <>
-            <Field label="동시 진행 여부">
-              <label className="toggle">
-                <input type="checkbox" checked={settings.urineSimultaneous} onChange={(event) => update('urineSimultaneous', event.target.checked)} /> 사용
-              </label>
+      </div>
+
+      <details className="advanced-settings">
+        <summary>
+          <span>고급 설정</span>
+          <small>소요시간, 검사팀 수, 병렬 배정과 교시 경계 같은 세부 조건</small>
+        </summary>
+        <div className="settings-advanced-stack">
+          <div className="form-grid">
+            <Field label={settings.examType === 'tb' ? '학급당 검진 소요시간(분)' : '장소당 검사 소요시간(분)'}>
+              <input type="number" min={1} value={settings.durationMinutes} onChange={(event) => update('durationMinutes', Number(event.target.value))} />
             </Field>
-            <Field label="병렬 배정 방식">
-              <select value={settings.urineParallelMode} onChange={(event) => update('urineParallelMode', event.target.value as ExamSettings['urineParallelMode'])}>
-                <option value="sequential">전체 순차 배정</option>
-                <option value="grade">학년별 동시 배정</option>
-                <option value="team">검사팀 수 기준 병렬 배정</option>
-              </select>
+            <Field label="검사팀 수">
+              <input type="number" min={1} value={settings.teamCount} onChange={(event) => update('teamCount', Number(event.target.value))} />
             </Field>
-            {['2', '3'].map((grade) => (
-              <Field key={`urine-grade-${grade}`} label={`${grade}학년 검사팀 수 / 시작 시간`}>
-                <div className="inline-fields">
-                  <input type="number" min={1} value={settings.teamsByGrade[grade] ?? 1} onChange={(event) => updateTeamsByGrade(grade, Number(event.target.value))} />
-                  <input type="time" value={settings.gradeStartTimes[grade] ?? settings.startTime} onChange={(event) => updateGradeStartTime(grade, event.target.value)} />
-                </div>
-              </Field>
-            ))}
-          </>
-        )}
-        {settings.examType === 'tb' && (
-          <>
-            <Field label="한 번에 이동할 최대 학급 수">
-              <input type="number" min={1} value={settings.maxUnitsPerCall} onChange={(event) => update('maxUnitsPerCall', Number(event.target.value))} />
-            </Field>
-            <Field label="이동 소요시간(분)">
-              <input type="number" min={0} value={settings.travelMinutes} onChange={(event) => update('travelMinutes', Number(event.target.value))} />
-              <span className="field-note">학생 이동 안내 시간 = 검진 예상 시간 - 이동 소요시간으로 계산됩니다.</span>
-            </Field>
-            <Field label="검진 장소">
-              <input value={settings.examVenue} onChange={(event) => update('examVenue', event.target.value)} />
-            </Field>
-            <Field label="대기 허용 여부">
-              <label className="toggle">
-                <input type="checkbox" checked={settings.allowWaiting} onChange={(event) => update('allowWaiting', event.target.checked)} /> 허용
-              </label>
-            </Field>
-            <Field label="학년별 시간 구간 사용">
-              <label className="toggle">
-                <input type="checkbox" checked={settings.useGradeTimeBlocks} onChange={(event) => updateUseGradeTimeBlocks(event.target.checked)} /> 사용
-              </label>
-            </Field>
-            <>
-              <Field label="학년별 시간 배정 방식">
-                <select value={effectiveGradeTimeMode} disabled={!settings.useGradeTimeBlocks} onChange={(event) => updateGradeTimeMode(event.target.value as GradeTimeMode)}>
-                  {GRADE_TIME_MODE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-                <span className="field-note">현재 방식: {getGradeTimeModeLabel(effectiveGradeTimeMode)}</span>
-              </Field>
-            </>
-            {!settings.useGradeTimeBlocks && (
-              <div className="form-help">학년별 구간을 적용하지 않고 2학년과 3학년 모두 업체 검사 가능 전체 시간 안에서 배정합니다.</div>
+            {settings.examType === 'urine' && (
+              <>
+                <Field label="동시 진행 여부">
+                  <label className="toggle">
+                    <input type="checkbox" checked={settings.urineSimultaneous} onChange={(event) => update('urineSimultaneous', event.target.checked)} /> 사용
+                  </label>
+                </Field>
+                <Field label="병렬 배정 방식">
+                  <select value={settings.urineParallelMode} onChange={(event) => update('urineParallelMode', event.target.value as ExamSettings['urineParallelMode'])}>
+                    <option value="sequential">전체 순차 배정</option>
+                    <option value="grade">학년별 동시 배정</option>
+                    <option value="team">검사팀 수 기준 병렬 배정</option>
+                  </select>
+                </Field>
+                {['2', '3'].map((grade) => (
+                  <Field key={`urine-grade-${grade}`} label={`${grade}학년 검사팀 수 / 시작 시간`}>
+                    <div className="inline-fields">
+                      <input type="number" min={1} value={settings.teamsByGrade[grade] ?? 1} onChange={(event) => updateTeamsByGrade(grade, Number(event.target.value))} />
+                      <input type="time" value={settings.gradeStartTimes[grade] ?? settings.startTime} onChange={(event) => updateGradeStartTime(grade, event.target.value)} />
+                    </div>
+                  </Field>
+                ))}
+              </>
             )}
-            {settings.useGradeTimeBlocks && !isCustomGradeTime && (
-              <div className="form-help">
-                자동 계산된 구간: {displayedGradeTimeBlocks.map((block) => `${block.grade}학년 ${block.label} ${block.startTime}~${block.endTime}`).join(' / ')}
-              </div>
-            )}
-            {settings.useGradeTimeBlocks && settings.gradeTimeMode === 'ALL_GRADES_FULL_RANGE' && (
-              <div className="form-help">학년별 시간 구간을 강제하지 않고 업체 검진 가능 시간 전체에서 자동배정합니다.</div>
-            )}
-            {displayedGradeTimeBlocks.map((block) => (
-              <Field key={`tb-block-${block.grade}`} label={`${block.grade}학년 검진 가능 시간`}>
-                <div className="inline-fields wide">
-                  <input value={block.label} disabled={!isCustomGradeTime} onChange={(event) => updateGradeTimeBlock(block.grade, { label: event.target.value })} />
-                  <input type="time" value={block.startTime} disabled={!isCustomGradeTime} onChange={(event) => updateGradeTimeBlock(block.grade, { startTime: event.target.value })} />
-                  <input type="time" value={block.endTime} disabled={!isCustomGradeTime} onChange={(event) => updateGradeTimeBlock(block.grade, { endTime: event.target.value })} />
-                </div>
-              </Field>
-            ))}
-            <div className="form-help">혼합수업을 모두 제외하면 검진 가능 시간이 부족할 수 있습니다. 이 경우 일부 혼합수업 시간에 배정하되, 해당 검진 대상 학급 학생만 이동하도록 안내문이 자동 생성됩니다.</div>
-            <Field label="혼합수업 처리 방식">
-              <select value={settings.tbMixedClassHandling} onChange={(event) => update('tbMixedClassHandling', event.target.value as ExamSettings['tbMixedClassHandling'])}>
-                <option value="defer">혼합수업 최대한 회피</option>
-                <option value="auto">혼합수업 허용 + 안내문 자동삽입</option>
-                <option value="manual">혼합수업 완전 제외</option>
-              </select>
-            </Field>
-            <details className="advanced-settings">
-              <summary>고급 설정</summary>
-              <div className="form-grid">
+            {settings.examType === 'tb' && (
+              <>
+                <Field label="한 번에 이동할 최대 학급 수">
+                  <input type="number" min={1} value={settings.maxUnitsPerCall} onChange={(event) => update('maxUnitsPerCall', Number(event.target.value))} />
+                </Field>
+                <Field label="이동 소요시간(분)">
+                  <input type="number" min={0} value={settings.travelMinutes} onChange={(event) => update('travelMinutes', Number(event.target.value))} />
+                  <span className="field-note">학생 이동 안내 시간 = 검진 예상 시간 - 이동 소요시간으로 계산됩니다.</span>
+                </Field>
+                <Field label="대기 허용 여부">
+                  <label className="toggle">
+                    <input type="checkbox" checked={settings.allowWaiting} onChange={(event) => update('allowWaiting', event.target.checked)} /> 허용
+                  </label>
+                </Field>
+                <Field label="학년별 시간 구간 사용">
+                  <label className="toggle">
+                    <input type="checkbox" checked={settings.useGradeTimeBlocks} onChange={(event) => updateUseGradeTimeBlocks(event.target.checked)} /> 사용
+                  </label>
+                </Field>
+                <Field label="학년별 시간 배정 방식">
+                  <select value={effectiveGradeTimeMode} disabled={!settings.useGradeTimeBlocks} onChange={(event) => updateGradeTimeMode(event.target.value as GradeTimeMode)}>
+                    {GRADE_TIME_MODE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  <span className="field-note">현재 방식: {getGradeTimeModeLabel(effectiveGradeTimeMode)}</span>
+                </Field>
+                {!settings.useGradeTimeBlocks && (
+                  <div className="form-help">학년별 구간을 적용하지 않고 2학년과 3학년 모두 업체 검사 가능 전체 시간 안에서 배정합니다.</div>
+                )}
+                {settings.useGradeTimeBlocks && !isCustomGradeTime && (
+                  <div className="form-help">
+                    자동 계산된 구간: {displayedGradeTimeBlocks.map((block) => `${block.grade}학년 ${block.label} ${block.startTime}~${block.endTime}`).join(' / ')}
+                  </div>
+                )}
+                {settings.useGradeTimeBlocks && settings.gradeTimeMode === 'ALL_GRADES_FULL_RANGE' && (
+                  <div className="form-help">학년별 시간 구간을 강제하지 않고 업체 검진 가능 시간 전체에서 자동배정합니다.</div>
+                )}
+                {displayedGradeTimeBlocks.map((block) => (
+                  <Field key={`tb-block-${block.grade}`} label={`${block.grade}학년 검진 가능 시간`}>
+                    <div className="inline-fields wide">
+                      <input value={block.label} disabled={!isCustomGradeTime} onChange={(event) => updateGradeTimeBlock(block.grade, { label: event.target.value })} />
+                      <input type="time" value={block.startTime} disabled={!isCustomGradeTime} onChange={(event) => updateGradeTimeBlock(block.grade, { startTime: event.target.value })} />
+                      <input type="time" value={block.endTime} disabled={!isCustomGradeTime} onChange={(event) => updateGradeTimeBlock(block.grade, { endTime: event.target.value })} />
+                    </div>
+                  </Field>
+                ))}
+                <div className="form-help">혼합수업을 모두 제외하면 검진 가능 시간이 부족할 수 있습니다. 이 경우 일부 혼합수업 시간에 배정하되, 해당 검진 대상 학급 학생만 이동하도록 안내문이 자동 생성됩니다.</div>
+                <Field label="혼합수업 처리 방식">
+                  <select value={settings.tbMixedClassHandling} onChange={(event) => update('tbMixedClassHandling', event.target.value as ExamSettings['tbMixedClassHandling'])}>
+                    <option value="defer">혼합수업 최대한 회피</option>
+                    <option value="auto">혼합수업 허용 + 안내문 자동삽입</option>
+                    <option value="manual">혼합수업 완전 제외</option>
+                  </select>
+                </Field>
                 <Field label="같은 학년 혼합수업 추가 소요시간">
                   <input type="number" min={0} value={settings.tbSameGradeMixedExtraMinutes} onChange={(event) => update('tbSameGradeMixedExtraMinutes', Number(event.target.value))} />
                 </Field>
@@ -1135,35 +1145,27 @@ function SettingsPanel({
                     <input type="checkbox" checked={settings.tbMixedUseTwoSlots} onChange={(event) => update('tbMixedUseTwoSlots', event.target.checked)} /> 사용
                   </label>
                 </Field>
-                <Field label="교시 경계 넘김 허용">
-                  <label className="toggle">
-                    <input type="checkbox" checked={settings.allowCrossPeriod} onChange={(event) => update('allowCrossPeriod', event.target.checked)} /> 허용
-                  </label>
-                </Field>
-                <Field label="제외 시간 설정">
-                  <input placeholder="예: 10:20-10:35, 점심시간" value={settings.excludedTimes} onChange={(event) => update('excludedTimes', event.target.value)} />
-                </Field>
-              </div>
-            </details>
-          </>
-        )}
-        <Field label="쉬는 시간 포함">
-          <label className="toggle">
-            <input type="checkbox" checked={settings.includeBreaks} onChange={(event) => update('includeBreaks', event.target.checked)} /> 포함
-          </label>
-        </Field>
-        {settings.examType === 'urine' && <Field label="교시 경계 넘김 허용">
-          <label className="toggle">
-            <input type="checkbox" checked={settings.allowCrossPeriod} onChange={(event) => update('allowCrossPeriod', event.target.checked)} /> 허용
-          </label>
-        </Field>}
-        <Field label="검사 대상 학년">
-          <input value={settings.targetGrades.join(', ')} onChange={(event) => update('targetGrades', splitKeywords(event.target.value))} />
-        </Field>
-        {settings.examType === 'urine' && <Field label="제외 시간 설정">
-          <input placeholder="예: 10:20-10:35, 점심시간" value={settings.excludedTimes} onChange={(event) => update('excludedTimes', event.target.value)} />
-        </Field>}
-      </div>
+              </>
+            )}
+            <Field label="쉬는 시간 포함">
+              <label className="toggle">
+                <input type="checkbox" checked={settings.includeBreaks} onChange={(event) => update('includeBreaks', event.target.checked)} /> 포함
+              </label>
+            </Field>
+            <Field label="교시 경계 넘김 허용">
+              <label className="toggle">
+                <input type="checkbox" checked={settings.allowCrossPeriod} onChange={(event) => update('allowCrossPeriod', event.target.checked)} /> 허용
+              </label>
+            </Field>
+            <Field label="검사 대상 학년">
+              <input value={settings.targetGrades.join(', ')} onChange={(event) => update('targetGrades', splitKeywords(event.target.value))} />
+            </Field>
+            <Field label="제외 시간 설정">
+              <input placeholder="예: 10:20-10:35, 점심시간" value={settings.excludedTimes} onChange={(event) => update('excludedTimes', event.target.value)} />
+            </Field>
+          </div>
+        </div>
+      </details>
       <div className="card subtle stack">
         <div className="section-title">
           <h2>기본 일과 시간표</h2>

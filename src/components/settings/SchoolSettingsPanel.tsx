@@ -84,16 +84,12 @@ export function SchoolSettingsPanel({
         </label>
       </div>
 
+      <StorageSettingsPanel />
+
       <div className="school-settings-actions">
-        <button type="button" className="primary" onClick={save}>학교 설정 저장</button>
+        <button type="button" className="primary" onClick={save}>설정 저장</button>
         {notice && <p className="storage-mode-notice">{notice}</p>}
       </div>
-
-      <div className="storage-warning">
-        <p>현재 학교 설정은 브라우저 localStorage 키 schoolHealthHub.schoolSettings에 저장됩니다.</p>
-        <p>Supabase 모드에서도 이번 Sprint에서는 학교 설정만 localStorage를 유지하며, 추후 school_settings 테이블로 이전할 수 있습니다.</p>
-      </div>
-      <StorageSettingsPanel />
     </section>
   );
 }

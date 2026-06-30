@@ -346,6 +346,8 @@ h3 {
 
 .session-selector {
   margin-bottom: 16px;
+  border-color: #b9dad5;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fcfb 100%);
 }
 
 .session-selector-header,
@@ -363,14 +365,16 @@ h3 {
 
 .session-badge {
   min-width: min(100%, 420px);
-  border: 1px solid #d8e8e5;
+  border: 1px solid #9bd7ba;
   border-radius: 10px;
-  background: #f7fcfb;
+  background: #ecfdf5;
   color: #29465a;
   padding: 12px 14px;
 }
 
 .session-badge.empty {
+  border-color: #d8e8e5;
+  background: #f7fcfb;
   color: #6b7d8c;
 }
 
@@ -393,18 +397,30 @@ h3 {
 
 .session-badge strong {
   color: #0d2a3f;
-  font-size: 15px;
+  font-size: 17px;
+}
+
+.session-badge small {
+  color: #496275;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .session-badge em {
   margin-left: auto;
   border-radius: 999px;
-  background: #e7f4f2;
+  background: #ffffff;
   color: #0f766e;
   font-size: 12px;
   font-style: normal;
   font-weight: 800;
   padding: 5px 8px;
+}
+
+.session-manage-button {
+  border-color: #9bd7ba;
+  color: #0f766e;
+  font-weight: 800;
 }
 
 .session-manager {
@@ -476,6 +492,30 @@ h3 {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
+}
+
+.settings-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #d8e8e5;
+  border-radius: 8px;
+  background: #f7fcfb;
+  padding: 12px 14px;
+}
+
+.settings-section-heading strong {
+  display: block;
+  color: #0d2a3f;
+  font-size: 15px;
+}
+
+.settings-section-heading p {
+  margin: 4px 0 0;
+  color: #587084;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .field {
@@ -1575,6 +1615,7 @@ td select {
   border-radius: 10px;
   background: #f7fcfb;
   padding: 14px;
+  width: 100%;
 }
 
 .storage-settings-header {
@@ -2552,6 +2593,19 @@ td select {
   cursor: pointer;
   color: var(--navy);
   font-weight: 700;
+}
+
+.advanced-settings summary span,
+.advanced-settings summary small {
+  display: block;
+}
+
+.advanced-settings summary small {
+  margin-top: 4px;
+  color: #587084;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .advanced-settings .form-grid {
