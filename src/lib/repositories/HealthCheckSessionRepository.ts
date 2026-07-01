@@ -129,6 +129,14 @@ export class HealthCheckSessionRepository {
 
   async setActiveSessionId(sessionId: string) {
     this.setActiveSessionIdLocal(sessionId);
+    if (!sessionId || !shouldUseSupabaseSessions()) return;
+    try {
+      const client = requireSupabaseClient();
+      const { error } = await client.from(TABLE_NAME).update({ updated_at: new Date().toISOString() }).eq('id', sessionId);
+      if (error) throw error;
+    } catch (error) {
+      console.warn('[HealthCheckSessionRepository] Failed to mark active session remotely.', error);
+    }
   }
 
   async getActiveSession(): Promise<HealthCheckSession | undefined> {
@@ -316,7 +324,7 @@ function createSessionId(date: string, checkType: HealthCheckType, title: string
 }
 
 function compareSessions(a: HealthCheckSession, b: HealthCheckSession) {
-  return b.date.localeCompare(a.date) || a.title.localeCompare(b.title, 'ko', { numeric: true });
+  return b.updatedAt.localeCompare(a.updatedAt) || b.date.localeCompare(a.date) || a.title.localeCompare(b.title, 'ko', { numeric: true });
 }
 
 function fromRow(row: HealthCheckSessionRow): HealthCheckSession {

@@ -191,6 +191,15 @@ const localProvider: HealthCheckDataProvider = {
   },
 };
 
+async function withLocalFallback<T>(label: string, remote: () => Promise<T>, fallback: () => T | Promise<T>) {
+  try {
+    return await remote();
+  } catch (error) {
+    console.warn(`[healthCheckDataService] Supabase ${label} failed. Falling back to localStorage.`, error);
+    return fallback();
+  }
+}
+
 const supabaseProvider: HealthCheckDataProvider = {
   mode: 'supabase',
 
@@ -203,26 +212,82 @@ const supabaseProvider: HealthCheckDataProvider = {
   deleteSession: (sessionId) => healthCheckSessionRepository.delete(sessionId),
 
   async listStudents(sessionId, checkType) {
-    const students = await healthCheckStudentRepository.listBySession(sessionId, checkType);
-    return students;
+    return withLocalFallback(
+      'list students',
+      () => healthCheckStudentRepository.listBySession(sessionId, checkType),
+      () => localProvider.listStudents(sessionId, checkType),
+    );
   },
 
-  replaceStudents: (sessionId, checkType, students) => healthCheckStudentRepository.replaceForSession(sessionId, checkType, students),
-  updateStudentStatus: (sessionId, checkType, studentId, status) => healthCheckStudentRepository.updateStatus(sessionId, checkType, studentId, status),
-  updateStudentMemo: (sessionId, checkType, studentId, memo) => healthCheckStudentRepository.updateMemo(sessionId, checkType, studentId, memo),
+  replaceStudents: (sessionId, checkType, students) =>
+    withLocalFallback(
+      'replace students',
+      () => healthCheckStudentRepository.replaceForSession(sessionId, checkType, students),
+      () => localProvider.replaceStudents(sessionId, checkType, students),
+    ),
+  updateStudentStatus: (sessionId, checkType, studentId, status) =>
+    withLocalFallback(
+      'update student status',
+      () => healthCheckStudentRepository.updateStatus(sessionId, checkType, studentId, status),
+      () => localProvider.updateStudentStatus(sessionId, checkType, studentId, status),
+    ),
+  updateStudentMemo: (sessionId, checkType, studentId, memo) =>
+    withLocalFallback(
+      'update student memo',
+      () => healthCheckStudentRepository.updateMemo(sessionId, checkType, studentId, memo),
+      () => localProvider.updateStudentMemo(sessionId, checkType, studentId, memo),
+    ),
 
-  getOperationState: (sessionId) => healthCheckOperationStateRepository.get(sessionId),
-  saveOperationState: (sessionId, state) => healthCheckOperationStateRepository.save({ ...state, sessionId }),
-  updateOperationState: (sessionId, patch) => healthCheckOperationStateRepository.update(sessionId, patch),
+  getOperationState: (sessionId) =>
+    withLocalFallback(
+      'get operation state',
+      () => healthCheckOperationStateRepository.get(sessionId),
+      () => localProvider.getOperationState(sessionId),
+    ),
+  saveOperationState: (sessionId, state) =>
+    withLocalFallback(
+      'save operation state',
+      () => healthCheckOperationStateRepository.save({ ...state, sessionId }),
+      () => localProvider.saveOperationState(sessionId, state),
+    ),
+  updateOperationState: (sessionId, patch) =>
+    withLocalFallback(
+      'update operation state',
+      () => healthCheckOperationStateRepository.update(sessionId, patch),
+      () => localProvider.updateOperationState(sessionId, patch),
+    ),
 
-  listLogs: (sessionId) => healthCheckOperationLogRepository.listBySession(sessionId),
-  listRecentLogs: (sessionId, limit) => healthCheckOperationLogRepository.recent(sessionId, limit),
-  createLog: (sessionId, input) => healthCheckOperationLogRepository.add(sessionId, input),
+  listLogs: (sessionId) =>
+    withLocalFallback(
+      'list logs',
+      () => healthCheckOperationLogRepository.listBySession(sessionId),
+      () => localProvider.listLogs(sessionId),
+    ),
+  listRecentLogs: (sessionId, limit) =>
+    withLocalFallback(
+      'list recent logs',
+      () => healthCheckOperationLogRepository.recent(sessionId, limit),
+      () => localProvider.listRecentLogs(sessionId, limit),
+    ),
+  createLog: (sessionId, input) =>
+    withLocalFallback(
+      'create log',
+      () => healthCheckOperationLogRepository.add(sessionId, input),
+      () => localProvider.createLog(sessionId, input),
+    ),
   async deleteLog(sessionId, logId) {
-    await healthCheckOperationLogRepository.delete(sessionId, logId);
+    await withLocalFallback(
+      'delete log',
+      () => healthCheckOperationLogRepository.delete(sessionId, logId).then(() => undefined),
+      () => localProvider.deleteLog(sessionId, logId),
+    );
   },
   async clearLogs(sessionId) {
-    await healthCheckOperationLogRepository.clear(sessionId);
+    await withLocalFallback(
+      'clear logs',
+      () => healthCheckOperationLogRepository.clear(sessionId).then(() => undefined),
+      () => localProvider.clearLogs(sessionId),
+    );
   },
 };
 

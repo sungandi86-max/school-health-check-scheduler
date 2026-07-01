@@ -174,22 +174,41 @@ export async function deleteOperationState(sessionId: string): Promise<void> {
 export const healthCheckOperationStateRepository = {
   async get(sessionId: string): Promise<HealthCheckOperationState> {
     const state = await getOperationState(sessionId);
-
-    if (!state) {
-      throw new Error(`Operation state not found for session: ${sessionId}`);
-    }
-
-    return state;
+    return state ?? createEmptyOperationState(sessionId);
   },
 
   save(state: HealthCheckOperationState): Promise<HealthCheckOperationState> {
     return upsertOperationState(state.sessionId, state);
   },
 
-  update(
+  async update(
     sessionId: string,
     patch: HealthCheckOperationStatePatch,
   ): Promise<HealthCheckOperationState> {
-    return updateOperationState(sessionId, patch);
+    try {
+      return await updateOperationState(sessionId, patch);
+    } catch (error) {
+      console.warn('[HealthCheckOperationStateRepository] Operation state update failed. Creating default state.', error);
+      return upsertOperationState(sessionId, {
+        ...createEmptyOperationState(sessionId),
+        ...patch,
+        sessionId,
+        updatedAt: patch.updatedAt ?? new Date().toISOString(),
+      });
+    }
   },
 };
+
+function createEmptyOperationState(sessionId: string): HealthCheckOperationState {
+  return normalizeState({
+    sessionId,
+    currentClassId: '',
+    nextClassId: '',
+    completedClassIds: [],
+    missingClassIds: [],
+    delayedMinutes: 0,
+    noticeMessage: '',
+    operationMemo: '',
+    updatedAt: new Date().toISOString(),
+  });
+}
