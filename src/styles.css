@@ -70,7 +70,8 @@ button:hover {
   color: #ffffff;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 18px;
+  overflow-y: auto;
 }
 
 .brand {
@@ -150,6 +151,28 @@ nav {
   gap: 8px;
 }
 
+.sidebar-nav {
+  gap: 16px;
+}
+
+.sidebar-menu-group {
+  display: grid;
+  gap: 7px;
+}
+
+.sidebar-menu-group h2 {
+  margin: 0;
+  color: #8fb8c5;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.sidebar-menu-items {
+  display: grid;
+  gap: 6px;
+}
+
 nav button {
   justify-content: flex-start;
   background: transparent;
@@ -157,7 +180,13 @@ nav button {
   border-color: transparent;
 }
 
-nav button.active,
+nav button.active {
+  background: #1b5a76;
+  color: #ffffff;
+  border-color: #7dd3c7;
+  box-shadow: inset 4px 0 0 #7dd3c7;
+}
+
 nav button:hover {
   background: #154761;
   color: #ffffff;
@@ -5000,17 +5029,27 @@ button[aria-pressed='true'] {
 
   .sidebar-nav {
     display: flex;
-    gap: 8px;
+    gap: 14px;
     overflow-x: auto;
     padding-bottom: 2px;
     scroll-snap-type: x proximity;
+  }
+
+  .sidebar-menu-group {
+    flex: 0 0 auto;
+    min-width: max-content;
+    scroll-snap-align: start;
+  }
+
+  .sidebar-menu-items {
+    display: flex;
+    gap: 8px;
   }
 
   .sidebar-nav button {
     flex: 0 0 auto;
     min-height: 44px;
     justify-content: center;
-    scroll-snap-align: start;
   }
 
   .sidebar-actions {

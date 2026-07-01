@@ -494,6 +494,47 @@ export function App() {
     return <OperationDisplay />;
   }
 
+  const sidebarMenuGroups = [
+    {
+      title: '운영 준비',
+      items: [
+        ['school-settings', '학교 설정'],
+        ['settings', '검사 조건'],
+        ['locations', '검진 대상 학급'],
+        ['timetable', '학급별 검진 순서 입력'],
+        ['divisions', '분반·혼합수업 참고자료'],
+      ],
+    },
+    {
+      title: '운영 계획',
+      items: [
+        ['dashboard', '대시보드'],
+        ['results', '학급별 검진 이동표'],
+      ],
+    },
+    {
+      title: '실시간 운영',
+      items: [
+        ['operation', '실시간 검진 운영'],
+        ['operation-center', '검진 운영'],
+        ['teacher-dashboard', '교사용 현황판'],
+        ['admin-dashboard', '관리자 현황판'],
+        ['display', '관리자 현황판(Display)'],
+      ],
+    },
+    {
+      title: '운영 결과',
+      items: [
+        ['report', '운영 보고서'],
+      ],
+    },
+    {
+      title: '기타',
+      items: [
+        [data.settings.examType === 'urine' ? 'urine-help' : 'tb-help', '검진 사용 안내'],
+      ],
+    },
+  ];
   if (!data.hasSelectedExamType) {
     return (
       <ExamTypeSelect
@@ -523,25 +564,18 @@ export function App() {
           </div>
         </div>
         <nav className="sidebar-nav" aria-label="주요 화면 이동">
-          {[
-            [data.settings.examType === 'urine' ? 'urine-help' : 'tb-help', data.settings.examType === 'urine' ? '소변검사 사용 안내' : '결핵검진 사용 안내'],
-            ['dashboard', '대시보드'],
-            ['operation-center', '별도검사 운영'],
-            ['teacher-dashboard', '교사용 현황판'],
-            ['admin-dashboard', '교무실 현황판'],
-            ['display', '실시간 운영 현황판'],
-            ['report', '운영 보고서'],
-            ['settings', '검사 조건'],
-            ['school-settings', '학교 설정'],
-            ['locations', mode.unitMenu],
-            ['timetable', data.settings.examType === 'tb' ? '학급별 검진 순서 입력' : '시간표 입력'],
-            ['divisions', data.settings.examType === 'tb' ? '분반·혼합수업 참고자료' : '분반 참고'],
-            ['results', data.settings.examType === 'tb' ? '학급별 검진 이동표' : '결과/출력'],
-            ['operation', '실시간 별도검사 운영'],
-          ].map(([id, label]) => (
-            <button key={id} className={activeTab === id ? 'active' : ''} onClick={() => selectAppTab(id)}>
-              {label}
-            </button>
+
+          {sidebarMenuGroups.map((group) => (
+            <section className="sidebar-menu-group" key={group.title} aria-labelledby={`sidebar-group-${group.title}`}>
+              <h2 id={`sidebar-group-${group.title}`}>{group.title}</h2>
+              <div className="sidebar-menu-items">
+                {group.items.map(([id, label]) => (
+                  <button key={id} className={activeTab === id ? 'active' : ''} onClick={() => selectAppTab(id)}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </section>
           ))}
         </nav>
         <div className="sidebar-actions">
