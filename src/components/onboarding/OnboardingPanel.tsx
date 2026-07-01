@@ -2,9 +2,10 @@ import { CheckCircle2 } from 'lucide-react';
 
 export const START_GUIDE_STEPS = [
   '학교 설정',
-  '검사별 운영 계획',
+  '운영 계획',
   '시간표 생성',
   '실시간 운영',
+  '운영 보고서',
 ];
 
 export function StartGuide({ compact = false }: { compact?: boolean }) {
@@ -13,9 +14,9 @@ export function StartGuide({ compact = false }: { compact?: boolean }) {
       <div className="start-guide-header">
         <div>
           <p className="eyebrow">운영 순서</p>
-          <h2 id={compact ? 'dashboard-start-guide-title' : 'entry-start-guide-title'}>2·3학년 별도검사 운영은</h2>
+          <h2 id={compact ? 'dashboard-start-guide-title' : 'entry-start-guide-title'}>학교 별도검사 운영은</h2>
         </div>
-        <span>순서로 진행됩니다.</span>
+        <span>운영 보고서까지 이어집니다.</span>
       </div>
       <ol className="start-guide-steps">
         {START_GUIDE_STEPS.map((step, index) => (
@@ -36,10 +37,10 @@ export function OnboardingPanel({ onClose, onDismiss }: { onClose: () => void; o
         <p className="eyebrow">처음 실행 안내</p>
         <h2 id="onboarding-title">처음이라면 이 순서대로 시작하세요</h2>
         <p>
-          School Health Hub는 2·3학년 별도검사 준비, 당일 운영, 종료 후 보고서 정리를 한 흐름으로 이어 주는 보건교사용 도구입니다.
+          School Health Hub는 학교에서 직접 운영하는 결핵검진·소변검사의 준비, 당일 운영, 종료 후 보고서 정리를 한 흐름으로 이어 주는 보건교사용 도구입니다.
         </p>
       </div>
-      <div className="onboarding-flow" aria-label="2·3학년 별도검사 운영 흐름">
+      <div className="onboarding-flow" aria-label="학교 별도검사 운영 흐름">
         <article>
           <CheckCircle2 size={18} aria-hidden="true" />
           <strong>운영 계획</strong>
@@ -52,7 +53,7 @@ export function OnboardingPanel({ onClose, onDismiss }: { onClose: () => void; o
         </article>
         <article>
           <CheckCircle2 size={18} aria-hidden="true" />
-          <strong>운영 종료</strong>
+          <strong>운영 보고서</strong>
           <span>미검 학생과 운영 로그를 확인한 뒤 보고서를 출력하거나 PDF로 보관합니다.</span>
         </article>
       </div>

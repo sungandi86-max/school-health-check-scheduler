@@ -1,4 +1,4 @@
-﻿import type { HealthCheckSession } from '../types/healthCheck';
+import type { HealthCheckSession } from '../types/healthCheck';
 import { getHealthCheckLabel } from './healthCheck';
 import { loadSchoolSettings } from './settings';
 
@@ -32,7 +32,7 @@ export function buildLiroSchoolShareMessage({
   ].filter(Boolean);
 
   return [
-    `${schoolSettings.schoolName} 학생건강검진이 진행됩니다.`,
+    `${schoolSettings.schoolName} 학교 별도검사가 진행됩니다.`,
     '',
     ...detailLines,
     detailLines.length ? '' : '',
