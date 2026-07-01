@@ -384,6 +384,131 @@ h3 {
   background: linear-gradient(180deg, #ffffff 0%, #f7fcfb 100%);
 }
 
+.home-session-overview {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+  gap: 14px;
+}
+
+.home-recent-session-card,
+.home-session-list {
+  border: 1px solid #cfe4e0;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(13, 42, 63, 0.08);
+  padding: 16px;
+}
+
+.home-recent-session-card {
+  display: grid;
+  gap: 14px;
+}
+
+.home-recent-session-card > div:first-child {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+}
+
+.home-recent-session-card span,
+.home-session-list-heading span {
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.home-recent-session-card strong {
+  color: #0d2a3f;
+  font-size: clamp(20px, 3vw, 28px);
+  line-height: 1.18;
+}
+
+.home-recent-session-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.home-recent-session-card dl div {
+  border-radius: 8px;
+  background: #f7fcfb;
+  padding: 10px;
+}
+
+.home-recent-session-card dt {
+  color: #587084;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.home-recent-session-card dd {
+  margin: 3px 0 0;
+  color: #0d2a3f;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.home-recent-session-card button {
+  justify-self: start;
+  min-width: 132px;
+}
+
+.home-session-list {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.home-session-list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.home-session-list-heading strong {
+  color: #587084;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.home-session-list-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.home-session-card {
+  min-height: 112px;
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+  border: 1px solid #d8e8e5;
+  border-radius: 8px;
+  background: #f7fcfb;
+  padding: 12px;
+  text-align: left;
+  white-space: normal;
+}
+
+.home-session-card:hover {
+  border-color: #59b8ad;
+  background: #eefbf9;
+}
+
+.home-session-card strong {
+  color: #0d2a3f;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.home-session-card span {
+  color: #587084;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .session-selector-header,
 .session-badge,
 .session-list-item {
@@ -398,12 +523,14 @@ h3 {
 }
 
 .session-badge {
-  min-width: min(100%, 420px);
+  flex: 1;
+  min-width: min(100%, 520px);
   border: 1px solid #9bd7ba;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #ecfdf5;
   color: #29465a;
-  padding: 12px 14px;
+  padding: 14px;
+  flex-wrap: wrap;
 }
 
 .session-badge.empty {
@@ -431,7 +558,8 @@ h3 {
 
 .session-badge strong {
   color: #0d2a3f;
-  font-size: 17px;
+  font-size: 20px;
+  line-height: 1.2;
 }
 
 .session-badge small {
@@ -440,15 +568,56 @@ h3 {
   font-weight: 800;
 }
 
-.session-badge em {
-  margin-left: auto;
+.session-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border-radius: 999px;
-  background: #ffffff;
-  color: #0f766e;
   font-size: 12px;
   font-style: normal;
-  font-weight: 800;
-  padding: 5px 8px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 7px 9px;
+  white-space: nowrap;
+}
+
+.session-status-badge::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}
+
+.session-status-badge.is-draft,
+.session-status-badge.is-scheduled {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.session-status-badge.is-inProgress {
+  background: #ecfdf5;
+  color: #0f766e;
+}
+
+.session-status-badge.is-completed {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.session-status-badge.is-archived {
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+.session-badge em {
+  margin-left: auto;
+}
+
+.session-continue-button {
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #ffffff;
 }
 
 .session-manage-button {
@@ -464,6 +633,31 @@ h3 {
   margin-top: 16px;
 }
 
+.session-create-panel,
+.session-list-panel {
+  border: 1px solid #d8e8e5;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.session-panel-heading {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 12px;
+}
+
+.session-panel-heading span {
+  color: #0f766e;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.session-panel-heading strong {
+  color: #0d2a3f;
+  font-size: 16px;
+}
+
 .session-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -473,6 +667,10 @@ h3 {
 
 .session-form .primary {
   align-self: end;
+}
+
+.session-create-button {
+  min-height: 46px;
 }
 
 .session-list {
@@ -485,9 +683,9 @@ h3 {
 .session-list-item {
   align-items: stretch;
   border: 1px solid #d8e8e5;
-  border-radius: 10px;
-  background: #f7fcfb;
-  padding: 10px;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
 }
 
 .session-list-item.active {
@@ -499,7 +697,7 @@ h3 {
   display: grid;
   flex: 1;
   justify-items: start;
-  gap: 3px;
+  gap: 5px;
   min-height: auto;
   border: 0;
   background: transparent;
@@ -514,12 +712,41 @@ h3 {
 
 .session-select-button strong {
   color: #0d2a3f;
+  font-size: 16px;
 }
 
 .session-select-button span {
   color: #587084;
   font-size: 12px;
   font-weight: 700;
+}
+
+.session-select-button small {
+  color: #7c8c99;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.session-list-title-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.session-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.session-list-actions select {
+  min-width: 92px;
+}
+
+.session-list-actions button {
+  min-width: 42px;
 }
 
 .form-grid {
@@ -4461,6 +4688,9 @@ button.ghost {
 
   .operation-layout,
   .teacher-card-grid,
+  .home-session-overview,
+  .home-session-list-grid,
+  .session-manager,
   .tablet-focus-grid,
   .tablet-status-grid,
   .big-grid {
@@ -4487,6 +4717,12 @@ button.ghost {
   .student-row select,
   .student-row input {
     grid-column: 1 / -1;
+  }
+
+  .session-list-item,
+  .session-list-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .big-screen {
@@ -6343,6 +6579,9 @@ h2,
   }
 
   .type-card-grid,
+  .home-session-overview,
+  .home-session-list-grid,
+  .session-manager,
   .operation-status-grid,
   .teacher-priority-grid,
   .admin-progress-grid,
@@ -6359,6 +6598,22 @@ h2,
     gap: 8px;
     grid-template-rows: auto auto auto;
     padding: 12px;
+  }
+
+  .home-recent-session-card dl,
+  .session-form {
+    grid-template-columns: 1fr;
+  }
+
+  .session-badge,
+  .session-selector-header,
+  .session-list-item {
+    align-items: stretch;
+  }
+
+  .session-continue-button,
+  .session-manage-button {
+    width: 100%;
   }
 
   .type-card p {

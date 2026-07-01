@@ -80,7 +80,7 @@ export function HealthCheckSessionForm({
           ))}
         </select>
       </label>
-      <button type="button" className="primary" onClick={submit}>새 세션 만들기</button>
+      <button type="button" className="primary session-create-button" onClick={submit}>새 검진 시작</button>
     </div>
   );
 }

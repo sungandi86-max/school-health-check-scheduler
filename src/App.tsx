@@ -71,6 +71,7 @@ import { SchoolSettingsPanel } from './components/settings/SchoolSettingsPanel';
 import { HealthCheckTypeSelector } from './components/health-check/HealthCheckTypeSelector';
 import { HealthCheckSummary } from './components/health-check/HealthCheckSummary';
 import { HealthCheckSessionSelector } from './components/health-check/HealthCheckSessionSelector';
+import { formatSessionUpdatedAt, HEALTH_CHECK_SESSION_STATUS_LABELS } from './components/health-check/HealthCheckSessionBadge';
 import { createOperationStatus } from './lib/operation';
 import { getHealthCheckLabel, normalizeHealthCheckType, toExamType } from './lib/healthCheck';
 import { healthCheckDataService } from './lib/services/healthCheckDataService';
@@ -294,6 +295,12 @@ export function App() {
     setEntryNotice('');
     setStoredInfo(getStoredAppDataInfo());
     void refreshSessions();
+  };
+  const continueSessionFromHome = async (sessionId: string) => {
+    await selectSession(sessionId);
+    setData((prev) => ({ ...prev, hasSelectedExamType: true }));
+    setActiveTab('dashboard');
+    setEntryNotice('');
   };
   const hideOnboarding = () => setShowOnboarding(false);
   const hideOnboardingPermanently = () => {
@@ -549,6 +556,9 @@ export function App() {
         onSelect={selectExamType}
         onOpenStatusDashboard={openStatusDashboard}
         onContinue={continueStoredWork}
+        sessions={sessions}
+        activeSession={activeSession}
+        onContinueSession={continueSessionFromHome}
         onReset={resetStoredData}
         hasStoredData={storedInfo.exists}
         versionMismatch={storedInfo.versionMismatch}
@@ -914,6 +924,9 @@ function ExamTypeSelect({
   onOpenStatusDashboard,
   onOpenHelp,
   onContinue,
+  sessions,
+  activeSession,
+  onContinueSession,
   onReset,
   hasStoredData,
   versionMismatch,
@@ -926,6 +939,9 @@ function ExamTypeSelect({
   onOpenStatusDashboard: (mode: 'portrait' | 'landscape') => void;
   onOpenHelp: () => void;
   onContinue: () => void;
+  sessions: HealthCheckSession[];
+  activeSession?: HealthCheckSession;
+  onContinueSession: (sessionId: string) => void | Promise<void>;
   onReset: () => void;
   hasStoredData: boolean;
   versionMismatch: boolean;
@@ -947,6 +963,14 @@ function ExamTypeSelect({
           </div>
           <OtterMascot variant="lg" className="type-hero-mascot" />
         </section>
+
+        {sessions.length > 0 && (
+          <HomeSessionOverview
+            sessions={sessions}
+            activeSession={activeSession}
+            onContinueSession={onContinueSession}
+          />
+        )}
 
         <HealthCheckTypeSelector onSelect={onSelect} onOpenStatusDashboard={onOpenStatusDashboard} />
 
@@ -982,6 +1006,64 @@ function ExamTypeSelect({
       </div>
       <AppFooter />
     </main>
+  );
+}
+
+function HomeSessionOverview({
+  sessions,
+  activeSession,
+  onContinueSession,
+}: {
+  sessions: HealthCheckSession[];
+  activeSession?: HealthCheckSession;
+  onContinueSession: (sessionId: string) => void | Promise<void>;
+}) {
+  const recentSession = activeSession ?? sessions[0];
+  const otherSessions = sessions.filter((session) => session.id !== recentSession?.id).slice(0, 4);
+
+  if (!recentSession) return null;
+
+  return (
+    <section className="home-session-overview" aria-label="최근 작업과 기존 세션">
+      <article className="home-recent-session-card">
+        <div>
+          <span>최근 작업</span>
+          <strong>{recentSession.title || getHealthCheckLabel(recentSession.checkType)}</strong>
+          <em className={`session-status-badge is-${recentSession.status}`}>{HEALTH_CHECK_SESSION_STATUS_LABELS[recentSession.status]}</em>
+        </div>
+        <dl>
+          <div>
+            <dt>마지막 수정</dt>
+            <dd>{formatSessionUpdatedAt(recentSession)}</dd>
+          </div>
+          <div>
+            <dt>검진 정보</dt>
+            <dd>{recentSession.date || '날짜 미정'} · {getHealthCheckLabel(recentSession.checkType)}</dd>
+          </div>
+        </dl>
+        <button type="button" className="primary" onClick={() => onContinueSession(recentSession.id)}>
+          이어하기
+        </button>
+      </article>
+
+      {otherSessions.length > 0 && (
+        <div className="home-session-list">
+          <div className="home-session-list-heading">
+            <span>기존 세션 선택</span>
+            <strong>{sessions.length}개 세션</strong>
+          </div>
+          <div className="home-session-list-grid">
+            {otherSessions.map((session) => (
+              <button type="button" className="home-session-card" key={session.id} onClick={() => onContinueSession(session.id)}>
+                <strong>{session.title || getHealthCheckLabel(session.checkType)}</strong>
+                <em className={`session-status-badge is-${session.status}`}>{HEALTH_CHECK_SESSION_STATUS_LABELS[session.status]}</em>
+                <span>{session.date || '날짜 미정'} · {getHealthCheckLabel(session.checkType)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 

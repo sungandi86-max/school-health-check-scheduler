@@ -1,7 +1,7 @@
 ﻿import { Trash2 } from 'lucide-react';
 import { getHealthCheckLabel } from '../../lib/healthCheck';
 import type { HealthCheckSession, HealthCheckSessionStatus } from '../../types/healthCheck';
-import { HEALTH_CHECK_SESSION_STATUS_LABELS } from './HealthCheckSessionBadge';
+import { formatSessionUpdatedAt, HEALTH_CHECK_SESSION_STATUS_LABELS } from './HealthCheckSessionBadge';
 
 export function HealthCheckSessionList({
   sessions,
@@ -22,18 +22,24 @@ export function HealthCheckSessionList({
       {sessions.map((session) => (
         <article className={`session-list-item ${session.id === activeSessionId ? 'active' : ''}`} key={session.id}>
           <button type="button" className="session-select-button" onClick={() => onSelect(session.id)}>
-            <strong>{session.title}</strong>
+            <span className="session-list-title-row">
+              <strong>{session.title || getHealthCheckLabel(session.checkType)}</strong>
+              <em className={`session-status-badge is-${session.status}`}>{HEALTH_CHECK_SESSION_STATUS_LABELS[session.status]}</em>
+            </span>
             <span>{session.date || '날짜 미정'} / {getHealthCheckLabel(session.checkType)} / {session.targetGrades.join(', ') || '-'}학년</span>
             <span>{session.location || '장소 미정'}</span>
+            <small>마지막 수정 {formatSessionUpdatedAt(session)}</small>
           </button>
-          <select value={session.status} onChange={(event) => onStatusChange(session.id, event.target.value as HealthCheckSessionStatus)}>
-            {Object.entries(HEALTH_CHECK_SESSION_STATUS_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-          <button type="button" title="세션 삭제" aria-label={`${session.title} 세션 삭제`} onClick={() => onDelete(session.id)}>
-            <Trash2 size={16} />
-          </button>
+          <div className="session-list-actions">
+            <select value={session.status} onChange={(event) => onStatusChange(session.id, event.target.value as HealthCheckSessionStatus)}>
+              {Object.entries(HEALTH_CHECK_SESSION_STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <button type="button" title="세션 삭제" aria-label={`${session.title} 세션 삭제`} onClick={() => onDelete(session.id)}>
+              <Trash2 size={16} />
+            </button>
+          </div>
         </article>
       ))}
     </div>
