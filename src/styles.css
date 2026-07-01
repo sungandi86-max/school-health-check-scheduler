@@ -5970,7 +5970,7 @@ h2,
 
   .sidebar-nav button,
   .sidebar-actions button {
-    min-height: 40px;
+    min-height: 44px;
     padding: 8px 10px;
   }
 
@@ -6009,9 +6009,12 @@ h2,
   .type-card {
     min-height: 0;
     gap: 8px;
+    grid-template-rows: auto auto auto;
+    padding: 12px;
   }
 
   .type-card p {
+    display: none;
     min-height: 0;
   }
 
