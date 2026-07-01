@@ -37,10 +37,10 @@ export function ClassProgressList({
               </div>
               <div className="class-progress-actions" aria-label={`${classId} 운영 처리 버튼`}>
                 <button type="button" className="class-action-current" aria-label={`${classId}을 현재 검사 학급으로 지정`} onClick={() => onSetCurrent(classId)}>
-                  현재 검사 지정
+                  현재 반 지정
                 </button>
                 <button type="button" className="class-action-complete" aria-label={`${classId} 검진 완료 처리`} onClick={() => onComplete(classId)}>
-                  완료 처리
+                  {status === 'active' ? '현재 반 완료' : '완료'}
                 </button>
                 {status === 'missing' ? (
                   <button type="button" className="class-action-clear" aria-label={`${classId} 미도착 표시 해제`} onClick={() => onClearMissing(classId)}>
@@ -48,7 +48,7 @@ export function ClassProgressList({
                   </button>
                 ) : (
                   <button type="button" className="class-action-missing" aria-label={`${classId} 미도착 학급으로 표시`} onClick={() => onMissing(classId)}>
-                    미도착 표시
+                    {status === 'active' ? '미도착 표시' : '미도착'}
                   </button>
                 )}
               </div>

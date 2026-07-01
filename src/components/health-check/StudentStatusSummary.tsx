@@ -9,13 +9,13 @@ export function StudentStatusSummary({ students }: { students: HealthCheckStuden
   return (
     <section className="card student-status-summary">
       <div>
-        <p className="eyebrow">미검 현황</p>
-        <h2>학생 검진 집계</h2>
+        <p className="eyebrow">명렬표 현황</p>
+        <h2>학생 진행 현황</h2>
       </div>
       <div className="student-summary-grid">
-        <SummaryMetric label="전체 대상자 수" value={summary.total} />
-        <SummaryMetric label="완료자 수" value={summary.completed} />
-        <SummaryMetric label="미검자 수" value={summary.incomplete} tone={summary.incomplete ? 'warn' : 'normal'} />
+        <SummaryMetric label="명렬표 인원" value={summary.total} tone="strong" />
+        <SummaryMetric label="완료" value={summary.completed} />
+        <SummaryMetric label="미완료" value={summary.incomplete} tone={summary.incomplete ? 'warn' : 'normal'} />
         <SummaryMetric label="학급 수" value={summary.classCount} />
       </div>
       <div className="student-status-counts">
@@ -29,9 +29,9 @@ export function StudentStatusSummary({ students }: { students: HealthCheckStuden
   );
 }
 
-function SummaryMetric({ label, value, tone = 'normal' }: { label: string; value: number; tone?: 'normal' | 'warn' }) {
+function SummaryMetric({ label, value, tone = 'normal' }: { label: string; value: number; tone?: 'normal' | 'warn' | 'strong' }) {
   return (
-    <div className={`student-summary-metric ${tone === 'warn' ? 'warn' : ''}`}>
+    <div className={`student-summary-metric ${tone === 'warn' ? 'warn' : ''} ${tone === 'strong' ? 'strong' : ''}`}>
       <strong>{value}</strong>
       <span>{label}</span>
     </div>

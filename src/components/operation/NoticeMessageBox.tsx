@@ -20,7 +20,9 @@ export function NoticeMessageBox({ message, onCopy }: { message: string; onCopy?
           복사
         </button>
       </div>
-      <div className="notice-message-box">{message || '현재 안내할 운영 상태가 없습니다.'}</div>
+      <div className="notice-message-box">
+        <span>{message || '현재 안내할 운영 상태가 없습니다.'}</span>
+      </div>
     </section>
   );
 }

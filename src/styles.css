@@ -747,20 +747,59 @@ td select {
 
 .operation-status-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
 .operation-status-card {
-  min-height: 118px;
+  min-height: 142px;
+  border-width: 2px;
+}
+
+.operation-status-card span {
+  color: #0d5b55;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.operation-status-card strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #0d2a3f;
+  font-size: clamp(30px, 3.3vw, 44px);
+  line-height: 1.05;
 }
 
 .operation-status-card small {
   display: block;
-  margin-top: 10px;
+  margin-top: 12px;
   color: #587084;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.operation-status-card:first-child {
+  grid-column: 1 / -1;
+}
+
+.operation-status-card.status-active {
+  border-color: #59b8ad;
+  background: #eefbf9;
+}
+
+.operation-status-card.status-warn {
+  border-color: #f6d58f;
+  background: #fffbeb;
+}
+
+.operation-status-card.status-done {
+  border-color: #99d8c9;
+  background: #ecfdf5;
+}
+
+.operation-status-card.status-warn strong {
+  color: #92400e;
 }
 
 .operation-layout {
@@ -872,9 +911,14 @@ td select {
 
 .operation-control-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(420px, 0.8fr);
   gap: 16px;
   align-items: start;
+}
+
+.operation-right-panel {
+  position: sticky;
+  top: 18px;
 }
 
 .class-progress-card,
@@ -924,6 +968,7 @@ td select {
 .class-progress-row.status-active {
   border-color: #59b8ad;
   background: #eefbf9;
+  box-shadow: inset 4px 0 0 #0f766e;
 }
 
 .class-progress-row.status-completed {
@@ -950,15 +995,22 @@ td select {
 }
 
 .notice-message-box {
-  border: 1px solid #d8e8e5;
+  border: 1px solid #b9dad5;
   border-radius: 10px;
-  background: #f7fcfb;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fcfb 100%);
   color: #29465a;
   min-height: 130px;
-  padding: 14px;
+  padding: 16px;
   white-space: pre-line;
-  line-height: 1.6;
-  font-weight: 700;
+  line-height: 1.7;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.notice-message-box span {
+  display: block;
+  border-left: 4px solid #0f766e;
+  padding-left: 12px;
 }
 
 .operation-log-panel {
@@ -1760,6 +1812,31 @@ td select {
 
 .student-summary-metric.warn strong {
   color: #b45309;
+}
+
+.student-summary-metric.strong {
+  border-color: #9bd7ba;
+  background: #ecfdf5;
+}
+
+.operation-center .student-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.operation-center .student-summary-metric {
+  min-height: 112px;
+  display: grid;
+  align-content: center;
+}
+
+.operation-center .student-summary-metric strong {
+  font-size: clamp(30px, 3vw, 42px);
+  line-height: 1;
+}
+
+.operation-center .student-summary-metric span {
+  margin-top: 10px;
+  font-size: 13px;
 }
 
 .student-status-counts {
@@ -3935,6 +4012,12 @@ button[aria-pressed='true'] {
   border-color: #79c6a3;
   background: #ecfdf5;
   color: #166534;
+}
+
+.class-progress-row.status-active .class-action-complete {
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #ffffff;
 }
 
 .class-progress-actions .class-action-missing {

@@ -305,8 +305,6 @@ export function OperationCenter({
       <ShareLinkPanel session={session} />
       <ShareMessageBox session={session} />
 
-      <OperationStatusCard state={operationState} />
-
       <div className="operation-control-grid">
         <ClassProgressList
           classIds={classIds}
@@ -318,7 +316,8 @@ export function OperationCenter({
           onClearMissing={handleClearMissing}
         />
 
-        <div className="stack">
+        <div className="stack operation-right-panel">
+          <OperationStatusCard state={operationState} classIds={classIds} />
           <OperationSummary state={operationState} classIds={classIds} />
           <section className="card operation-delay-card">
             <label className="field">
