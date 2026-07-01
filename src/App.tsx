@@ -957,7 +957,7 @@ function ExamTypeSelect({
           <div>
             <p className="eyebrow">학교 보건 업무 도구</p>
             <h1>{APP_TITLE}</h1>
-            <span className="mode-pill">시범 운영 준비 중</span>
+            <span className="mode-pill">v1.0.0 MVP</span>
             <p>학교에서 직접 운영하는 결핵검진과 소변검사의 운영 계획부터 실시간 운영, 운영 결과 정리까지 지원합니다.</p>
             <strong className="brand-line">쑤캥T 보건실 도구모음</strong>
           </div>
@@ -994,7 +994,7 @@ function ExamTypeSelect({
               <div>
                 <strong>이 브라우저에 저장된 이전 작업이 있습니다. 필요하면 이어서 작업할 수 있습니다.</strong>
                 <p>처음 사용하는 경우에는 위에서 검사 유형을 선택해 새 시간표를 시작해 주세요.</p>
-                {versionMismatch && <p>저장 데이터가 이전 버전이라 최신 판정 로직과 다를 수 있습니다.</p>}
+                {versionMismatch && <p>저장 데이터가 이전 형식이라 일부 표시가 최신 화면과 다를 수 있습니다.</p>}
               </div>
               <div className="actions">
                 <button onClick={onContinue}>이전 작업 이어서 하기</button>

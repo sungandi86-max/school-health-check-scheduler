@@ -198,7 +198,7 @@ export function OperationPanel({ assignments }: { assignments: ScheduleAssignmen
         <div>
           <p className="eyebrow">고교학점제 대응</p>
           <h2>실시간 검진 운영 대시보드</h2>
-          <p className="muted">보건교사용 화면에서 현황을 입력하면 교사용 PC·모바일 현황판에 같은 정보가 표시됩니다. 현재 버전은 같은 브라우저 저장소 기반 MVP입니다.</p>
+          <p className="muted">보건교사용 화면에서 현황을 입력하면 교사용 PC·모바일 현황판에 같은 정보가 표시됩니다. 학교 현장 운영 흐름에 맞춰 가볍게 사용할 수 있습니다.</p>
         </div>
         <div className="operation-tabs no-print">
           <button className={view === 'nurse' ? 'primary' : ''} onClick={() => setView('nurse')}>보건교사용</button>
