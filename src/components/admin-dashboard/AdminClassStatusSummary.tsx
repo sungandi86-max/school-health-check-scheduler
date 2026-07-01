@@ -23,8 +23,8 @@ export function AdminClassStatusSummary({ rows }: { rows: AdminClassStatusRow[] 
     <section className="admin-class-status-summary">
       <div className="section-title compact">
         <div>
-          <p className="eyebrow">학급 기준</p>
-          <h2>학급 진행 요약</h2>
+          <p className="eyebrow">세부 학급 현황</p>
+          <h2>학급 단위 진행 목록</h2>
         </div>
       </div>
       <div className="admin-status-grid">
@@ -38,7 +38,7 @@ export function AdminClassStatusSummary({ rows }: { rows: AdminClassStatusRow[] 
           <article key={row.classId} className={`admin-class-row ${row.status}`}>
             <strong>{row.classId}</strong>
             <span>{CLASS_STATUS_LABELS[row.status]}</span>
-            <small>완료 {row.completedStudents}명 / 미검 {row.incompleteStudents}명</small>
+            <small>완료 {row.completedStudents}명 / 미검 {row.incompleteStudents}명 · 학생 이름 미표시</small>
           </article>
         )) : <p className="empty">표시할 학급 데이터가 없습니다.</p>}
       </div>

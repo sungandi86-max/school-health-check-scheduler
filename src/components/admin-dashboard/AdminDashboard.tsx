@@ -42,6 +42,7 @@ export function AdminDashboard() {
 
   const studentSummary = useMemo(() => getStudentSummary(snapshot.students), [snapshot.students]);
   const classRows = useMemo(() => createClassRows(snapshot.state, snapshot.students), [snapshot.state, snapshot.students]);
+  const completedClassCount = classRows.filter((row) => row.status === 'completed').length;
   const notice = useMemo(
     () =>
       snapshot.state.noticeMessage ||
@@ -57,24 +58,28 @@ export function AdminDashboard() {
       <header className="admin-dashboard-header">
         <div>
           <div className="role-header-line"><RoleBadge role="admin" /></div>
-          <p className="eyebrow">School Health Hub</p>
-          <h1>학생건강검진 전체 현황</h1>
+          <p className="eyebrow">관리자 확인 전용 현황판</p>
+          <h1>검진 진행 상황 한눈에 보기</h1>
+          <p className="admin-dashboard-lead">현재 검진이 정상 진행 중인지, 어디까지 진행됐는지, 지연·미도착 학급이 있는지 학급 단위와 통계로 확인합니다.</p>
         </div>
-        <button type="button" aria-label="관리자 현황 새로고침" onClick={refresh}>
+        <button type="button" className="admin-refresh-button" aria-label="관리자 현황 새로고침" onClick={refresh}>
           <RefreshCcw size={16} />
-          새로고침
+          현황 새로고침
         </button>
       </header>
 
       {snapshotError && <p className="table-description">{snapshotError}</p>}
-      <AccessNotice role="admin" />
       <AdminSessionInfo session={snapshot.session} />
+      <section className="admin-readonly-notice">
+        <strong>확인 전용</strong>
+        <span>관리자 현황판은 입력 화면이 아닙니다. 학생 개인정보 없이 학급 단위 진행 상황과 통계만 표시합니다.</span>
+      </section>
       <AdminProgressCards
         studentTotal={studentSummary.total}
         completedStudents={studentSummary.completed}
         incompleteStudents={studentSummary.incomplete}
         classTotal={classRows.length}
-        completedClasses={classRows.filter((row) => row.status === 'completed').length}
+        completedClasses={completedClassCount}
         missingClasses={snapshot.state.missingClassIds.length}
         delayedMinutes={snapshot.state.delayedMinutes}
       />
@@ -84,6 +89,7 @@ export function AdminDashboard() {
         missingClassIds={snapshot.state.missingClassIds}
         delayedMinutes={snapshot.state.delayedMinutes}
       />
+      <AccessNotice role="admin" />
 
       <div className="admin-dashboard-detail-grid">
         <AdminClassStatusSummary rows={classRows} />
@@ -102,7 +108,7 @@ export function AdminDashboard() {
 
       <footer className="admin-dashboard-footer">
         <p>최근 업데이트: {formatDateTime(snapshot.state.updatedAt)}</p>
-        <p>이 화면은 보건실 운영센터 입력 내용을 기준으로 표시됩니다.</p>
+        <p>이 화면은 보건실 운영센터 입력 내용을 기준으로 표시되는 확인 전용 화면입니다.</p>
         <ShareSecurityNotice />
       </footer>
     </section>

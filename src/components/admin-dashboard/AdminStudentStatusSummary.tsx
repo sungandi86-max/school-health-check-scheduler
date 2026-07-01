@@ -8,8 +8,8 @@ export function AdminStudentStatusSummary({ byStatus }: { byStatus: Record<Healt
     <section className="admin-student-status-summary">
       <div className="section-title compact">
         <div>
-          <p className="eyebrow">학생 기준</p>
-          <h2>학생 상태 요약</h2>
+          <p className="eyebrow">통계 기준</p>
+          <h2>학생 상태 통계</h2>
         </div>
       </div>
       <div className="admin-status-grid student">

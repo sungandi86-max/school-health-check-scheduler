@@ -5,7 +5,7 @@ export function AdminSessionInfo({ session }: { session?: HealthCheckSession }) 
   if (!session) {
     return (
       <section className="admin-session-info">
-        <p className="eyebrow">현재 세션</p>
+        <p className="eyebrow">현재 검진 세션</p>
         <h2>선택된 검진 세션이 없습니다</h2>
         <p>운영센터 또는 세션 관리에서 오늘 진행할 검진 세션을 선택해 주세요.</p>
       </section>
@@ -15,20 +15,20 @@ export function AdminSessionInfo({ session }: { session?: HealthCheckSession }) 
   return (
     <section className="admin-session-info">
       <div>
-        <p className="eyebrow">현재 세션</p>
+        <p className="eyebrow">현재 검진 세션</p>
         <h2>{session.title}</h2>
       </div>
       <dl>
         <div>
-          <dt>검사 종류</dt>
+          <dt>검진 종류</dt>
           <dd>{getHealthCheckLabel(session.checkType)}</dd>
         </div>
         <div>
-          <dt>날짜</dt>
+          <dt>검진일</dt>
           <dd>{formatDate(session.date)}</dd>
         </div>
         <div>
-          <dt>장소</dt>
+          <dt>검진 장소</dt>
           <dd>{session.location || '-'}</dd>
         </div>
       </dl>
