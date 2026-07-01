@@ -1008,7 +1008,7 @@ td select {
 
 .operation-status-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -1040,18 +1040,24 @@ td select {
   line-height: 1.4;
 }
 
-.operation-status-card:first-child {
-  grid-column: 1 / -1;
-}
-
 .operation-status-card.status-active {
   border-color: #59b8ad;
   background: #eefbf9;
 }
 
+.operation-status-card.status-idle {
+  border-color: #d8e8e5;
+  background: #f7fcfb;
+}
+
 .operation-status-card.status-warn {
   border-color: #f6d58f;
   background: #fffbeb;
+}
+
+.operation-status-card.status-danger {
+  border-color: #f3a6a6;
+  background: #fff1f2;
 }
 
 .operation-status-card.status-done {
@@ -1061,6 +1067,10 @@ td select {
 
 .operation-status-card.status-warn strong {
   color: #92400e;
+}
+
+.operation-status-card.status-danger strong {
+  color: #b91c1c;
 }
 
 .operation-layout {
@@ -1240,6 +1250,16 @@ td select {
 .class-progress-row.status-missing {
   border-color: #f6d58f;
   background: #fffbeb;
+  box-shadow: inset 4px 0 0 #d97706;
+}
+
+.class-exception-note {
+  justify-self: start;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca !important;
+  padding: 4px 8px;
 }
 
 .class-progress-actions {
@@ -1458,7 +1478,7 @@ td select {
 
 .teacher-priority-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -1482,6 +1502,10 @@ td select {
 .teacher-status-card.warn {
   border-color: #f6d58f;
   background: #fffbeb;
+}
+
+.teacher-missing-status.warn {
+  box-shadow: inset 4px 0 0 #d97706;
 }
 
 .teacher-status-card span {
@@ -1752,12 +1776,18 @@ td select {
 
 .admin-current-flow {
   display: grid;
-  grid-template-columns: 1.35fr 1.05fr 1.35fr 1fr;
+  grid-template-columns: 1.2fr 1fr 1fr 1.2fr 1fr;
   gap: 14px;
 }
 
 .admin-flow-card.active {
   min-height: 210px;
+}
+
+.admin-flow-card.next,
+.admin-flow-card.next-after {
+  border-color: #d8e8e5;
+  background: #f7fcfb;
 }
 
 .admin-missing-list {
@@ -2715,10 +2745,25 @@ td select {
   color: #047857;
 }
 
+.student-status-counts .status-completed {
+  border-color: #99d8c9;
+  background: #ecfdf5;
+  color: #047857;
+}
+
 .student-status-badge.status-absent,
+.student-status-counts .status-absent {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
 .student-status-badge.status-earlyLeave,
 .student-status-badge.status-late,
-.student-status-badge.status-deferred {
+.student-status-badge.status-deferred,
+.student-status-counts .status-earlyLeave,
+.student-status-counts .status-late,
+.student-status-counts .status-deferred {
   border-color: #f6d58f;
   background: #fffbeb;
   color: #92400e;
@@ -2739,6 +2784,30 @@ td select {
   border-radius: 10px;
   background: #f7fcfb;
   padding: 12px;
+}
+
+.student-check-row.status-completed {
+  border-color: #99d8c9;
+  background: #ecfdf5;
+}
+
+.student-check-row.status-absent {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+}
+
+.student-check-row.status-late,
+.student-check-row.status-earlyLeave,
+.student-check-row.status-deferred {
+  border-color: #f6d58f;
+  background: #fffbeb;
+}
+
+.student-exception-hint {
+  flex-basis: 100%;
+  color: #4338ca;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .student-check-identity {
@@ -2766,6 +2835,30 @@ td select {
 .student-status-actions button {
   min-height: 34px;
   padding: 6px 10px;
+}
+
+.student-status-actions .status-action-completed {
+  border-color: #79c6a3;
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.student-status-actions .status-action-absent {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.student-status-actions .status-action-late,
+.student-status-actions .status-action-earlyLeave,
+.student-status-actions .status-action-deferred {
+  border-color: #f2c46d;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.student-status-actions button.primary {
+  box-shadow: inset 0 0 0 2px currentColor;
 }
 
 @media (max-width: 980px) {
@@ -4421,6 +4514,21 @@ button.ghost {
 
 .tablet-focus-progress {
   background: rgba(125, 211, 252, 0.14);
+}
+
+.tablet-focus-delay {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tablet-focus-delay.is-delayed {
+  background: rgba(245, 158, 11, 0.95);
+  border-color: #fbbf24;
+}
+
+.tablet-focus-delay.is-delayed span,
+.tablet-focus-delay.is-delayed strong,
+.tablet-focus-delay.is-delayed small {
+  color: #111827;
 }
 
 .tablet-delay {
@@ -6299,19 +6407,29 @@ h2,
 .badge.completed,
 .badge.완료,
 .student-status-badge.status-completed,
+.student-status-counts .status-completed,
 .operation-status-card.status-done {
   border-color: #99d8c9;
   background: var(--ui-color-success-soft);
   color: var(--ui-color-success);
 }
 
+.student-status-badge.status-absent,
+.student-status-counts .status-absent {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
 .badge.missing,
 .badge.미도착,
 .badge.warning,
-.student-status-badge.status-absent,
 .student-status-badge.status-earlyLeave,
 .student-status-badge.status-late,
 .student-status-badge.status-deferred,
+.student-status-counts .status-earlyLeave,
+.student-status-counts .status-late,
+.student-status-counts .status-deferred,
 .operation-status-card.status-warn,
 .status-card-warn {
   border-color: #f6d58f;

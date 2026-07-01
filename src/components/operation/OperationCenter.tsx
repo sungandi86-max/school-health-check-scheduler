@@ -317,7 +317,7 @@ export function OperationCenter({
         />
 
         <div className="stack operation-right-panel">
-          <OperationStatusCard state={operationState} classIds={classIds} />
+          <OperationStatusCard state={operationState} classIds={classIds} expectedEndTime={status.expectedEndTime} />
           <OperationSummary state={operationState} classIds={classIds} />
           <section className="card operation-delay-card">
             <label className="field">

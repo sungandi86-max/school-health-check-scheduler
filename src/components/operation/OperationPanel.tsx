@@ -309,6 +309,7 @@ export function OperationPanel({ assignments }: { assignments: ScheduleAssignmen
           state={state}
           currentSchedule={currentSchedule}
           nextSchedule={nextSchedule}
+          nextAfterSchedule={scheduleClasses[currentClassIndex + 2]}
           completedCount={completedCount}
           targetCount={targetCount}
           progressPercent={progressPercent}
@@ -338,6 +339,7 @@ function TabletModePanel({
   state,
   currentSchedule,
   nextSchedule,
+  nextAfterSchedule,
   completedCount,
   targetCount,
   progressPercent,
@@ -351,6 +353,7 @@ function TabletModePanel({
   state: OperationState;
   currentSchedule?: ScheduleClass;
   nextSchedule?: ScheduleClass;
+  nextAfterSchedule?: ScheduleClass;
   completedCount: number;
   targetCount: number;
   progressPercent: number;
@@ -396,7 +399,12 @@ function TabletModePanel({
         <article className="tablet-focus-card">
           <span>다음 학급</span>
           <strong>{state.nextClass || '-'}</strong>
-          <small>{nextSchedule ? `${nextSchedule.startTime}~${nextSchedule.endTime}` : '다음 학급 없음'}</small>
+          <small>{nextSchedule ? `${nextSchedule.startTime}~${nextSchedule.endTime}` : '다음 학급 없음'} · 다다음 {nextAfterSchedule?.className || '-'}</small>
+        </article>
+        <article className={`tablet-focus-card tablet-focus-delay ${state.delayMinutes > 0 ? 'is-delayed' : ''}`}>
+          <span>지연 상태</span>
+          <strong>{state.delayMinutes > 0 ? `${state.delayMinutes}분` : '정상'}</strong>
+          <small>{state.delayMinutes > 0 ? '현재 학급이 예상보다 오래 걸리는 중' : '입력된 지연 없음'}</small>
         </article>
       </div>
 

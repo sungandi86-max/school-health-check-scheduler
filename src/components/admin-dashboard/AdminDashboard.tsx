@@ -43,6 +43,7 @@ export function AdminDashboard() {
   const studentSummary = useMemo(() => getStudentSummary(snapshot.students), [snapshot.students]);
   const classRows = useMemo(() => createClassRows(snapshot.state, snapshot.students), [snapshot.state, snapshot.students]);
   const completedClassCount = classRows.filter((row) => row.status === 'completed').length;
+  const nextAfterClassId = getNextAfterClassId(snapshot.state.nextClassId, classRows.map((row) => row.classId));
   const notice = useMemo(
     () =>
       snapshot.state.noticeMessage ||
@@ -86,6 +87,7 @@ export function AdminDashboard() {
       <AdminCurrentFlow
         currentClassId={snapshot.state.currentClassId}
         nextClassId={snapshot.state.nextClassId}
+        nextAfterClassId={nextAfterClassId}
         missingClassIds={snapshot.state.missingClassIds}
         delayedMinutes={snapshot.state.delayedMinutes}
       />
@@ -126,6 +128,12 @@ function createEmptyAdminSnapshot(): {
     students: [],
     logs: [],
   };
+}
+
+function getNextAfterClassId(nextClassId: string, classIds: string[]) {
+  if (!nextClassId) return '';
+  const index = classIds.indexOf(nextClassId);
+  return index >= 0 ? classIds[index + 1] || '' : '';
 }
 
 function createClassRows(state: HealthCheckOperationState, students: HealthCheckStudent[]): AdminClassStatusRow[] {

@@ -29,19 +29,21 @@ export function StudentChecklist({
         {selectedClass && visibleStudents.length === 0 && <p className="empty">선택한 학급의 학생이 없습니다. 명렬표의 학급 표기를 확인해 주세요.</p>}
         {visibleStudents.map((student) => {
           const memoId = `student-memo-${student.id}`;
+          const exceptionHint = getExceptionHint(student.status);
           return (
-            <article className="student-check-row" key={student.id} role="listitem">
+            <article className={`student-check-row status-${student.status}`} key={student.id} role="listitem">
               <div className="student-check-identity">
                 <strong>{student.number}</strong>
                 <span>{student.name}</span>
                 <StudentStatusBadge status={student.status} />
+                {exceptionHint && <small className="student-exception-hint">{exceptionHint}</small>}
               </div>
               <div className="student-status-actions" aria-label={`${student.name} 검진 상태 변경`}>
                 {STUDENT_STATUS_OPTIONS.map((status) => (
                   <button
                     type="button"
                     key={status}
-                    className={student.status === status ? 'primary' : ''}
+                    className={`status-action-${status} ${student.status === status ? 'primary' : ''}`}
                     aria-label={`${student.name} 상태를 ${STUDENT_STATUS_LABELS[status]}로 변경`}
                     aria-pressed={student.status === status}
                     onClick={() => onStatusChange(student.id, status)}
@@ -58,4 +60,10 @@ export function StudentChecklist({
       </div>
     </section>
   );
+}
+
+function getExceptionHint(status: HealthCheckStudentStatus) {
+  if (status === 'absent') return '결석 처리: 현재 검진 대상에서 제외';
+  if (status === 'late' || status === 'earlyLeave' || status === 'deferred') return '예외 처리: 완료 학생과 별도 확인';
+  return '';
 }

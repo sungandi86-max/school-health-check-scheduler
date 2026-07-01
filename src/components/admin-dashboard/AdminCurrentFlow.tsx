@@ -1,22 +1,28 @@
 ﻿interface AdminCurrentFlowProps {
   currentClassId: string;
   nextClassId: string;
+  nextAfterClassId?: string;
   missingClassIds: string[];
   delayedMinutes: number;
 }
 
-export function AdminCurrentFlow({ currentClassId, nextClassId, missingClassIds, delayedMinutes }: AdminCurrentFlowProps) {
+export function AdminCurrentFlow({ currentClassId, nextClassId, nextAfterClassId = '', missingClassIds, delayedMinutes }: AdminCurrentFlowProps) {
   return (
     <section className="admin-current-flow" aria-label="현재 검진 흐름">
       <article className="admin-flow-card active">
-        <span>현재 검진이 정상 진행 중인가요?</span>
+        <span>현재 학급</span>
         <strong>{currentClassId || '-'}</strong>
         <small>현재 검사 학급</small>
       </article>
       <article className="admin-flow-card next">
-        <span>다음 검사 학급</span>
+        <span>다음 학급</span>
         <strong>{nextClassId || '-'}</strong>
         <small>다음 이동 안내 대상</small>
+      </article>
+      <article className="admin-flow-card next-after">
+        <span>다다음 학급</span>
+        <strong>{nextAfterClassId || '-'}</strong>
+        <small>다음 안내 후 대기할 학급</small>
       </article>
       <article className="admin-flow-card missing">
         <span>지연이나 미도착 학급이 있나요?</span>

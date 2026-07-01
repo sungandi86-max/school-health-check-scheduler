@@ -1,7 +1,8 @@
 ﻿import type { HealthCheckOperationState } from '../../types/healthCheck';
 
-export function TeacherCurrentStatusCard({ state }: { state: HealthCheckOperationState }) {
+export function TeacherCurrentStatusCard({ state, classIds = [] }: { state: HealthCheckOperationState; classIds?: string[] }) {
   const urgentClass = state.missingClassIds[0] || state.currentClassId || state.nextClassId || '-';
+  const nextAfterClassId = getNextAfterClassId(state.nextClassId, classIds);
   const urgentLabel = state.missingClassIds.length
     ? '미도착 학급은 먼저 이동 여부를 확인해 주세요'
     : state.currentClassId
@@ -18,14 +19,19 @@ export function TeacherCurrentStatusCard({ state }: { state: HealthCheckOperatio
         <small>{urgentLabel}</small>
       </article>
       <article className="teacher-status-card">
-        <span>현재 어떤 학급이 검사 중인가요?</span>
+        <span>현재 학급</span>
         <strong>{state.currentClassId || '-'}</strong>
         <small>현재 이동/검사 학급</small>
       </article>
       <article className="teacher-status-card">
-        <span>다음 검사 예정 학급</span>
+        <span>다음 학급</span>
         <strong>{state.nextClassId || '-'}</strong>
         <small>우리 반이 다음 순서인지 확인해 주세요</small>
+      </article>
+      <article className="teacher-status-card">
+        <span>다다음 학급</span>
+        <strong>{nextAfterClassId || '-'}</strong>
+        <small>다음 안내 후 대기할 학급</small>
       </article>
       <article className={`teacher-status-card ${state.delayedMinutes > 0 ? 'warn' : ''}`}>
         <span>예정 대비 지연</span>
@@ -39,6 +45,12 @@ export function TeacherCurrentStatusCard({ state }: { state: HealthCheckOperatio
       </article>
     </section>
   );
+}
+
+function getNextAfterClassId(nextClassId: string, classIds: string[]) {
+  if (!nextClassId) return '';
+  const index = classIds.indexOf(nextClassId);
+  return index >= 0 ? classIds[index + 1] || '' : '';
 }
 
 function formatUpdatedAt(value: string) {

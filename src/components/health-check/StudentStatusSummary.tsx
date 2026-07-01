@@ -20,7 +20,7 @@ export function StudentStatusSummary({ students }: { students: HealthCheckStuden
       </div>
       <div className="student-status-counts">
         {summaryStatuses.map((status) => (
-          <span key={status}>
+          <span className={`status-${status}`} key={status}>
             {STUDENT_STATUS_LABELS[status]} <strong>{summary.byStatus[status]}</strong>
           </span>
         ))}

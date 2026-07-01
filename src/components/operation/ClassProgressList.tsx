@@ -1,5 +1,5 @@
 ﻿import type { HealthCheckOperationState, HealthCheckStudent } from '../../types/healthCheck';
-import { getClassStudentStats } from '../../lib/operation';
+import { getClassStudentStats, normalizeOperationClassId } from '../../lib/operation';
 
 export function ClassProgressList({
   classIds,
@@ -28,12 +28,14 @@ export function ClassProgressList({
         {classIds.map((classId) => {
           const status = getClassStatus(classId, state);
           const stats = getClassStudentStats(students, classId);
+          const absentCount = students.filter((student) => normalizeOperationClassId(student.className) === classId && student.status === 'absent').length;
           return (
             <article className={`class-progress-row status-${status}`} key={classId} role="listitem">
               <div>
                 <strong>{classId}</strong>
                 <span>상태: {CLASS_STATUS_LABELS[status]}</span>
                 {stats.hasRoster && <small>완료 {stats.completed}명 / 미검 {stats.incomplete}명</small>}
+                {absentCount > 0 && <small className="class-exception-note">결석 {absentCount}명은 현재 검진 대상에서 제외 확인</small>}
               </div>
               <div className="class-progress-actions" aria-label={`${classId} 운영 처리 버튼`}>
                 <button type="button" className="class-action-current" aria-label={`${classId}을 현재 검사 학급으로 지정`} onClick={() => onSetCurrent(classId)}>

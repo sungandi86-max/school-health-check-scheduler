@@ -72,7 +72,7 @@ export function TeacherDashboard() {
         <strong>확인 전용</strong>
         <span>이 화면에서는 입력하거나 상태를 변경하지 않습니다. 이동 안내와 현재 검사 학급만 빠르게 확인해 주세요.</span>
       </section>
-      <TeacherCurrentStatusCard state={snapshot.state} />
+      <TeacherCurrentStatusCard state={snapshot.state} classIds={classStats.map((item) => item.className)} />
       <TeacherMissingClassAlert state={snapshot.state} />
       <TeacherRealtimeStatus updatedAt={snapshot.state.updatedAt} />
       <AccessNotice role="teacher" />
