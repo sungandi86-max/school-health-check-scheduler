@@ -3,26 +3,26 @@ import { HEALTH_CHECK_TYPES } from '../../lib/healthCheck';
 
 const HOME_CARD_COPY: Record<HealthCheckType, { role: string; title: string; description: string; button: string }> = {
   urine: {
-    role: '방문형 검사 · Planning',
-    title: '① 소변검사 운영 계획',
-    description: '학생이 원반으로 운영되는 시간과 검사팀 동선을 고려하여 학교 상황에 맞는 운영 계획을 준비합니다.',
-    button: '운영 계획 시작',
+    role: '운영 계획',
+    title: '소변검사 계획 만들기',
+    description: '학급별 방문 순서와 시간표를 먼저 정리합니다.',
+    button: '소변검사 계획 시작',
   },
   tuberculosis: {
-    role: '호출형 검진 · Operation',
-    title: '② 결핵검진 실시간 운영',
-    description: '현재 검사 학급, 다음 이동 학급, 운영 진행 상황을 실시간으로 관리합니다.',
-    button: '운영 시작',
+    role: '실시간 운영',
+    title: '결핵검진 운영 시작',
+    description: '현재 학급, 다음 학급, 미도착과 지연 상황을 관리합니다.',
+    button: '결핵검진 운영 시작',
   },
   general: {
-    role: '현황 확인 · Dashboard',
-    title: '③ 운영 현황판',
-    description: '별도검사 진행률과 현재 운영 현황을 관리자와 교직원이 한눈에 확인합니다.',
+    role: '현황 공유',
+    title: '운영 현황판 보기',
+    description: '보건실 또는 교무실 화면에 진행 상황을 크게 표시합니다.',
     button: '운영 현황 보기',
   },
   other: {
-    role: '운영 계획 · Planning',
-    title: '기타 별도검사 운영 계획',
+    role: '운영 계획',
+    title: '기타 별도검사 계획',
     description: '학교 상황에 맞는 별도검사 운영 계획을 준비합니다.',
     button: '운영 계획 시작',
   },
@@ -36,7 +36,7 @@ export function HealthCheckTypeSelector({
   onOpenStatusDashboard: (mode: 'portrait' | 'landscape') => void;
 }) {
   return (
-    <section className="type-card-grid">
+    <section className="type-card-grid" aria-label="검사 유형 선택">
       {HEALTH_CHECK_TYPES.filter((item) => item.isEnabled).map((item) => {
         const copy = HOME_CARD_COPY[item.id];
         return (
@@ -45,11 +45,11 @@ export function HealthCheckTypeSelector({
             <h2>{copy.title}</h2>
             <p>{copy.description}</p>
             {item.id === 'general' ? (
-              <div className="type-card-actions">
+              <div className="type-card-actions" aria-label="운영 현황판 종류 선택">
                 <button className="primary" onClick={() => onOpenStatusDashboard('portrait')}>
                   보건실 현황판
                 </button>
-                <button className="primary" onClick={() => onOpenStatusDashboard('landscape')}>
+                <button onClick={() => onOpenStatusDashboard('landscape')}>
                   교무실 현황판
                 </button>
               </div>

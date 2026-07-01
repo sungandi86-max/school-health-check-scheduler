@@ -30,18 +30,20 @@ export function RosterUpload({
     await onUpload(parsed);
   };
 
+  const classCount = getClassesFromStudents(students).length;
+
   return (
     <section className="card roster-upload-card">
       <div>
-        <p className="eyebrow">명렬표 관리</p>
-        <h2>명렬표 업로드</h2>
-        <p className="table-description">엑셀 또는 CSV 파일에서 학년, 반, 번호, 이름 열을 읽어 학급별 학생 목록을 만듭니다.</p>
-        <p className="table-description">현재 선택된 세션: {sessionTitle || sessionId || '선택된 세션이 없습니다. 먼저 검진 세션을 생성해 주세요.'}</p>
+        <p className="eyebrow">명렬표</p>
+        <h2>학생 명렬표 업로드</h2>
+        <p className="table-description">엑셀 또는 CSV에서 학년, 반, 번호, 이름을 읽어 현재 세션의 학생 목록을 만듭니다.</p>
+        <p className="table-description">현재 세션: {sessionTitle || sessionId || '먼저 검진 세션을 선택해 주세요.'}</p>
       </div>
       <div className="roster-upload-actions">
         <button type="button" className="primary" onClick={() => fileRef.current?.click()}>
           <FileInput size={17} />
-          엑셀 업로드
+          명렬표 업로드
         </button>
         <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(event) => handleFile(event.target.files?.[0])} />
         {fileName && <span>{fileName}</span>}
@@ -49,11 +51,11 @@ export function RosterUpload({
       <div className="roster-upload-summary">
         <div>
           <strong>{students.length}</strong>
-          <span>{students.length ? '업로드된 학생 수' : '명렬표가 업로드되지 않았습니다'}</span>
+          <span>{students.length ? '등록된 학생' : '업로드 전'}</span>
         </div>
         <div>
-          <strong>{getClassesFromStudents(students).length}</strong>
-          <span>학급 수</span>
+          <strong>{classCount}</strong>
+          <span>{classCount ? '등록된 학급' : '학급 없음'}</span>
         </div>
       </div>
     </section>

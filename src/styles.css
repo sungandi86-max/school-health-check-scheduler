@@ -7003,3 +7003,144 @@ h2,
     font-size: clamp(44px, 16vw, 68px);
   }
 }
+
+/* UX audit polish */
+.type-select-content {
+  gap: 14px;
+}
+
+.type-hero p:last-child {
+  max-width: 680px;
+}
+
+.type-card {
+  border-radius: var(--ui-radius-md);
+}
+
+.type-card h2 {
+  font-size: 20px;
+}
+
+.type-card p {
+  color: var(--ui-color-muted);
+}
+
+.type-card-actions button:not(.primary) {
+  border-color: var(--ui-color-line-strong);
+  background: var(--ui-color-surface);
+  color: var(--ui-color-navy);
+}
+
+.entry-help-card,
+.stored-work-summary,
+.home-recent-session-card,
+.home-session-list {
+  border-radius: var(--ui-radius-md);
+}
+
+.entry-help-card span,
+.stored-work-panel p,
+.table-description {
+  color: var(--ui-color-muted);
+  line-height: 1.5;
+}
+
+.home-recent-session-card button.primary,
+.type-card button.primary,
+.roster-upload-actions button.primary {
+  min-height: 44px;
+}
+
+.roster-upload-card,
+.student-checklist-card,
+.operation-summary-card,
+.admin-recent-logs {
+  gap: 12px;
+}
+
+.roster-upload-summary div,
+.student-summary-metric {
+  border-radius: var(--ui-radius-md);
+}
+
+.student-summary-metric.success strong,
+.student-summary-metric.success span {
+  color: var(--ui-color-success);
+}
+
+.student-summary-metric.success {
+  border-color: #99d8c9;
+  background: var(--ui-color-success-soft);
+}
+
+.student-summary-metric.warn {
+  border-color: #f6d58f;
+  background: var(--ui-color-warning-soft);
+}
+
+.student-status-actions .status-action-completed.primary {
+  border-color: var(--ui-color-success);
+  background: var(--ui-color-success);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.student-status-actions .status-action-absent.primary {
+  border-color: #4338ca;
+  background: #4338ca;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.student-status-actions .status-action-late.primary,
+.student-status-actions .status-action-earlyLeave.primary,
+.student-status-actions .status-action-deferred.primary {
+  border-color: var(--ui-color-warning);
+  background: var(--ui-color-warning);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.class-progress-actions .class-action-complete {
+  border-color: #99d8c9;
+  background: var(--ui-color-success-soft);
+  color: var(--ui-color-success);
+}
+
+.class-progress-actions .class-action-missing {
+  border-color: #f6d58f;
+  background: var(--ui-color-warning-soft);
+  color: var(--ui-color-warning);
+}
+
+.class-progress-actions .class-action-clear {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.empty,
+.empty-state {
+  min-height: 72px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .type-card-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .type-card button,
+  .home-recent-session-card button,
+  .roster-upload-actions button {
+    min-height: 48px;
+    white-space: normal;
+  }
+
+  .entry-help-card span,
+  .stored-work-panel p {
+    font-size: 13px;
+  }
+}

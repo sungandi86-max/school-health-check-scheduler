@@ -19,14 +19,14 @@ export function StudentChecklist({
     <section className="card student-checklist-card" aria-labelledby="student-checklist-title">
       <div>
         <p className="eyebrow">학생 체크</p>
-        <h2 id="student-checklist-title">학생 검진 상태 관리</h2>
-        <p className="table-description">학생별 검진 상태를 변경하고 필요한 메모를 남길 수 있습니다.</p>
+        <h2 id="student-checklist-title">학생 상태 체크</h2>
+        <p className="table-description">현재 학급 학생만 빠르게 확인합니다. 공용 현황판에는 학생 이름이 표시되지 않습니다.</p>
       </div>
 
       <div className="student-checklist" role="list" aria-label="선택 학급 학생 검진 상태">
-        {!students.length && <p className="empty">명렬표가 업로드되지 않았습니다. 먼저 현재 세션에 명렬표를 업로드해 주세요.</p>}
-        {students.length > 0 && !selectedClass && <p className="empty">학년/반을 선택해 주세요.</p>}
-        {selectedClass && visibleStudents.length === 0 && <p className="empty">선택한 학급의 학생이 없습니다. 명렬표의 학급 표기를 확인해 주세요.</p>}
+        {!students.length && <p className="empty">아직 학생 명렬표가 없습니다. 위의 명렬표 업로드에서 엑셀 또는 CSV 파일을 먼저 올려 주세요.</p>}
+        {students.length > 0 && !selectedClass && <p className="empty">체크할 학급을 선택하면 학생 목록이 표시됩니다.</p>}
+        {selectedClass && visibleStudents.length === 0 && <p className="empty">선택한 학급의 학생이 없습니다. 명렬표의 학년/반 표기를 확인해 주세요.</p>}
         {visibleStudents.map((student) => {
           const memoId = `student-memo-${student.id}`;
           const exceptionHint = getExceptionHint(student.status);

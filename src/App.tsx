@@ -958,8 +958,8 @@ function ExamTypeSelect({
             <p className="eyebrow">학교 보건 업무 도구</p>
             <h1>{APP_TITLE}</h1>
             <span className="mode-pill">v1.0.0 MVP</span>
-            <p>학교에서 직접 운영하는 결핵검진과 소변검사의 운영 계획부터 실시간 운영, 운영 결과 정리까지 지원합니다.</p>
-            <strong className="brand-line">쑤캥T 보건실 도구모음</strong>
+            <p>결핵검진과 소변검사의 준비, 당일 운영, 현황 공유, 보고서 정리를 한 흐름으로 진행합니다.</p>
+            <strong className="brand-line">보건교사용 현장 운영 도구</strong>
           </div>
           <OtterMascot variant="lg" className="type-hero-mascot" />
         </section>
@@ -978,10 +978,10 @@ function ExamTypeSelect({
 
         <section className="entry-help-card">
           <div>
-            <strong>학교 별도검사 운영은</strong>
-            <span>① 학교 설정 → ② 운영 계획 → ③ 시간표 생성 → ④ 실시간 운영 → ⑤ 운영 보고서 순서로 진행됩니다.</span>
+            <strong>처음 사용한다면</strong>
+            <span>학교 설정, 검사 조건, 시간표 생성, 실시간 운영, 운영 보고서 순서로 진행합니다.</span>
           </div>
-          <button onClick={onOpenHelp}>사용 설명 보기</button>
+          <button onClick={onOpenHelp}>사용 안내 보기</button>
         </section>
 
         {showOnboarding && <OnboardingPanel onClose={onCloseOnboarding} onDismiss={onDismissOnboarding} />}
@@ -992,12 +992,12 @@ function ExamTypeSelect({
             <summary>이전 작업 데이터가 있습니다.</summary>
             <div className="stored-work-panel">
               <div>
-                <strong>이 브라우저에 저장된 이전 작업이 있습니다. 필요하면 이어서 작업할 수 있습니다.</strong>
-                <p>처음 사용하는 경우에는 위에서 검사 유형을 선택해 새 시간표를 시작해 주세요.</p>
+                <strong>이 브라우저에 저장된 이전 작업을 이어서 사용할 수 있습니다.</strong>
+                <p>새 검진을 시작하려면 위의 검사 유형 카드를 선택해 주세요.</p>
                 {versionMismatch && <p>저장 데이터가 이전 형식이라 일부 표시가 최신 화면과 다를 수 있습니다.</p>}
               </div>
               <div className="actions">
-                <button onClick={onContinue}>이전 작업 이어서 하기</button>
+                <button onClick={onContinue}>이전 작업 이어가기</button>
                 <button className="ghost" onClick={onReset}>저장 데이터 초기화</button>
               </div>
             </div>
