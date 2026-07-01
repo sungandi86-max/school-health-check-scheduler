@@ -534,7 +534,7 @@ export function App() {
         ['operation-center', '검진 운영'],
         ['teacher-dashboard', '교사용 현황판'],
         ['admin-dashboard', '관리자 현황판'],
-        ['display', '관리자 현황판(Display)'],
+        ['display', 'Display 현황판'],
       ],
     },
     {

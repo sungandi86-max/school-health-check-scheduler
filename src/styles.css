@@ -1164,6 +1164,38 @@ td select {
   gap: 10px;
 }
 
+.operation-day-flow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.operation-day-flow span,
+.operation-next-action {
+  border: 1px solid var(--ui-color-line);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface-soft);
+  color: var(--ui-color-muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.operation-day-flow strong,
+.operation-next-action strong {
+  color: var(--ui-color-primary);
+  display: block;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.operation-next-action {
+  border-color: #99d8c9;
+  background: var(--ui-color-success-soft);
+}
+
 .operation-session-details {
   display: flex;
   flex-wrap: wrap;
@@ -7236,5 +7268,9 @@ h2,
   .entry-help-card span,
   .stored-work-panel p {
     font-size: 13px;
+  }
+
+  .operation-day-flow {
+    grid-template-columns: 1fr;
   }
 }

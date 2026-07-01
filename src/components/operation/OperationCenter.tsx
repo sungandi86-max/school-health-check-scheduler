@@ -153,6 +153,13 @@ export function OperationCenter({
     () => (selectedClass ? students.filter((student) => normalizeOperationClassId(student.className) === normalizeOperationClassId(selectedClass)) : []),
     [selectedClass, students],
   );
+  const nextActionText = useMemo(() => {
+    if (!session) return '오늘 진행할 검진 세션을 먼저 선택해 주세요.';
+    if (!students.length) return '검진 시작 전 학생 명렬표를 업로드해 주세요.';
+    if (!operationState.currentClassId) return '09:00 검진 시작 시 첫 학급을 현재 학급으로 지정해 주세요.';
+    if (operationState.missingClassIds.length) return '미도착 학급 확인 후 도착하면 미도착 해제를 눌러 주세요.';
+    return '현재 학급이 끝나면 완료 처리하고 다음 학급을 확인해 주세요.';
+  }, [operationState.currentClassId, operationState.missingClassIds.length, session, students.length]);
 
   const handleUpload = async (nextStudents: HealthCheckStudent[]) => {
     setStudentError('');
@@ -286,10 +293,18 @@ export function OperationCenter({
       <div className="operation-header">
         <div className="role-header-line"><RoleBadge role="healthTeacher" /></div>
         <p className="eyebrow">검진 운영</p>
-        <h2>학교 건강검진 운영센터</h2>
+        <h2>오늘 검진 운영센터</h2>
+        <p className="table-description">보건교사가 당일 현재 학급, 다음 학급, 완료, 미도착, 지연 상황을 입력하는 화면입니다.</p>
       </div>
 
       <AccessNotice role="healthTeacher" />
+
+      <section className="operation-day-flow" aria-label="검진 당일 운영 순서">
+        <span><strong>08:30</strong> 세션 선택</span>
+        <span><strong>08:40</strong> 설정·시간표 확인</span>
+        <span><strong>09:00</strong> 현재 학급 지정</span>
+        <span><strong>운영 중</strong> 완료·미도착 처리</span>
+      </section>
 
       <section className="card operation-session-card">
         <HealthCheckSessionBadge session={session} />
@@ -300,10 +315,8 @@ export function OperationCenter({
             <span>장소: {session.location || '-'}</span>
           </div>
         )}
+        <p className="operation-next-action"><strong>다음 할 일</strong>{nextActionText}</p>
       </section>
-
-      <ShareLinkPanel session={session} />
-      <ShareMessageBox session={session} />
 
       <div className="operation-control-grid">
         <ClassProgressList
@@ -334,6 +347,9 @@ export function OperationCenter({
           <OperationLogPanel logs={operationLogs} onAddManualLog={handleManualLog} />
         </div>
       </div>
+
+      <ShareLinkPanel session={session} />
+      <ShareMessageBox session={session} />
 
       <div className="operation-layout">
         <section className="operation-student-panel">

@@ -56,9 +56,9 @@ export function TeacherDashboard() {
       <header className="teacher-dashboard-header">
         <div>
           <div className="role-header-line"><RoleBadge role="teacher" /></div>
-          <p className="eyebrow">교사용 확인 전용 현황판</p>
+          <p className="eyebrow">수업 중 교사용 현황판</p>
           <h1>우리 반 검진 이동 확인</h1>
-          <p className="teacher-dashboard-lead">보건실에서 입력한 현재 검진 상황을 학급 단위로 확인하는 화면입니다.</p>
+          <p className="teacher-dashboard-lead">수업 중 학생 이동 안내에 필요한 현재 학급, 다음 학급, 미도착 여부만 확인합니다.</p>
         </div>
         <button type="button" className="teacher-refresh-button" aria-label="교사용 현황 새로고침" onClick={refresh}>
           <RefreshCcw size={16} />
@@ -70,7 +70,7 @@ export function TeacherDashboard() {
       <TeacherSessionInfo session={snapshot.session} />
       <section className="teacher-readonly-notice">
         <strong>확인 전용</strong>
-        <span>이 화면에서는 입력하거나 상태를 변경하지 않습니다. 이동 안내와 현재 검사 학급만 빠르게 확인해 주세요.</span>
+        <span>이 화면에서는 입력하지 않습니다. 보건실 운영센터에서 변경한 내용만 표시됩니다.</span>
       </section>
       <TeacherCurrentStatusCard state={snapshot.state} classIds={classStats.map((item) => item.className)} />
       <TeacherMissingClassAlert state={snapshot.state} />

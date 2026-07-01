@@ -99,7 +99,7 @@ export function OperationReport() {
           <div className="role-header-line"><RoleBadge role="viewer" /></div>
           <p className="eyebrow">운영 보고서</p>
           <h1>검진 운영 결과 보고서</h1>
-          <p className="report-header-lead">검진 종료 후 관리자 보고와 내부 기록에 활용할 수 있도록 전체 진행 현황과 확인 필요 사항을 정리합니다.</p>
+          <p className="report-header-lead">검진 종료 후 완료율, 미완료 학생, 미도착 학급, 운영 기록을 확인하고 인쇄합니다.</p>
         </div>
         <div className="report-actions no-print">
           <button type="button" onClick={refresh}>

@@ -59,9 +59,9 @@ export function AdminDashboard() {
       <header className="admin-dashboard-header">
         <div>
           <div className="role-header-line"><RoleBadge role="admin" /></div>
-          <p className="eyebrow">관리자 확인 전용 현황판</p>
-          <h1>검진 진행 상황 한눈에 보기</h1>
-          <p className="admin-dashboard-lead">현재 검진이 정상 진행 중인지, 어디까지 진행됐는지, 지연·미도착 학급이 있는지 학급 단위와 통계로 확인합니다.</p>
+          <p className="eyebrow">관리자 문의 대응 현황판</p>
+          <h1>검진 진행 상황 확인</h1>
+          <p className="admin-dashboard-lead">관리자 문의에 바로 답할 수 있도록 진행률, 완료 학급, 미도착 학급, 지연 상태를 확인합니다.</p>
         </div>
         <button type="button" className="admin-refresh-button" aria-label="관리자 현황 새로고침" onClick={refresh}>
           <RefreshCcw size={16} />
@@ -73,7 +73,7 @@ export function AdminDashboard() {
       <AdminSessionInfo session={snapshot.session} />
       <section className="admin-readonly-notice">
         <strong>확인 전용</strong>
-        <span>관리자 현황판은 입력 화면이 아닙니다. 학생 개인정보 없이 학급 단위 진행 상황과 통계만 표시합니다.</span>
+        <span>입력은 보건실 운영센터에서만 합니다. 이 화면에는 학생 개인정보 없이 학급 단위 현황만 표시됩니다.</span>
       </section>
       <AdminProgressCards
         studentTotal={studentSummary.total}
