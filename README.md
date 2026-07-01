@@ -1,6 +1,6 @@
-﻿# School Health Hub
+﻿# 학교 별도검사 운영 도우미
 
-School Health Hub의 **학교 별도검사 운영 도우미**는 보건교사가 결핵검진·소변검사 운영을 준비하고, 검진 당일 진행 상황을 공유하며, 종료 후 보고서까지 정리할 수 있도록 돕는 Vite + React + TypeScript 기반 Lite 웹앱입니다.
+**School Health Hub**의 v1.0 MVP인 학교 별도검사 운영 도우미는 보건교사가 결핵검진·소변검사 운영을 준비하고, 검진 당일 진행 상황을 공유하며, 종료 후 보고서까지 정리할 수 있도록 돕는 Vite + React + TypeScript 기반 Lite 웹앱입니다.
 
 - 소변검사는 운영 계획과 학급별 시간표 자동배정을 중심으로 지원합니다.
 - 결핵검진은 검진 당일 실시간 운영, 교사용 안내, 관리자 현황 공유를 중심으로 지원합니다.
@@ -19,6 +19,7 @@ School Health Hub의 **학교 별도검사 운영 도우미**는 보건교사가
 - Session 관리: 최근 작업 카드, 세션 목록, 상태 Badge, 새 검진 시작
 - 학교 설정: 학교명, 기본 장소, 기본 시간, 안내 문구, 문의 연락처 저장
 - 검사 조건: 검사 종류, 날짜, 대상 학년, 운영 방식 설정
+- 시간표 생성: 학교 일과표, 학급별 순서, 이동표 자동배정
 - 소변검사 운영 계획: 학급별 방문형 검사 시간표 자동배정
 - 결핵검진 실시간 운영: 현재/다음/다다음 학급, 완료, 미도착, 지연 시간 관리
 - 명렬표 관리: 세션 기준 학생 목록 업로드, 상태 변경, 메모 관리
@@ -142,6 +143,7 @@ npm run build
 - [Testing Guide](docs/TESTING_GUIDE.md)
 - [UX Guide](docs/UX_GUIDE.md)
 - [Changelog](docs/CHANGELOG.md)
+- [Next](NEXT.md)
 - [Supabase 설정 안내](docs/SUPABASE_SETUP.md)
 - [데이터베이스 스키마](docs/DATABASE_SCHEMA.md)
 - [기존 로드맵](docs/ROADMAP.md)
