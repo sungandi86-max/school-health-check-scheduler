@@ -5129,11 +5129,11 @@ button.ghost {
 
 .report-print-cover {
   display: grid;
-  gap: 16px;
+  gap: 18px;
   border: 1px solid #c8ded9;
   border-radius: 14px;
   background: linear-gradient(180deg, #f7fcfb 0%, #ffffff 100%);
-  padding: 24px;
+  padding: 26px;
 }
 
 .report-print-cover h2 {
@@ -5145,7 +5145,7 @@ button.ghost {
 
 .report-print-cover dl {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin: 0;
 }
@@ -5172,7 +5172,7 @@ button.ghost {
 
 .report-cover-kpi-grid {
   display: grid;
-  grid-template-columns: 1.25fr repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -5205,6 +5205,7 @@ button.ghost {
   color: #0d2a3f;
   font-size: clamp(28px, 3vw, 44px);
   line-height: 1.05;
+  overflow-wrap: anywhere;
 }
 
 .report-cover-kpi.primary strong {
@@ -5248,11 +5249,48 @@ button.ghost {
   margin: 0;
 }
 
+.report-table-wrap {
+  overflow-x: auto;
+}
+
+.report-class-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #c8ded9;
+  background: #ffffff;
+  table-layout: fixed;
+}
+
+.report-class-table th,
+.report-class-table td {
+  border-bottom: 1px solid #d8e8e5;
+  padding: 12px 14px;
+  color: #29465a;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.report-class-table th {
+  background: #f0faf8;
+  color: #0d5b55;
+  font-weight: 900;
+}
+
+.report-class-table th:first-child,
+.report-class-table td:first-child {
+  text-align: left;
+}
+
+.report-class-table tbody tr:nth-child(even) {
+  background: #f7fcfb;
+}
+
 
 @media print {
   @page operationReportPortrait {
     size: A4 portrait;
-    margin: 12mm;
+    margin: 11mm 12mm;
   }
 
   .operation-report-page {
@@ -5260,8 +5298,8 @@ button.ghost {
     display: block;
     max-width: none;
     color: #000000;
-    font-size: 10.5pt;
-    line-height: 1.45;
+    font-size: 10pt;
+    line-height: 1.42;
   }
 
   .operation-report-page .access-notice,
@@ -5276,14 +5314,23 @@ button.ghost {
     align-items: flex-start;
     border-bottom: 1px solid #000000;
     display: block;
-    margin-bottom: 8mm;
-    padding-bottom: 4mm;
+    margin-bottom: 6mm;
+    padding-bottom: 3.5mm;
   }
 
   .operation-report-header h1 {
     color: #000000;
-    font-size: 20pt;
+    font-size: 19pt;
     margin: 0;
+  }
+
+  .operation-report-header::after {
+    content: "학교 별도검사 운영 보고서";
+    display: block;
+    margin-top: 2mm;
+    color: #000000;
+    font-size: 9pt;
+    font-weight: 700;
   }
 
   .operation-report-page .role-header-line,
@@ -5298,8 +5345,8 @@ button.ghost {
     border: 1px solid #bdbdbd;
     border-radius: 0;
     background: #ffffff;
-    margin: 0 0 5mm;
-    padding: 4.5mm;
+    margin: 0 0 4.5mm;
+    padding: 4mm;
   }
 
   .operation-report-page .report-print-cover {
@@ -5308,15 +5355,19 @@ button.ghost {
 
   .operation-report-page .report-print-cover h2 {
     color: #000000;
-    font-size: 18pt;
+    font-size: 17pt;
   }
 
   .operation-report-page .report-print-cover dl,
-  .operation-report-page .report-cover-kpi-grid,
   .operation-report-page .report-session-info dl,
   .operation-report-page .report-two-column {
     grid-template-columns: 1fr 1fr;
     gap: 3mm;
+  }
+
+  .operation-report-page .report-cover-kpi-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2.4mm;
   }
 
   .operation-report-page .report-print-cover dl div,
@@ -5333,7 +5384,42 @@ button.ghost {
   .operation-report-page .report-cover-kpi strong,
   .operation-report-page .report-cover-kpi.primary strong,
   .operation-report-page .report-metric strong {
-    font-size: 16pt;
+    font-size: 15pt;
+  }
+
+  .operation-report-page .report-cover-kpi.primary strong {
+    font-size: 20pt;
+  }
+
+  .operation-report-page .report-table-wrap {
+    overflow: visible;
+  }
+
+  .operation-report-page .report-class-table {
+    border-color: #000000;
+    font-size: 9.5pt;
+    page-break-inside: auto;
+  }
+
+  .operation-report-page .report-class-table thead {
+    display: table-header-group;
+  }
+
+  .operation-report-page .report-class-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .operation-report-page .report-class-table th,
+  .operation-report-page .report-class-table td {
+    border: 1px solid #9f9f9f;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 2.4mm 2.8mm;
+  }
+
+  .operation-report-page .report-class-table th {
+    font-weight: 900;
   }
 
   .operation-report-page h2,
@@ -5938,13 +6024,15 @@ button[aria-pressed='true'] {
   .operation-status-grid,
   .teacher-priority-grid,
   .admin-session-info dl,
-  .report-session-info dl {
+  .report-session-info dl,
+  .report-print-cover dl {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .admin-progress-grid,
   .admin-current-flow,
   .report-metric-grid,
+  .report-cover-kpi-grid,
   .tablet-status-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -6768,7 +6856,9 @@ h2,
   .tablet-focus-grid,
   .tablet-status-grid,
   .tablet-action-grid,
-  .report-metric-grid {
+  .report-metric-grid,
+  .report-print-cover dl,
+  .report-cover-kpi-grid {
     grid-template-columns: 1fr;
   }
 

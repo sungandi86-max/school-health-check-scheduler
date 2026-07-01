@@ -1,6 +1,7 @@
 ﻿import { Printer, RefreshCcw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { getHealthCheckLabel } from '../../lib/healthCheck';
+import { normalizeOperationClassId } from '../../lib/operation';
 import { healthCheckDataService } from '../../lib/services/healthCheckDataService';
 import { loadSchoolSettings } from '../../lib/settings';
 import {
@@ -72,6 +73,8 @@ export function OperationReport() {
   const recommendedPdfFileName = useMemo(() => buildRecommendedPdfFileName(summary), [summary]);
   const reportWrittenAt = useMemo(() => formatReportDate(new Date().toISOString()), []);
   const progressPercent = summary.student.total ? Math.round((summary.student.completed / summary.student.total) * 100) : 0;
+  const operationTime = `${schoolSettings.defaultStartTime || '-'} ~ ${schoolSettings.defaultEndTime || '-'}`;
+  const classRows = useMemo(() => createReportClassRows(snapshot), [snapshot]);
 
   const saveNotes = (notes: string) => {
     saveReportNotes(snapshot.sessionId, notes);
@@ -117,33 +120,39 @@ export function OperationReport() {
         <p className="eyebrow">{schoolSettings.schoolName}</p>
         <h2>검진 운영 결과</h2>
         <dl>
-          <div><dt>검진명</dt><dd>{summary.session?.title || '선택된 검진'}</dd></div>
-          <div><dt>검진일</dt><dd>{summary.session?.date || '-'}</dd></div>
-          <div><dt>검사 유형</dt><dd>{summary.session ? getHealthCheckLabel(summary.session.checkType) : '-'}</dd></div>
+          <div><dt>학교명</dt><dd>{schoolSettings.schoolName || '-'}</dd></div>
+          <div><dt>검사명</dt><dd>{summary.session?.title || (summary.session ? getHealthCheckLabel(summary.session.checkType) : '선택된 검진')}</dd></div>
+          <div><dt>운영일</dt><dd>{summary.session?.date || '-'}</dd></div>
+          <div><dt>담당자</dt><dd>{schoolSettings.defaultHealthTeacherName || '-'}</dd></div>
+          <div><dt>출력일</dt><dd>{reportWrittenAt}</dd></div>
           <div><dt>대상 학년</dt><dd>{summary.session?.targetGrades.length ? `${summary.session.targetGrades.join(', ')}학년` : '-'}</dd></div>
           <div><dt>검진 장소</dt><dd>{summary.session?.location || schoolSettings.defaultLocation || '-'}</dd></div>
-          <div><dt>작성일</dt><dd>{reportWrittenAt}</dd></div>
         </dl>
         <div className="report-cover-kpi-grid">
+          <div className="report-cover-kpi">
+            <span>전체 대상</span>
+            <strong>{summary.student.total}명</strong>
+            <small>명렬표 등록 기준</small>
+          </div>
+          <div className="report-cover-kpi">
+            <span>완료</span>
+            <strong>{summary.student.completed}명</strong>
+            <small>검진 완료 처리</small>
+          </div>
+          <div className={`report-cover-kpi ${summary.student.incomplete ? 'warn' : ''}`}>
+            <span>미완료</span>
+            <strong>{summary.student.incomplete}명</strong>
+            <small>확인 필요</small>
+          </div>
           <div className="report-cover-kpi primary">
-            <span>전체 진행률</span>
+            <span>완료율</span>
             <strong>{progressPercent}%</strong>
             <small>완료 학생 기준</small>
           </div>
           <div className="report-cover-kpi">
-            <span>완료 학생 수</span>
-            <strong>{summary.student.completed}명</strong>
-            <small>전체 {summary.student.total}명</small>
-          </div>
-          <div className={`report-cover-kpi ${summary.student.incomplete ? 'warn' : ''}`}>
-            <span>미검 학생 수</span>
-            <strong>{summary.student.incomplete}명</strong>
-            <small>확인 필요 학생</small>
-          </div>
-          <div className="report-cover-kpi">
-            <span>완료 학급 수</span>
-            <strong>{summary.class.completed}개</strong>
-            <small>전체 {summary.class.total}개 학급</small>
+            <span>운영 시간</span>
+            <strong>{operationTime}</strong>
+            <small>학교 설정 기준</small>
           </div>
         </div>
         <p className="report-file-name no-print">추천 PDF 파일명: <strong>{recommendedPdfFileName}</strong></p>
@@ -153,6 +162,40 @@ export function OperationReport() {
         <ReportStudentSummary summary={summary.student} />
         <ReportClassSummary summary={summary.class} />
       </div>
+      <section className="report-card report-class-table-card">
+        <p className="eyebrow">학급별 결과</p>
+        <h2>학급별 운영 결과</h2>
+        <div className="report-table-wrap">
+          <table className="report-class-table">
+            <thead>
+              <tr>
+                <th>학급</th>
+                <th>상태</th>
+                <th>전체 대상</th>
+                <th>완료</th>
+                <th>미완료</th>
+              </tr>
+            </thead>
+            <tbody>
+              {classRows.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>표시할 학급별 결과가 없습니다.</td>
+                </tr>
+              ) : (
+                classRows.map((row) => (
+                  <tr key={row.classId}>
+                    <td>{row.classId}</td>
+                    <td>{row.status}</td>
+                    <td>{row.total}</td>
+                    <td>{row.completed}</td>
+                    <td>{row.incomplete}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
       <ReportLogSummary logs={summary.logs} />
       <ReportImprovementNotes value={snapshot.notes} onSave={saveNotes} />
       <section className="report-card report-future-suggestions">
@@ -171,6 +214,38 @@ export function OperationReport() {
       </section>
     </section>
   );
+}
+
+function createReportClassRows(snapshot: ReportSnapshot) {
+  const classIds = [
+    ...snapshot.students.map((student) => student.className),
+    snapshot.state.currentClassId,
+    snapshot.state.nextClassId,
+    ...snapshot.state.completedClassIds,
+    ...snapshot.state.missingClassIds,
+  ]
+    .map(normalizeOperationClassId)
+    .filter(Boolean);
+  return [...new Set(classIds)]
+    .sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }))
+    .map((classId) => {
+      const rows = snapshot.students.filter((student) => normalizeOperationClassId(student.className) === classId);
+      const completed = rows.filter((student) => student.status === 'completed').length;
+      const status = snapshot.state.missingClassIds.includes(classId)
+        ? '미도착'
+        : snapshot.state.currentClassId === classId
+          ? '진행 중'
+          : snapshot.state.completedClassIds.includes(classId)
+            ? '완료'
+            : '대기';
+      return {
+        classId,
+        status,
+        total: rows.length,
+        completed,
+        incomplete: rows.length - completed,
+      };
+    });
 }
 
 function createEmptyReportSnapshot(): ReportSnapshot {
