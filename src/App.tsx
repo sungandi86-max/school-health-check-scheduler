@@ -945,7 +945,7 @@ function ExamTypeSelect({
           <OtterMascot variant="lg" className="type-hero-mascot" />
         </section>
 
-        {showOnboarding && <OnboardingPanel onClose={onCloseOnboarding} onDismiss={onDismissOnboarding} />}
+        <HealthCheckTypeSelector onSelect={onSelect} onOpenStatusDashboard={onOpenStatusDashboard} />
 
         <StartGuide />
 
@@ -957,7 +957,7 @@ function ExamTypeSelect({
           <button onClick={onOpenHelp}>사용 설명 보기</button>
         </section>
 
-        <HealthCheckTypeSelector onSelect={onSelect} onOpenStatusDashboard={onOpenStatusDashboard} />
+        {showOnboarding && <OnboardingPanel onClose={onCloseOnboarding} onDismiss={onDismissOnboarding} />}
 
         {notice && <div className="entry-reset-notice">{notice}</div>}
         {hasStoredData && (

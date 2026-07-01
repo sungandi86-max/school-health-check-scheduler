@@ -2829,15 +2829,15 @@ td select {
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  gap: 24px;
-  padding: 56px 32px;
+  gap: 16px;
+  padding: 28px 32px;
   background: #eef7f5;
 }
 
 .type-select-content {
   width: min(100%, 1040px);
   display: grid;
-  gap: 24px;
+  gap: 16px;
   margin: auto;
 }
 
@@ -2846,22 +2846,23 @@ td select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 28px;
+  gap: 20px;
 }
 
 .type-hero h1 {
-  font-size: 36px;
-  margin-bottom: 10px;
+  font-size: 32px;
+  margin-bottom: 8px;
 }
 
 .type-hero p:last-child {
   color: #496275;
-  font-size: 18px;
+  font-size: 16px;
+  line-height: 1.45;
 }
 
 .brand-line {
   display: inline-flex;
-  margin-top: 10px;
+  margin-top: 6px;
   color: #0f766e;
   font-size: 14px;
 }
@@ -2874,7 +2875,7 @@ td select {
   width: min(100%, 1040px);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
+  gap: 16px;
   margin: 0 auto;
 }
 
@@ -2882,18 +2883,18 @@ td select {
   background: #ffffff;
   border: 1px solid #d8e8e5;
   border-radius: 12px;
-  padding: 28px;
+  padding: 20px;
   box-shadow: 0 16px 34px rgba(13, 42, 63, 0.08);
   display: grid;
-  gap: 14px;
+  gap: 10px;
   grid-template-rows: auto auto 1fr auto;
-  min-height: 260px;
+  min-height: 216px;
 }
 
 .type-card p {
   color: #496275;
-  line-height: 1.6;
-  min-height: 52px;
+  line-height: 1.45;
+  min-height: 44px;
 }
 
 .type-card button {
@@ -2923,7 +2924,7 @@ td select {
 
   .type-select-screen {
     justify-content: flex-start;
-    padding: 48px 20px 32px;
+    padding: 28px 20px 32px;
   }
 
   .type-hero {
@@ -3454,7 +3455,7 @@ button.ghost {
   border: 1px solid #d8e8e5;
   background: rgba(255, 255, 255, 0.78);
   border-radius: 10px;
-  padding: 16px 18px;
+  padding: 12px 14px;
   color: #496275;
 }
 
@@ -3468,7 +3469,7 @@ button.ghost {
 }
 
 .entry-help-card span {
-  line-height: 1.6;
+  line-height: 1.4;
   font-weight: 700;
 }
 
@@ -5357,34 +5358,34 @@ button[aria-pressed='true'] {
   border-radius: 12px;
   background: #ffffff;
   box-shadow: 0 14px 34px rgba(13, 42, 63, 0.08);
-  padding: 18px;
+  padding: 14px;
 }
 
 .onboarding-panel {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .onboarding-copy p:last-child {
-  margin-top: 8px;
+  margin-top: 6px;
   color: #496275;
-  line-height: 1.7;
+  line-height: 1.45;
 }
 
 .onboarding-flow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
 
 .onboarding-flow article {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   align-content: start;
-  min-height: 132px;
+  min-height: 96px;
   border: 1px solid #e3eeec;
   border-radius: 10px;
-  padding: 14px;
+  padding: 10px;
   background: #f8fbfa;
 }
 
@@ -5398,8 +5399,8 @@ button[aria-pressed='true'] {
 
 .onboarding-flow span {
   color: #496275;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .onboarding-actions {
@@ -5411,7 +5412,7 @@ button[aria-pressed='true'] {
 
 .start-guide-card {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .start-guide-card.compact {
@@ -5438,34 +5439,35 @@ button[aria-pressed='true'] {
 
 .start-guide-steps {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
 .start-guide-steps li {
-  display: grid;
+  display: flex;
+  align-items: center;
   gap: 8px;
-  align-content: start;
-  min-height: 92px;
+  min-height: 48px;
   border: 1px solid #e3eeec;
   border-radius: 10px;
   background: #ffffff;
-  padding: 12px;
+  padding: 9px 10px;
 }
 
 .start-guide-number {
   display: inline-grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 999px;
   background: #0f766e;
   color: #ffffff;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
+  flex: 0 0 auto;
 }
 
 .start-guide-steps strong {
