@@ -5092,7 +5092,85 @@ button.ghost {
 }
 
 .school-settings-panel {
-  max-width: 980px;
+  max-width: 1080px;
+}
+
+.settings-page-title {
+  align-items: flex-start;
+}
+
+.settings-category-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-category-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--ui-color-line);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-card);
+  padding: var(--ui-space-card);
+}
+
+.settings-category-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.settings-category-heading h3 {
+  color: var(--ui-color-navy);
+  font-size: 18px;
+  margin: 0;
+}
+
+.settings-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.settings-field-grid .wide {
+  grid-column: 1 / -1;
+}
+
+.settings-field-grid input[readonly] {
+  background: var(--ui-color-surface-soft);
+  color: var(--ui-color-muted);
+}
+
+.settings-display-preview-grid,
+.storage-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-display-preview-grid article,
+.storage-status-grid div {
+  border: 1px solid var(--ui-color-line);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface-soft);
+  padding: 14px;
+}
+
+.settings-display-preview-grid span,
+.storage-status-grid span {
+  color: var(--ui-color-muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 6px;
+}
+
+.settings-display-preview-grid p,
+.storage-status-grid strong {
+  color: var(--ui-color-navy);
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.5;
+  margin: 0;
 }
 
 .school-settings-grid {
@@ -5110,11 +5188,27 @@ button.ghost {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  justify-content: flex-end;
+  border-top: 1px solid var(--ui-color-line);
+  padding-top: 16px;
 }
 
 @media (max-width: 720px) {
+  .settings-page-title,
+  .settings-field-grid,
+  .settings-display-preview-grid,
+  .storage-status-grid,
+  .storage-option-grid,
   .school-settings-grid {
     grid-template-columns: 1fr;
+  }
+
+  .school-settings-actions {
+    justify-content: stretch;
+  }
+
+  .school-settings-actions button {
+    width: 100%;
   }
 }
 
