@@ -1,30 +1,49 @@
 import { OtterMascot } from '../common/OtterMascot';
 
-const flowSteps = [
-  ['검사 유형 선택', '소변검사 또는 결핵검진 중 운영할 별도검사 유형을 선택합니다.'],
-  ['검사 조건 설정', '검사일, 업체 가능 시간, 검사 소요시간, 검사 가능 교시를 입력합니다.'],
-  ['시간표 입력', '컴시간알리미 엑셀 또는 공통 시간표 서식을 업로드합니다.'],
-  ['필요 시 분반자료 확인', '선택과목·이동수업이 많은 학교는 분반자료로 실제 수업 장소를 참고할 수 있습니다. 분반자료는 선택사항입니다.'],
-  ['자동배정 실행', '시간표를 입력한 뒤 반드시 “검사 시간표 자동배정하기” 버튼을 눌러 결과를 생성합니다.'],
-  ['운영 보고서 정리', '검사팀용 표, 교사용 안내표, 공지용 표, CSV, 인쇄 자료와 운영 보고서를 목적에 맞게 확인합니다.'],
+const operationSteps = [
+  {
+    title: '1단계. 학교 설정',
+    body: '학교명, 기본 검진 장소, 기본 시간, 안내 문구를 설정합니다.',
+  },
+  {
+    title: '2단계. 운영 계획',
+    body: '검사 유형을 선택하고 검진일, 검사 가능 시간, 대상 학급을 설정합니다. 소변검사와 일반 건강검진은 운영 계획 중심으로, 결핵검진은 실시간 운영까지 이어지는 흐름으로 준비합니다.',
+  },
+  {
+    title: '3단계. 시간표 생성',
+    body: '입력한 조건을 기준으로 학급별 검진 순서와 이동표를 생성합니다.',
+  },
+  {
+    title: '4단계. 실시간 운영',
+    body: '결핵검진처럼 학생이 검진 장소로 이동하는 검사는 운영센터에서 현재 학급, 다음 학급, 미도착 학급, 진행률을 관리합니다.',
+  },
+  {
+    title: '5단계. 현황 확인 및 보고',
+    body: '교사용 현황판, 관리자 현황판, Display Mode, 운영 보고서를 통해 진행 상황을 확인합니다.',
+  },
 ];
 
-const privacyForbidden = ['학생 이름', '학번', '주민등록번호', '검사 결과', '질병명', '상담 내용', '건강정보'];
-const privacyUsed = ['학년', '학급 또는 교실명', '교시별 수업명', '교과교사명', '검사 예정 시간', '검사 장소'];
-const outputs = [
-  ['전체표', '보건교사용 검토자료'],
-  ['검사팀용 표', '실제 진행 순서 확인용'],
-  ['교사용 안내표', '담임·교과교사용 공유자료'],
-  ['공지용 표', '메신저 또는 온라인 보건실 게시용'],
-  ['CSV', '엑셀 편집용'],
-  ['운영 보고서', '검사 종료 후 관리자 보고 및 보관용'],
+const planningItems = [
+  ['소변검사', 'HR 시간, 창체 시간 등 학생이 학급에 모여 있는 시간과 연계하여 운영 계획을 세울 수 있습니다.'],
+  ['일반 건강검진', '학교 일정에 맞춰 방문형 건강검진 운영을 준비합니다.'],
 ];
+
+const operationItems = [
+  ['결핵검진', '검진 대상 학급 이동, 현재 진행 상황, 미도착 학급, 진행률을 운영센터에서 확인하며 진행합니다.'],
+  ['공유 화면', '교사용 현황판, 관리자 현황판, Display Mode는 학급 단위와 통계 중심으로 확인합니다.'],
+];
+
+const privacyNotes = [
+  '공용 화면에는 학생 이름이나 학번을 표시하지 않습니다.',
+  '학생별 명렬표는 운영이 필요한 화면에서만 사용합니다.',
+  '소변검사는 학교 상황에 따라 HR 시간, 창체 시간 등 학생이 학급에 모여 있는 시간과 연계하여 운영할 수 있습니다.',
+];
+
 const faqs = [
-  ['시간표를 입력했는데 결과가 안 나와요.', '시간표 입력 후 반드시 “검사 시간표 자동배정하기” 버튼을 눌러야 합니다.'],
-  ['컴시간알리미를 사용하지 않아도 되나요?', '네. 공통 시간표 서식을 다운로드해 작성 후 업로드할 수 있습니다.'],
-  ['분반자료는 꼭 필요한가요?', '아닙니다. 선택사항입니다. 이동수업이나 선택과목의 실제 수업 장소를 더 정확히 반영하고 싶을 때 사용합니다.'],
-  ['이전 작업 데이터가 계속 떠요.', '브라우저에 저장된 작업 데이터가 남아 있는 상태입니다. 첫 화면의 저장 데이터 초기화 기능을 사용할 수 있습니다.'],
-  ['결과표는 어떤 걸 공유하면 되나요?', '전체표는 보건교사용 검토자료입니다. 교직원 공유용으로는 교사용 안내표 또는 공지용 표를 권장합니다.'],
+  ['어디서 시작하면 되나요?', '처음에는 학교 설정을 확인한 뒤 검사 유형을 선택하고 운영 계획을 입력해 주세요.'],
+  ['시간표 생성은 언제 하나요?', '검진일, 검사 가능 시간, 대상 학급, 시간표 입력을 확인한 뒤 검사 시간표 자동배정 버튼을 눌러 생성합니다.'],
+  ['실시간 운영은 모든 검사에 필요한가요?', '학생이 검진 장소로 이동하는 결핵검진처럼 현장 진행 상태를 계속 확인해야 하는 검사에서 특히 유용합니다.'],
+  ['공용 화면에 학생 정보가 보이나요?', '교사용 현황판, 관리자 현황판, Display Mode에는 학생 이름이나 학번을 표시하지 않고 학급 단위 정보와 통계만 보여 줍니다.'],
 ];
 
 export function CommonHelp({ onBack }: { onBack: () => void }) {
@@ -37,27 +56,21 @@ export function CommonHelp({ onBack }: { onBack: () => void }) {
         <section className="type-hero">
           <div>
             <p className="eyebrow">사용 설명</p>
-            <h1>사용 설명</h1>
-            <p>학교 별도검사 운영 도우미를 처음 사용하는 선생님을 위한 안내입니다.</p>
+            <h1>학생건강검진 운영 도우미 사용 안내</h1>
+            <p>학교 건강검진을 계획하고, 검진 당일 운영 상황을 확인하며, 종료 후 보고까지 이어지는 전체 흐름을 안내합니다.</p>
           </div>
           <OtterMascot variant="md" className="type-hero-mascot" />
         </section>
 
         <section className="help-card">
-          <h2>이 앱은 어떤 도구인가요?</h2>
-          <p>이 앱은 보건교사가 학교에서 직접 운영하는 결핵검진과 소변검사의 운영 계획을 준비하고, 검사 당일 실시간 진행 상황을 관리하며, 종료 후 운영 결과를 정리할 수 있도록 돕는 공개용 Lite 도구입니다.</p>
-          <p>학교 일과표, 업체 검사 가능 시간, 수업 시간표를 기준으로 검사 가능 시간을 자동으로 배정합니다.</p>
-          <p>학생 이름, 학번, 검사 결과, 질병명 등 개인정보는 입력하지 않고 사용합니다.</p>
-        </section>
-
-        <section className="help-card">
-          <h2>기본 사용 흐름</h2>
+          <h2>학생건강검진 운영 흐름</h2>
+          <p>이 도구는 시간표 생성만을 위한 화면이 아니라 운영 계획, 실시간 운영, 현황 확인과 보고를 함께 지원하는 운영 도우미입니다.</p>
           <div className="help-step-grid">
-            {flowSteps.map(([title, body], index) => (
-              <article className="help-step-card" key={title}>
+            {operationSteps.map((step, index) => (
+              <article className="help-step-card" key={step.title}>
                 <span className="help-number">{index + 1}</span>
-                <h3>{title}</h3>
-                <p>{body}</p>
+                <h3>{step.title}</h3>
+                <p>{step.body}</p>
               </article>
             ))}
           </div>
@@ -65,53 +78,40 @@ export function CommonHelp({ onBack }: { onBack: () => void }) {
 
         <section className="help-compare-grid">
           <article className="help-card">
-            <h2>소변검사</h2>
+            <h2>운영 계획</h2>
             <ul>
-              <li>방문형 검사</li>
-              <li>검사팀이 교실 또는 수업 장소로 방문</li>
-              <li>2학년과 3학년 동시 진행 가능</li>
-              <li>학년별 라인 배정 가능</li>
-              <li>실제 방문 장소 기준 출력</li>
-              <li>혼합학년 수업은 명렬표 확인 필요로 표시 가능</li>
+              {planningItems.map(([title, body]) => (
+                <li key={title}>
+                  <strong>{title}</strong>
+                  <span>{body}</span>
+                </li>
+              ))}
             </ul>
           </article>
           <article className="help-card">
-            <h2>결핵검진</h2>
+            <h2>실시간 운영</h2>
             <ul>
-              <li>호출형 검진</li>
-              <li>학생들이 검진 장소로 이동</li>
-              <li>호출 시간과 검진 예상 시간 분리</li>
-              <li>학년별 시간 구간 설정 가능</li>
-              <li>검진 장소와 이동 소요시간 반영</li>
+              {operationItems.map(([title, body]) => (
+                <li key={title}>
+                  <strong>{title}</strong>
+                  <span>{body}</span>
+                </li>
+              ))}
             </ul>
           </article>
         </section>
 
         <section className="help-card">
-          <h2>개인정보 입력 금지</h2>
-          <p>이 앱은 학생 개인정보를 입력하지 않고 사용하는 도구입니다.</p>
-          <div className="help-compare-grid">
-            <div>
-              <h3>입력하지 않는 정보</h3>
-              <ul>{privacyForbidden.map((item) => <li key={item}>{item}</li>)}</ul>
-            </div>
-            <div>
-              <h3>사용하는 정보</h3>
-              <ul>{privacyUsed.map((item) => <li key={item}>{item}</li>)}</ul>
-            </div>
-          </div>
+          <h2>공용 화면 개인정보 원칙</h2>
+          <ul>
+            {privacyNotes.map((note) => <li key={note}>{note}</li>)}
+          </ul>
         </section>
 
         <section className="help-card">
-          <h2>결과표 종류 안내</h2>
-          <div className="help-output-grid">
-            {outputs.map(([title, body]) => (
-              <div key={title}>
-                <strong>{title}</strong>
-                <span>{body}</span>
-              </div>
-            ))}
-          </div>
+          <h2>현황 확인 및 보고</h2>
+          <p>검진 당일에는 운영센터와 태블릿 화면에서 진행 상태를 조작하고, 교사용 현황판과 관리자 현황판, Display Mode로 현재 상황을 공유합니다.</p>
+          <p>검진 종료 후에는 운영 보고서에서 전체 진행 현황, 확인 필요 학생, 운영 기록을 정리해 내부 기록과 보고에 활용합니다.</p>
         </section>
 
         <section className="help-card">
