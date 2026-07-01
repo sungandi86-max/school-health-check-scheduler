@@ -583,7 +583,12 @@ export function App() {
           </div>
         </div>
         <nav className="sidebar-nav" aria-label="주요 화면 이동">
-
+          <section className="sidebar-current-work" aria-label="현재 세션 작업 화면">
+            <button className={activeTab === 'dashboard' ? 'active' : ''} onClick={() => selectAppTab('dashboard')}>
+              현재 작업
+            </button>
+            <span>{activeSession ? activeSession.title : '세션 선택 후 작업을 이어가세요'}</span>
+          </section>
           {sidebarMenuGroups.map((group) => (
             <section className="sidebar-menu-group" key={group.title} aria-labelledby={`sidebar-group-${group.title}`}>
               <h2 id={`sidebar-group-${group.title}`}>{group.title}</h2>

@@ -155,6 +155,34 @@ nav {
   gap: 16px;
 }
 
+.sidebar-current-work {
+  display: grid;
+  gap: 6px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(185, 211, 216, 0.18);
+}
+
+.sidebar-current-work button {
+  min-height: 46px;
+  justify-content: flex-start;
+  background: rgba(125, 211, 199, 0.1);
+  color: #ffffff;
+  border-color: rgba(125, 211, 199, 0.35);
+  font-weight: 900;
+}
+
+.sidebar-current-work button.active {
+  background: #1b5a76;
+  border-color: #7dd3c7;
+  box-shadow: inset 4px 0 0 #7dd3c7;
+}
+
+.sidebar-current-work span {
+  color: #b9d3d8;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .sidebar-menu-group {
   display: grid;
   gap: 7px;
@@ -6005,6 +6033,14 @@ button[aria-pressed='true'] {
   .sidebar-menu-group {
     flex: 0 0 auto;
     min-width: max-content;
+    scroll-snap-align: start;
+  }
+
+  .sidebar-current-work {
+    flex: 0 0 180px;
+    border-bottom: 0;
+    border-right: 1px solid rgba(185, 211, 216, 0.18);
+    padding: 0 14px 0 0;
     scroll-snap-align: start;
   }
 
