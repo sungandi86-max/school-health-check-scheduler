@@ -57,6 +57,7 @@ import { parseRoomMappingWorkbook } from './lib/roomMappingParser';
 import { calculateGradeTimeBlocks, GRADE_TIME_MODE_OPTIONS, getEffectiveGradeTimeBlocks, getGradeTimeModeLabel } from './lib/gradeTime';
 import { AppFooter } from './components/common/AppFooter';
 import { OtterMascot } from './components/common/OtterMascot';
+import { OnboardingPanel, StartGuide } from './components/onboarding/OnboardingPanel';
 import { CommonHelp } from './components/help/CommonHelp';
 import { UrineHelp } from './components/help/UrineHelp';
 import { TbHelp } from './components/help/TbHelp';
@@ -73,6 +74,7 @@ import { HealthCheckSessionSelector } from './components/health-check/HealthChec
 import { createOperationStatus } from './lib/operation';
 import { getHealthCheckLabel, normalizeHealthCheckType, toExamType } from './lib/healthCheck';
 import { healthCheckDataService } from './lib/services/healthCheckDataService';
+import { dismissOnboarding, shouldShowOnboarding } from './lib/onboarding';
 import { loadSchoolSettings, resetSchoolSettings, saveSchoolSettings } from './lib/settings';
 import type { HealthCheckSession, HealthCheckSessionStatus, HealthCheckType } from './types/healthCheck';
 import type { SchoolSettings } from './types/settings';
@@ -82,7 +84,7 @@ const CATEGORIES: LocationCategory[] = ['일반교실', '특별실', '선택과�
 const DIVISION_HANDLINGS: DivisionHandling[] = ['자동제외', '장소반영'];
 const VENUE_RESTRICTION_MODES: VenueRestrictionMode[] = ['가능', '주의', '불가'];
 const VENUE_WEEKDAYS: VenueRestrictionWeekday[] = ['auto', '월', '화', '수', '목', '금'];
-const APP_TITLE = '학생건강검진 운영 도우미';
+const APP_TITLE = '2·3학년 별도검사 운영 도우미';
 const NEW_SCHEDULE_WARNING = '새 시간표를 만들면 현재 입력 화면은 초기화됩니다. 기존 데이터는 JSON 백업 후 진행하는 것을 권장합니다. 계속하시겠습니까?';
 const RESET_STORAGE_WARNING = '브라우저에 저장된 검사 조건, 시간표, 분반자료, 자동배정 결과가 삭제됩니다. 계속하시겠습니까?';
 
@@ -93,6 +95,7 @@ export function App() {
   const [storedInfo, setStoredInfo] = useState(() => getStoredAppDataInfo());
   const [entryNotice, setEntryNotice] = useState('');
   const [showCommonHelp, setShowCommonHelp] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => shouldShowOnboarding());
   const [validationMessages, setValidationMessages] = useState<string[]>([]);
   const [sessions, setSessions] = useState<HealthCheckSession[]>([]);
   const [activeSessionIdState, setActiveSessionIdState] = useState('');
@@ -291,6 +294,11 @@ export function App() {
     setEntryNotice('');
     setStoredInfo(getStoredAppDataInfo());
     void refreshSessions();
+  };
+  const hideOnboarding = () => setShowOnboarding(false);
+  const hideOnboardingPermanently = () => {
+    dismissOnboarding();
+    setShowOnboarding(false);
   };
   const resetStoredData = () => {
     if (!window.confirm(RESET_STORAGE_WARNING)) return;
@@ -496,6 +504,9 @@ export function App() {
         versionMismatch={storedInfo.versionMismatch}
         notice={entryNotice}
         onOpenHelp={() => setShowCommonHelp(true)}
+        showOnboarding={showOnboarding}
+        onCloseOnboarding={hideOnboarding}
+        onDismissOnboarding={hideOnboardingPermanently}
       />
     );
   }
@@ -723,6 +734,7 @@ function Dashboard({
         <span>{guideText}</span>
       </div>
       <HealthCheckSummary checkType={data.settings.healthCheckType} examDate={data.settings.examDate} />
+      <StartGuide compact />
       <div className="card template-bar">
         <Field label="연도별 검사 템플릿">
           <select value={selectedTemplateId} onChange={(event) => loadTemplate(event.target.value)}>
@@ -862,6 +874,9 @@ function ExamTypeSelect({
   hasStoredData,
   versionMismatch,
   notice,
+  showOnboarding,
+  onCloseOnboarding,
+  onDismissOnboarding,
 }: {
   onSelect: (checkType: HealthCheckType) => void;
   onOpenHelp: () => void;
@@ -870,6 +885,9 @@ function ExamTypeSelect({
   hasStoredData: boolean;
   versionMismatch: boolean;
   notice: string;
+  showOnboarding: boolean;
+  onCloseOnboarding: () => void;
+  onDismissOnboarding: () => void;
 }) {
   return (
     <main className="type-select-screen">
@@ -878,11 +896,16 @@ function ExamTypeSelect({
           <div>
             <p className="eyebrow">학교 보건 업무 도구</p>
             <h1>{APP_TITLE}</h1>
-            <p>학교 건강검진 운영을 학교 일정에 맞게 계획하고, 실시간 검진 운영까지 지원합니다.</p>
+            <span className="mode-pill">시범 운영 준비 중</span>
+            <p>학교에서 실시하는 2·3학년 별도검사의 운영 계획과 실시간 운영을 지원합니다.</p>
             <strong className="brand-line">쑤캥T 보건실 도구모음</strong>
           </div>
           <OtterMascot variant="lg" className="type-hero-mascot" />
         </section>
+
+        {showOnboarding && <OnboardingPanel onClose={onCloseOnboarding} onDismiss={onDismissOnboarding} />}
+
+        <StartGuide />
 
         <section className="entry-help-card">
           <div>

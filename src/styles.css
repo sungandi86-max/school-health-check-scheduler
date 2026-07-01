@@ -5311,3 +5311,151 @@ button[aria-pressed='true'] {
     border-radius: 12px;
   }
 }
+/* Onboarding and first-run guide */
+.onboarding-panel,
+.start-guide-card {
+  border: 1px solid #d8e8e5;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(13, 42, 63, 0.08);
+  padding: 18px;
+}
+
+.onboarding-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.onboarding-copy p:last-child {
+  margin-top: 8px;
+  color: #496275;
+  line-height: 1.7;
+}
+
+.onboarding-flow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.onboarding-flow article {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-height: 132px;
+  border: 1px solid #e3eeec;
+  border-radius: 10px;
+  padding: 14px;
+  background: #f8fbfa;
+}
+
+.onboarding-flow svg {
+  color: #0f766e;
+}
+
+.onboarding-flow strong {
+  color: #0d2a3f;
+}
+
+.onboarding-flow span {
+  color: #496275;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.onboarding-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.start-guide-card {
+  display: grid;
+  gap: 14px;
+}
+
+.start-guide-card.compact {
+  box-shadow: none;
+  background: #f8fbfa;
+}
+
+.start-guide-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.start-guide-header > span {
+  border-radius: 999px;
+  background: #e0f7f3;
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.start-guide-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.start-guide-steps li {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-height: 92px;
+  border: 1px solid #e3eeec;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.start-guide-number {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #0f766e;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.start-guide-steps strong {
+  color: #0d2a3f;
+  line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+  .start-guide-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-flow,
+  .start-guide-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .start-guide-header {
+    display: grid;
+  }
+
+  .start-guide-header > span {
+    width: fit-content;
+    white-space: normal;
+  }
+
+  .start-guide-steps li {
+    min-height: auto;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+  }
+}

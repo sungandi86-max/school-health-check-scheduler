@@ -3,8 +3,9 @@ export function AppFooter() {
     <footer className="app-footer">
       <div className="app-footer-inner">
         <div>
-          <strong>© 2026 검진·검사 시간표 자동배정 도우미. All rights reserved.</strong>
-          <p>본 도구는 보건교사의 검진·검사 시간표 작성 업무를 돕기 위한 공유용 Lite 도구입니다.</p>
+          <strong>© 2026 2·3학년 별도검사 운영 도우미. All rights reserved.</strong>
+          <p>본 도구는 학교에서 운영하는 2·3학년 별도검사 업무를 지원하기 위한 시스템입니다.</p>
+          <p>학생 개인정보는 저장하지 않는 구조를 원칙으로 합니다.</p>
           <p>학생 이름, 학번, 검사 결과, 질병명 등 개인정보를 입력하지 않는 구조로 사용해 주세요.</p>
         </div>
         <div className="footer-meta">

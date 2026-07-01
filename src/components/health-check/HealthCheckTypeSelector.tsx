@@ -3,27 +3,27 @@ import { HEALTH_CHECK_TYPES } from '../../lib/healthCheck';
 
 const HOME_CARD_COPY: Record<HealthCheckType, { role: string; title: string; description: string; button: string }> = {
   urine: {
-    role: '운영 계획 · Planning',
-    title: '소변검사 운영 계획',
-    description: '학생이 학급에 모여 있는 시간과 검사팀 동선을 고려하여 학교 상황에 맞는 운영 계획을 준비합니다.',
+    role: '방문형 검사 · Planning',
+    title: '① 소변검사 운영 계획',
+    description: '학생이 원반으로 운영되는 시간과 검사팀 동선을 고려하여 학교 상황에 맞는 운영 계획을 준비합니다.',
     button: '운영 계획 시작',
   },
   tuberculosis: {
-    role: '실시간 운영 · Operation',
-    title: '결핵검진 실시간 운영',
-    description: '검진 대상 학급 이동, 현재 진행 상황, 운영 현황을 실시간으로 관리합니다.',
+    role: '호출형 검진 · Operation',
+    title: '② 결핵검진 실시간 운영',
+    description: '현재 검사 학급, 다음 이동 학급, 운영 진행 상황을 실시간으로 관리합니다.',
     button: '운영 시작',
   },
   general: {
-    role: '운영 계획 · Planning',
-    title: '일반 건강검진 운영 계획',
-    description: '학교 일정에 맞춰 방문형 건강검진 운영을 준비합니다.',
-    button: '운영 계획 시작',
+    role: '현황 확인 · Dashboard',
+    title: '③ 운영 현황판',
+    description: '별도검사 진행률과 현재 운영 현황을 관리자와 교직원이 한눈에 확인합니다.',
+    button: '운영 현황 보기',
   },
   other: {
     role: '운영 계획 · Planning',
-    title: '기타 검진 운영 계획',
-    description: '추가 검진 유형을 준비합니다.',
+    title: '기타 별도검사 운영 계획',
+    description: '학교 상황에 맞는 별도검사 운영 계획을 준비합니다.',
     button: '운영 계획 시작',
   },
 };
