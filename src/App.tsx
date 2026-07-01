@@ -89,7 +89,7 @@ const NEW_SCHEDULE_WARNING = '새 시간표를 만들면 현재 입력 화면은
 const RESET_STORAGE_WARNING = '브라우저에 저장된 검사 조건, 시간표, 분반자료, 자동배정 결과가 삭제됩니다. 계속하시겠습니까?';
 
 export function App() {
-  const [data, setData] = useState<AppData>(() => loadAppData({ startAtTypeSelect: false }));
+  const [data, setData] = useState<AppData>(() => loadAppData({ startAtTypeSelect: shouldStartAtHome() }));
   const [activeTab, setActiveTab] = useState(() => getInitialActiveTab());
   const [showTypeConfirm, setShowTypeConfirm] = useState(false);
   const [storedInfo, setStoredInfo] = useState(() => getStoredAppDataInfo());
@@ -2900,6 +2900,10 @@ function snapshotTemplateData(data: AppData) {
 
 function getInitialActiveTab() {
   return getRouteTab() ?? 'dashboard';
+}
+
+function shouldStartAtHome() {
+  return !getRouteTab();
 }
 
 function getRouteTab() {
