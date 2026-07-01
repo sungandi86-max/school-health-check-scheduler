@@ -65,6 +65,7 @@ import { OperationCenter } from './components/operation/OperationCenter';
 import { TeacherDashboard } from './components/teacher-dashboard/TeacherDashboard';
 import { AdminDashboard } from './components/admin-dashboard/AdminDashboard';
 import { OperationReport } from './components/report/OperationReport';
+import { OperationDisplay } from './components/display/OperationDisplay';
 import { SchoolSettingsPanel } from './components/settings/SchoolSettingsPanel';
 import { HealthCheckTypeSelector } from './components/health-check/HealthCheckTypeSelector';
 import { HealthCheckSummary } from './components/health-check/HealthCheckSummary';
@@ -481,6 +482,10 @@ export function App() {
     return <CommonHelp onBack={() => setShowCommonHelp(false)} />;
   }
 
+  if (activeTab === 'display') {
+    return <OperationDisplay />;
+  }
+
   if (!data.hasSelectedExamType) {
     return (
       <ExamTypeSelect
@@ -513,6 +518,7 @@ export function App() {
             ['operation-center', '검진 운영'],
             ['teacher-dashboard', '교사용 현황판'],
             ['admin-dashboard', '교무실 현황판'],
+            ['display', '실시간 운영 현황판'],
             ['report', '운영 보고서'],
             ['settings', '검사 조건'],
             ['school-settings', '학교 설정'],
@@ -588,6 +594,7 @@ export function App() {
         {activeTab === 'operation-center' && <OperationCenter checkType={data.settings.healthCheckType} session={activeSession} status={data.operationStatus ?? createOperationStatus(data.settings.healthCheckType, data.assignments)} />}
         {activeTab === 'teacher-dashboard' && <TeacherDashboard />}
         {activeTab === 'admin-dashboard' && <AdminDashboard />}
+        {activeTab === 'display' && <OperationDisplay />}
         {activeTab === 'report' && <OperationReport />}
         {activeTab === 'dashboard' && (
           <Dashboard
@@ -2875,6 +2882,7 @@ function getRouteTab() {
   const routes: Record<string, string> = {
     '/teacher-dashboard': 'teacher-dashboard',
     '/admin-dashboard': 'admin-dashboard',
+    '/display': 'display',
     '/report': 'report',
   };
   return routes[window.location.pathname];
@@ -2884,6 +2892,7 @@ function getTabPath(tabId: string) {
   const paths: Record<string, string> = {
     'teacher-dashboard': '/teacher-dashboard',
     'admin-dashboard': '/admin-dashboard',
+    display: '/display',
     report: '/report',
   };
   return paths[tabId];

@@ -1617,6 +1617,185 @@ td select {
   max-width: 1320px;
 }
 
+.display-mode-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  gap: clamp(18px, 2vw, 28px);
+  background: #0d2a3f;
+  color: #ffffff;
+  padding: clamp(28px, 4vw, 64px);
+}
+
+.display-mode-header {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: clamp(18px, 3vw, 36px);
+}
+
+.display-mode-header .eyebrow {
+  color: #7dd3c7;
+  font-size: clamp(16px, 1.4vw, 22px);
+}
+
+.display-mode-header h1 {
+  color: #ffffff;
+  font-size: clamp(42px, 5vw, 88px);
+  line-height: 1.05;
+}
+
+.display-mode-header p {
+  margin: 12px 0 0;
+  color: #cce5e7;
+  font-size: clamp(18px, 1.8vw, 30px);
+  font-weight: 800;
+}
+
+.display-delay-badge,
+.display-status-card,
+.display-progress-panel,
+.display-notice-panel {
+  border: 1px solid rgba(125, 211, 199, 0.32);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
+}
+
+.display-delay-badge {
+  min-width: min(360px, 34vw);
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  padding: clamp(18px, 2.4vw, 32px);
+}
+
+.display-delay-badge.warn,
+.display-status-card.warn {
+  border-color: #f6d58f;
+  background: rgba(146, 64, 14, 0.28);
+}
+
+.display-delay-badge span,
+.display-status-card span,
+.display-progress-panel span,
+.display-notice-panel span {
+  color: #9ee2d9;
+  font-size: clamp(16px, 1.4vw, 24px);
+  font-weight: 900;
+}
+
+.display-delay-badge strong {
+  color: #ffffff;
+  font-size: clamp(34px, 3.5vw, 58px);
+  line-height: 1;
+}
+
+.display-hero-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 1fr;
+  gap: clamp(14px, 2vw, 24px);
+}
+
+.display-status-card {
+  min-height: clamp(210px, 24vh, 320px);
+  display: grid;
+  align-content: space-between;
+  gap: 18px;
+  padding: clamp(24px, 3vw, 44px);
+}
+
+.display-status-card.primary {
+  border-color: #59b8ad;
+  background: rgba(15, 118, 110, 0.28);
+}
+
+.display-status-card strong {
+  color: #ffffff;
+  overflow-wrap: anywhere;
+  font-size: clamp(64px, 8vw, 148px);
+  line-height: 0.95;
+}
+
+.display-status-card:not(.primary) strong {
+  font-size: clamp(46px, 5vw, 90px);
+}
+
+.display-status-card small,
+.display-progress-panel small,
+.display-mode-footer {
+  color: #cce5e7;
+  font-size: clamp(16px, 1.3vw, 22px);
+  font-weight: 800;
+}
+
+.display-progress-panel {
+  display: grid;
+  gap: 18px;
+  padding: clamp(22px, 3vw, 42px);
+}
+
+.display-progress-panel > div:first-child {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.display-progress-panel strong {
+  color: #ffffff;
+  font-size: clamp(72px, 8vw, 140px);
+  line-height: 0.9;
+}
+
+.display-progress-track {
+  height: clamp(18px, 2vw, 30px);
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.display-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #7dd3c7;
+}
+
+.display-notice-panel {
+  display: grid;
+  align-content: center;
+  gap: 16px;
+  padding: clamp(24px, 3vw, 44px);
+}
+
+.display-notice-panel p {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(30px, 3.6vw, 64px);
+  font-weight: 900;
+  line-height: 1.22;
+  white-space: pre-line;
+}
+
+.display-mode-error {
+  margin: 0;
+  border: 1px solid #f6d58f;
+  border-radius: 12px;
+  background: rgba(146, 64, 14, 0.24);
+  color: #fff7ed;
+  font-size: 20px;
+  font-weight: 900;
+  padding: 14px 18px;
+}
+
+.display-mode-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .operation-report-header {
   display: flex;
   align-items: flex-start;
@@ -4357,6 +4536,20 @@ button[aria-pressed='true'] {
 
 @media (max-width: 1180px) {
   body {
+    min-width: 0;
+  }
+
+  .display-mode-header,
+  .display-hero-grid,
+  .display-progress-panel > div:first-child {
+    display: grid;
+  }
+
+  .display-hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .display-delay-badge {
     min-width: 0;
   }
 
