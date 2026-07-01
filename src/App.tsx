@@ -530,7 +530,7 @@ export function App() {
     {
       title: '실시간 운영',
       items: [
-        ['operation', '실시간 검진 운영'],
+        ['operation', '현장 모드'],
         ['operation-center', '검진 운영'],
         ['teacher-dashboard', '교사용 현황판'],
         ['admin-dashboard', '관리자 현황판'],

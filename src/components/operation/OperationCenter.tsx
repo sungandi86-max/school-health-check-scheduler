@@ -357,12 +357,12 @@ export function OperationCenter({
           {studentError && <p className="table-description">{studentError}</p>}
           {operationError && <p className="table-description">{operationError}</p>}
           {logError && <p className="table-description">{logError}</p>}
-          <StudentStatusSummary students={students} />
+          <StudentStatusSummary students={students} checkType={checkType} />
           <div className="card operation-class-selector-card">
             <ClassSelector students={students} value={selectedClass} onChange={setSelectedClass} />
             <p className="table-description">{selectedClass ? `${selectedClass} 학생 ${selectedClassStudents.length}명` : '명렬표 업로드 후 학급을 선택할 수 있습니다.'}</p>
           </div>
-          <StudentChecklist students={students} selectedClass={selectedClass} onStatusChange={updateStatus} onMemoChange={updateMemo} />
+          <StudentChecklist students={students} selectedClass={selectedClass} checkType={checkType} onStatusChange={updateStatus} onMemoChange={updateMemo} />
         </section>
 
         <OperationMemo value={operationState.operationMemo} onSave={handleMemoSave} />

@@ -203,7 +203,7 @@ export function OperationPanel({ assignments }: { assignments: ScheduleAssignmen
         <div className="operation-tabs no-print">
           <button className={view === 'nurse' ? 'primary' : ''} onClick={() => setView('nurse')}>보건교사용</button>
           <button className={view === 'teacher' ? 'primary' : ''} onClick={() => setView('teacher')}>교사용 모바일/PC</button>
-          <button className={view === 'tablet' ? 'primary' : ''} onClick={() => setView('tablet')}>태블릿</button>
+          <button className={view === 'tablet' ? 'primary' : ''} onClick={() => setView('tablet')}>현장 모드</button>
           <button className={view === 'big' ? 'primary' : ''} onClick={() => setView('big')}>교무실 큰 화면</button>
           <button className={view === 'admin' ? 'primary' : ''} onClick={() => setView('admin')}>관리자 구상안</button>
         </div>
@@ -368,12 +368,13 @@ function TabletModePanel({
   const progressText = targetCount ? `완료 ${completedCount}명 / 전체 ${targetCount}명` : '학급 순서 기준';
 
   return (
-    <section className="tablet-mode" aria-label="태블릿 운영 화면">
+    <section className="tablet-mode" aria-label="현장 모드 화면">
       <header className="tablet-mode-header">
         <div>
-          <p className="eyebrow">Tablet Mode</p>
-          <h2>검진장 태블릿</h2>
-          <span>현장 검사자용</span>
+          <p className="eyebrow">현장 모드</p>
+          <h2>검진 현장 체크</h2>
+          <span>명렬표 체크용</span>
+          <p className="field-mode-guidance">운영 준비와 시간표 생성은 PC에서 진행하고, 현장 모드는 검진 당일 체크용으로 사용하세요. 체크 결과는 운영센터와 현황판에 반영됩니다.</p>
         </div>
       </header>
 
@@ -408,10 +409,10 @@ function TabletModePanel({
         </article>
       </div>
 
-      <div className="tablet-action-grid" aria-label="태블릿 운영 버튼">
+      <div className="tablet-action-grid" aria-label="현장 모드 체크 버튼">
         <button type="button" className="tablet-action primary" disabled={!state.currentClass} onClick={onComplete}>
           <CheckCircle2 size={36} />
-          완료
+          체크 완료
         </button>
         <button type="button" className="tablet-action warning" disabled={!state.currentClass} onClick={onMissing}>
           <AlertTriangle size={34} />

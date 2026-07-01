@@ -1,10 +1,12 @@
-import { getStudentSummary, STUDENT_STATUS_LABELS } from '../../lib/roster';
-import type { HealthCheckStudent, HealthCheckStudentStatus } from '../../types/healthCheck';
+import { getStudentSummary } from '../../lib/roster';
+import type { HealthCheckStudent, HealthCheckStudentStatus, HealthCheckType } from '../../types/healthCheck';
+import { getStudentStatusCopy, getStudentStatusLabel } from './studentStatusCopy';
 
 const summaryStatuses: HealthCheckStudentStatus[] = ['pending', 'completed', 'absent', 'earlyLeave', 'late', 'deferred'];
 
-export function StudentStatusSummary({ students }: { students: HealthCheckStudent[] }) {
+export function StudentStatusSummary({ students, checkType }: { students: HealthCheckStudent[]; checkType?: HealthCheckType }) {
   const summary = getStudentSummary(students);
+  const statusCopy = getStudentStatusCopy(checkType);
 
   return (
     <section className="card student-status-summary">
@@ -14,14 +16,14 @@ export function StudentStatusSummary({ students }: { students: HealthCheckStuden
       </div>
       <div className="student-summary-grid">
         <SummaryMetric label="명렬표 인원" value={summary.total} tone="strong" />
-        <SummaryMetric label="완료" value={summary.completed} />
-        <SummaryMetric label="미완료" value={summary.incomplete} tone={summary.incomplete ? 'warn' : 'normal'} />
+        <SummaryMetric label={statusCopy.completedLabel} value={summary.completed} />
+        <SummaryMetric label={statusCopy.incompleteLabel} value={summary.incomplete} tone={summary.incomplete ? 'warn' : 'normal'} />
         <SummaryMetric label="학급 수" value={summary.classCount} />
       </div>
       <div className="student-status-counts">
         {summaryStatuses.map((status) => (
           <span className={`status-${status}`} key={status}>
-            {STUDENT_STATUS_LABELS[status]} <strong>{summary.byStatus[status]}</strong>
+            {getStudentStatusLabel(status, checkType)} <strong>{summary.byStatus[status]}</strong>
           </span>
         ))}
       </div>
