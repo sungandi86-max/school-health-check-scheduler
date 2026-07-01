@@ -15,6 +15,7 @@ type DisplaySnapshot = {
 export function OperationDisplay() {
   const [snapshot, setSnapshot] = useState<DisplaySnapshot>(() => createEmptyDisplaySnapshot());
   const [error, setError] = useState('');
+  const [currentTime, setCurrentTime] = useState(() => new Date());
 
   const refresh = () => {
     setError('');
@@ -38,6 +39,11 @@ export function OperationDisplay() {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const studentSummary = useMemo(() => getStudentSummary(snapshot.students), [snapshot.students]);
   const classProgress = useMemo(() => getClassProgress(snapshot.state, snapshot.students), [snapshot.state, snapshot.students]);
   const progressPercent = studentSummary.total ? Math.round((studentSummary.completed / studentSummary.total) * 100) : classProgress.percent;
@@ -45,29 +51,35 @@ export function OperationDisplay() {
     checkType: snapshot.session?.checkType,
     location: snapshot.session?.location,
   });
+  const sessionMeta = snapshot.session
+    ? `${snapshot.session.date || '검진일 미입력'} · ${getHealthCheckLabel(snapshot.session.checkType)} · ${snapshot.session.location || '장소 미정'}`
+    : '선택된 검진 세션이 없습니다';
 
   return (
-    <main className="display-mode-page" aria-label="실시간 운영 현황판">
+    <main className="display-mode-page signage-mode-page" aria-label="학교 검진 운영 사이니지">
       <header className="display-mode-header">
-        <div>
-          <p className="eyebrow">실시간 운영 현황판</p>
-          <h1>{snapshot.session?.title || '검진 진행 현황'}</h1>
-          <p>
-            {snapshot.session
-              ? `${snapshot.session.date || '검진일 미입력'} · ${getHealthCheckLabel(snapshot.session.checkType)} · ${snapshot.session.location || '장소 미정'}`
-              : '선택된 검진 세션이 없습니다'}
-          </p>
+        <div className="display-brand-lockup" aria-label="학교 로고">
+          <div className="display-logo-mark">SH</div>
+          <div>
+            <p className="eyebrow">School Health Hub</p>
+            <strong>검진 운영 현황</strong>
+          </div>
         </div>
-        <div className={`display-delay-badge ${snapshot.state.delayedMinutes > 0 ? 'warn' : ''}`}>
-          <span>지연 여부</span>
-          <strong>{snapshot.state.delayedMinutes > 0 ? `${snapshot.state.delayedMinutes}분 지연` : '정상 진행'}</strong>
+        <div className="display-clock" aria-label="현재 시간">
+          <span>{formatDate(currentTime)}</span>
+          <strong>{formatCurrentTime(currentTime)}</strong>
         </div>
       </header>
 
       {error && <p className="display-mode-error">{error}</p>}
 
+      <section className="display-session-strip" aria-label="검진 세션 정보">
+        <span>{snapshot.session?.title || '검진 진행 현황'}</span>
+        <strong>{sessionMeta}</strong>
+      </section>
+
       <section className="display-hero-grid">
-        <article className="display-status-card primary">
+        <article className="display-status-card primary current-class-card">
           <span>현재 검사 학급</span>
           <strong>{snapshot.state.currentClassId || '-'}</strong>
           <small>검진 장소에서 진행 중</small>
@@ -77,36 +89,28 @@ export function OperationDisplay() {
           <strong>{snapshot.state.nextClassId || '-'}</strong>
           <small>다음 이동 안내 대상</small>
         </article>
-        <article className={`display-status-card ${snapshot.state.missingClassIds.length ? 'warn' : ''}`}>
-          <span>미도착 학급</span>
-          <strong>{snapshot.state.missingClassIds.length ? snapshot.state.missingClassIds.join(', ') : '없음'}</strong>
-          <small>학생 개인정보 없이 학급 단위만 표시</small>
-        </article>
       </section>
 
-      <section className="display-progress-panel">
-        <div>
-          <span>전체 진행률</span>
-          <strong>{progressPercent}%</strong>
-          <small>
-            {studentSummary.total
-              ? `완료 ${studentSummary.completed}명 / 전체 ${studentSummary.total}명`
-              : `완료 ${classProgress.completed}개 학급 / 전체 ${classProgress.total}개 학급`}
-          </small>
-        </div>
-        <div className="display-progress-track" aria-hidden="true">
-          <span style={{ width: `${progressPercent}%` }} />
-        </div>
-      </section>
+      <div className="display-lower-grid">
+        <section className="display-progress-panel">
+          <div>
+            <span>전체 진행률</span>
+            <strong>{progressPercent}%</strong>
+          </div>
+          <div className="display-progress-track" aria-hidden="true">
+            <span style={{ width: `${progressPercent}%` }} />
+          </div>
+        </section>
 
-      <section className="display-notice-panel">
-        <span>안내 문구</span>
-        <p>{notice || '현재 안내할 운영 상태가 없습니다.'}</p>
-      </section>
+        <section className="display-notice-panel">
+          <span>안내 문구</span>
+          <p>{notice || '현재 안내할 운영 상태가 없습니다.'}</p>
+        </section>
+      </div>
 
       <footer className="display-mode-footer">
         <span>마지막 업데이트 {formatTime(snapshot.state.updatedAt)}</span>
-        <span>학급 단위 정보와 통계만 표시됩니다.</span>
+        <span>개인정보 미표시 · 학급 단위 안내</span>
       </footer>
     </main>
   );
@@ -174,4 +178,12 @@ function formatTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '--:--';
   return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatCurrentTime(value: Date) {
+  return value.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDate(value: Date) {
+  return value.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
 }

@@ -1653,24 +1653,58 @@ td select {
 
 .display-mode-page {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
-  grid-template-rows: auto auto auto 1fr auto;
-  gap: clamp(18px, 2vw, 28px);
+  grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 0.82fr) auto;
+  gap: clamp(12px, 1.4vw, 22px);
   background: #0d2a3f;
   color: #ffffff;
-  padding: clamp(28px, 4vw, 64px);
+  padding: clamp(22px, 3vw, 52px);
+  overflow: hidden;
+}
+
+.signage-mode-page {
+  background:
+    radial-gradient(circle at 15% 10%, rgba(125, 211, 199, 0.18), transparent 34%),
+    linear-gradient(135deg, #081f31 0%, #0d2a3f 52%, #0f3b4a 100%);
 }
 
 .display-mode-header {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: space-between;
   gap: clamp(18px, 3vw, 36px);
+}
+
+.display-brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 2vw, 24px);
+}
+
+.display-logo-mark {
+  display: grid;
+  place-items: center;
+  width: clamp(58px, 5.8vw, 98px);
+  height: clamp(58px, 5.8vw, 98px);
+  border: 3px solid rgba(125, 211, 199, 0.72);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: clamp(24px, 2.6vw, 42px);
+  font-weight: 1000;
 }
 
 .display-mode-header .eyebrow {
   color: #7dd3c7;
   font-size: clamp(16px, 1.4vw, 22px);
+}
+
+.display-brand-lockup strong {
+  display: block;
+  color: #ffffff;
+  font-size: clamp(34px, 4.4vw, 76px);
+  line-height: 1.02;
 }
 
 .display-mode-header h1 {
@@ -1686,9 +1720,10 @@ td select {
   font-weight: 800;
 }
 
-.display-delay-badge,
+.display-clock,
 .display-status-card,
 .display-progress-panel,
+.display-session-strip,
 .display-notice-panel {
   border: 1px solid rgba(125, 211, 199, 0.32);
   border-radius: 16px;
@@ -1696,12 +1731,14 @@ td select {
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
 }
 
+.display-clock,
 .display-delay-badge {
-  min-width: min(360px, 34vw);
+  min-width: min(300px, 30vw);
   display: grid;
   align-content: center;
-  gap: 10px;
-  padding: clamp(18px, 2.4vw, 32px);
+  gap: 6px;
+  padding: clamp(14px, 1.8vw, 26px);
+  text-align: right;
 }
 
 .display-delay-badge.warn,
@@ -1710,8 +1747,10 @@ td select {
   background: rgba(146, 64, 14, 0.28);
 }
 
+.display-clock span,
 .display-delay-badge span,
 .display-status-card span,
+.display-session-strip span,
 .display-progress-panel span,
 .display-notice-panel span {
   color: #9ee2d9;
@@ -1719,24 +1758,41 @@ td select {
   font-weight: 900;
 }
 
+.display-clock strong,
 .display-delay-badge strong {
   color: #ffffff;
-  font-size: clamp(34px, 3.5vw, 58px);
+  font-size: clamp(36px, 4.2vw, 76px);
   line-height: 1;
+}
+
+.display-session-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(18px, 3vw, 42px);
+  padding: clamp(10px, 1.2vw, 18px) clamp(16px, 2vw, 28px);
+}
+
+.display-session-strip strong {
+  color: #ffffff;
+  font-size: clamp(18px, 1.8vw, 30px);
+  line-height: 1.25;
+  text-align: right;
 }
 
 .display-hero-grid {
   display: grid;
-  grid-template-columns: 1.35fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
   gap: clamp(14px, 2vw, 24px);
+  min-height: 0;
 }
 
 .display-status-card {
-  min-height: clamp(210px, 24vh, 320px);
+  min-height: 0;
   display: grid;
   align-content: space-between;
-  gap: 18px;
-  padding: clamp(24px, 3vw, 44px);
+  gap: 12px;
+  padding: clamp(22px, 3vw, 48px);
 }
 
 .display-status-card.primary {
@@ -1747,12 +1803,12 @@ td select {
 .display-status-card strong {
   color: #ffffff;
   overflow-wrap: anywhere;
-  font-size: clamp(64px, 8vw, 148px);
+  font-size: clamp(72px, 11vw, 190px);
   line-height: 0.95;
 }
 
 .display-status-card:not(.primary) strong {
-  font-size: clamp(46px, 5vw, 90px);
+  font-size: clamp(56px, 7vw, 128px);
 }
 
 .display-status-card small,
@@ -1763,22 +1819,28 @@ td select {
   font-weight: 800;
 }
 
+.display-lower-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr);
+  gap: clamp(14px, 2vw, 24px);
+  min-height: 0;
+}
+
 .display-progress-panel {
   display: grid;
-  gap: 18px;
-  padding: clamp(22px, 3vw, 42px);
+  gap: 12px;
+  padding: clamp(18px, 2.3vw, 34px);
+  align-content: center;
 }
 
 .display-progress-panel > div:first-child {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
+  display: grid;
   gap: 20px;
 }
 
 .display-progress-panel strong {
   color: #ffffff;
-  font-size: clamp(72px, 8vw, 140px);
+  font-size: clamp(64px, 8vw, 138px);
   line-height: 0.9;
 }
 
@@ -1799,14 +1861,14 @@ td select {
 .display-notice-panel {
   display: grid;
   align-content: center;
-  gap: 16px;
-  padding: clamp(24px, 3vw, 44px);
+  gap: 12px;
+  padding: clamp(18px, 2.4vw, 36px);
 }
 
 .display-notice-panel p {
   margin: 0;
   color: #ffffff;
-  font-size: clamp(30px, 3.6vw, 64px);
+  font-size: clamp(28px, 3.5vw, 62px);
   font-weight: 900;
   line-height: 1.22;
   white-space: pre-line;
@@ -1828,6 +1890,74 @@ td select {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+
+@media (min-width: 900px) and (max-height: 820px) {
+  .display-mode-page {
+    height: 100vh;
+    height: 100dvh;
+    grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 0.52fr) auto;
+    gap: 10px;
+    padding: 20px 32px;
+  }
+
+  .display-logo-mark {
+    width: 58px;
+    height: 58px;
+    border-radius: 14px;
+    font-size: 24px;
+  }
+
+  .display-brand-lockup strong {
+    font-size: clamp(32px, 3.6vw, 58px);
+  }
+
+  .display-clock {
+    min-width: 240px;
+    padding: 12px 16px;
+  }
+
+  .display-clock strong {
+    font-size: clamp(34px, 3.6vw, 58px);
+  }
+
+  .display-session-strip {
+    padding: 9px 16px;
+  }
+
+  .display-status-card {
+    padding: 18px 24px;
+  }
+
+  .display-status-card strong {
+    font-size: clamp(70px, 9vw, 132px);
+  }
+
+  .display-status-card:not(.primary) strong {
+    font-size: clamp(54px, 6vw, 96px);
+  }
+
+  .display-lower-grid {
+    gap: 10px;
+  }
+
+  .display-progress-panel,
+  .display-notice-panel {
+    padding: 16px 20px;
+  }
+
+  .display-progress-panel strong {
+    font-size: clamp(58px, 6vw, 96px);
+  }
+
+  .display-progress-track {
+    height: 16px;
+  }
+
+  .display-notice-panel p {
+    font-size: clamp(24px, 2.5vw, 42px);
+    line-height: 1.15;
+  }
 }
 
 .operation-report-header {
