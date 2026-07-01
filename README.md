@@ -141,6 +141,7 @@ npm run build
 - [Deployment Guide](docs/DEPLOYMENT_GUIDE.md)
 - [Versioning Guide](docs/VERSIONING.md)
 - [Testing Guide](docs/TESTING_GUIDE.md)
+- [실사용 QA 체크리스트](docs/QA.md)
 - [UX Guide](docs/UX_GUIDE.md)
 - [Changelog](docs/CHANGELOG.md)
 - [Next](NEXT.md)
