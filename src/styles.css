@@ -4110,13 +4110,13 @@ button.ghost {
 }
 
 .tablet-mode {
-  min-height: 720px;
-  border-radius: 28px;
+  min-height: min(860px, calc(100dvh - 48px));
+  border-radius: 24px;
   background: #0d2a3f;
   color: #f8fafc;
-  padding: clamp(18px, 4vw, 34px);
+  padding: clamp(20px, 4vw, 36px);
   display: grid;
-  gap: 18px;
+  gap: clamp(16px, 2.6vw, 24px);
   align-content: start;
   box-shadow: 0 22px 60px rgba(13, 42, 63, 0.22);
 }
@@ -4135,7 +4135,7 @@ button.ghost {
 .tablet-mode-header h2 {
   margin: 3px 0;
   color: #ffffff;
-  font-size: clamp(30px, 7vw, 56px);
+  font-size: clamp(32px, 6.5vw, 58px);
   line-height: 1.04;
 }
 
@@ -4143,6 +4143,57 @@ button.ghost {
   color: #cbd5e1;
   font-weight: 800;
   font-size: clamp(15px, 3.8vw, 22px);
+}
+
+.tablet-focus-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: clamp(14px, 2vw, 20px);
+}
+
+.tablet-focus-card {
+  min-height: 174px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: clamp(18px, 3.5vw, 30px);
+  display: grid;
+  align-content: center;
+  gap: 10px;
+}
+
+.tablet-focus-card span {
+  color: #a7f3d0;
+  font-size: clamp(16px, 3.2vw, 22px);
+  font-weight: 900;
+}
+
+.tablet-focus-card strong {
+  color: #ffffff;
+  font-size: clamp(44px, 10vw, 86px);
+  line-height: 0.98;
+  word-break: keep-all;
+}
+
+.tablet-focus-card small {
+  color: #cbd5e1;
+  font-size: clamp(14px, 2.6vw, 20px);
+  font-weight: 800;
+}
+
+.tablet-focus-current {
+  min-height: 226px;
+  background: rgba(20, 184, 166, 0.22);
+  border-color: rgba(94, 234, 212, 0.46);
+  grid-row: span 2;
+}
+
+.tablet-focus-current strong {
+  font-size: clamp(58px, 15vw, 118px);
+}
+
+.tablet-focus-progress {
+  background: rgba(125, 211, 252, 0.14);
 }
 
 .tablet-delay {
@@ -4271,18 +4322,18 @@ button.ghost {
 .tablet-action-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: clamp(16px, 2.4vw, 24px);
 }
 
 .tablet-action {
-  min-height: 96px;
+  min-height: clamp(108px, 13vw, 142px);
   border-radius: 22px;
   border: 2px solid rgba(255, 255, 255, 0.2);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  font-size: clamp(26px, 7vw, 42px);
+  font-size: clamp(28px, 5.4vw, 46px);
   font-weight: 900;
   touch-action: manipulation;
 }
@@ -4297,6 +4348,7 @@ button.ghost {
   background: #f59e0b;
   border-color: #fbbf24;
   color: #111827;
+  box-shadow: inset 0 0 0 2px rgba(17, 24, 39, 0.12);
 }
 
 .tablet-action.secondary {
@@ -4312,7 +4364,7 @@ button.ghost {
 .tablet-mode-notice {
   margin: 0;
   color: #e2e8f0;
-  font-size: clamp(18px, 4.2vw, 28px);
+  font-size: clamp(18px, 3.4vw, 28px);
   line-height: 1.5;
 }
 
@@ -4409,9 +4461,14 @@ button.ghost {
 
   .operation-layout,
   .teacher-card-grid,
+  .tablet-focus-grid,
   .tablet-status-grid,
   .big-grid {
     grid-template-columns: 1fr;
+  }
+
+  .tablet-focus-current {
+    grid-row: auto;
   }
 
   .operation-hero {
@@ -6176,6 +6233,7 @@ h2,
   }
 
   .operation-status-grid,
+  .tablet-focus-grid,
   .tablet-status-grid,
   .tablet-action-grid,
   .admin-progress-grid,
@@ -6184,9 +6242,15 @@ h2,
   }
 
   .operation-status-card:first-child,
+  .tablet-focus-current,
   .tablet-current,
   .admin-progress-card.primary {
     grid-column: span 2;
+  }
+
+  .tablet-focus-current {
+    min-height: 196px;
+    grid-row: auto;
   }
 
   .tablet-mode {
@@ -6204,7 +6268,7 @@ h2,
   }
 
   .tablet-action {
-    min-height: 88px;
+    min-height: 104px;
     font-size: clamp(24px, 4vw, 36px);
   }
 
@@ -6283,6 +6347,7 @@ h2,
   .teacher-priority-grid,
   .admin-progress-grid,
   .admin-current-flow,
+  .tablet-focus-grid,
   .tablet-status-grid,
   .tablet-action-grid,
   .report-metric-grid {
@@ -6355,12 +6420,27 @@ h2,
     font-size: clamp(28px, 10vw, 44px);
   }
 
+  .tablet-focus-card {
+    min-height: 128px;
+  }
+
+  .tablet-focus-current {
+    min-height: 152px;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .tablet-focus-card strong,
+  .tablet-focus-current strong {
+    font-size: clamp(42px, 14vw, 72px);
+  }
+
   .tablet-status-card strong {
     font-size: clamp(44px, 16vw, 72px);
   }
 
   .tablet-action {
-    min-height: 76px;
+    min-height: 84px;
     font-size: clamp(22px, 7vw, 34px);
   }
 

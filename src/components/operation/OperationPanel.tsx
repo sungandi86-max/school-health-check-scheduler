@@ -361,7 +361,8 @@ function TabletModePanel({
   onPrevious: () => void;
   onNext: () => void;
 }) {
-  const missingText = state.missingClasses.length ? state.missingClasses.join(', ') : '없음';
+  const currentOrder = currentSchedule ? `${currentSchedule.order}번` : '-';
+  const progressText = targetCount ? `완료 ${completedCount}명 / 전체 ${targetCount}명` : '학급 순서 기준';
 
   return (
     <section className="tablet-mode" aria-label="태블릿 운영 화면">
@@ -369,50 +370,37 @@ function TabletModePanel({
         <div>
           <p className="eyebrow">Tablet Mode</p>
           <h2>검진장 태블릿</h2>
-          <span>현재 세션 · 실시간 검진 운영</span>
-        </div>
-        <div className={`tablet-delay ${state.delayMinutes > 0 ? 'is-delayed' : ''}`}>
-          {state.delayMinutes > 0 ? `지연 ${state.delayMinutes}분` : '정상 진행'}
+          <span>현장 검사자용</span>
         </div>
       </header>
 
-      <div className="tablet-status-grid">
-        <article className="tablet-status-card tablet-current">
+      <div className="tablet-focus-grid">
+        <article className="tablet-focus-card tablet-focus-current">
           <span>현재 검사 학급</span>
           <strong>{state.currentClass || '-'}</strong>
           <small>{currentSchedule ? `${currentSchedule.startTime}~${currentSchedule.endTime}` : '선택된 학급 없음'}</small>
         </article>
-        <article className="tablet-status-card">
-          <span>다음 검사 학급</span>
+        <article className="tablet-focus-card">
+          <span>현재 검사 순번</span>
+          <strong>{currentOrder}</strong>
+          <small>{state.currentClass ? '진행 중인 학급 기준' : '검사 시작 전'}</small>
+        </article>
+        <article className="tablet-focus-card tablet-focus-progress">
+          <span>전체 진행률</span>
+          <strong>{progressPercent}%</strong>
+          <small>{progressText}</small>
+          <div className="tablet-progress-track" aria-hidden="true">
+            <span style={{ width: `${progressPercent}%` }} />
+          </div>
+        </article>
+        <article className="tablet-focus-card">
+          <span>다음 학급</span>
           <strong>{state.nextClass || '-'}</strong>
           <small>{nextSchedule ? `${nextSchedule.startTime}~${nextSchedule.endTime}` : '다음 학급 없음'}</small>
         </article>
       </div>
 
-      <section className="tablet-progress-card">
-        <div>
-          <span>진행률</span>
-          <strong>{progressPercent}%</strong>
-          <small>{targetCount ? `완료 ${completedCount}명 / 전체 ${targetCount}명` : '학급 순서 기준'}</small>
-        </div>
-        <div className="tablet-progress-track" aria-hidden="true">
-          <span style={{ width: `${progressPercent}%` }} />
-        </div>
-      </section>
-
-      <section className={`tablet-missing-card ${state.missingClasses.length ? 'has-missing' : ''}`}>
-        <AlertTriangle size={28} />
-        <div>
-          <span>미도착 학급</span>
-          <strong>{missingText}</strong>
-        </div>
-      </section>
-
       <div className="tablet-action-grid" aria-label="태블릿 운영 버튼">
-        <button type="button" className="tablet-action secondary" disabled={!canMovePrevious} onClick={onPrevious}>
-          <ChevronLeft size={34} />
-          이전
-        </button>
         <button type="button" className="tablet-action primary" disabled={!state.currentClass} onClick={onComplete}>
           <CheckCircle2 size={36} />
           완료
@@ -420,6 +408,10 @@ function TabletModePanel({
         <button type="button" className="tablet-action warning" disabled={!state.currentClass} onClick={onMissing}>
           <AlertTriangle size={34} />
           미도착
+        </button>
+        <button type="button" className="tablet-action secondary" disabled={!canMovePrevious} onClick={onPrevious}>
+          <ChevronLeft size={34} />
+          이전
         </button>
         <button type="button" className="tablet-action secondary" disabled={!canMoveNext} onClick={onNext}>
           다음
