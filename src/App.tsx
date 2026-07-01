@@ -77,7 +77,7 @@ import { getHealthCheckLabel, normalizeHealthCheckType, toExamType } from './lib
 import { healthCheckDataService } from './lib/services/healthCheckDataService';
 import { dismissOnboarding, shouldShowOnboarding } from './lib/onboarding';
 import { loadSchoolSettings, resetSchoolSettings, saveSchoolSettings } from './lib/settings';
-import type { HealthCheckSession, HealthCheckSessionStatus, HealthCheckType } from './types/healthCheck';
+import type { HealthCheckOperationStatus, HealthCheckSession, HealthCheckSessionStatus, HealthCheckType } from './types/healthCheck';
 import type { SchoolSettings } from './types/settings';
 
 const PERIODS = [1, 2, 3, 4, 5, 6, 7];
@@ -633,86 +633,101 @@ export function App() {
           </div>
         </header>
 
-        <HealthCheckSessionSelector
-          sessions={sessions}
+        <div className="desktop-session-selector">
+          <HealthCheckSessionSelector
+            sessions={sessions}
+            activeSession={activeSession}
+            defaultCheckType={data.settings.healthCheckType}
+            defaultDate={data.settings.examDate}
+            defaultGrades={data.settings.targetGrades}
+            defaultLocation={data.settings.examVenue || schoolSettings.defaultLocation}
+            onCreate={createSession}
+            onSelect={selectSession}
+            onDelete={removeSession}
+            onStatusChange={changeSessionStatus}
+          />
+        </div>
+
+        <div className="desktop-workspace">
+          {data.needsReschedule && (
+            <div className="reschedule-banner no-print">
+              <span>검사 조건 또는 시간표가 변경되었습니다. 최신 조건을 반영하려면 자동배정을 다시 실행해 주세요.</span>
+              <button className="primary" onClick={runSchedule}>
+                <Sparkles size={17} /> 다시 자동배정하기
+              </button>
+            </div>
+          )}
+
+          {activeTab === 'urine-help' && <UrineHelp />}
+          {activeTab === 'tb-help' && <TbHelp />}
+          {activeTab === 'operation-center' && <OperationCenter checkType={data.settings.healthCheckType} session={activeSession} status={data.operationStatus ?? createOperationStatus(data.settings.healthCheckType, data.assignments)} />}
+          {activeTab === 'teacher-dashboard' && <TeacherDashboard />}
+          {activeTab === 'admin-dashboard' && <AdminDashboard />}
+          {activeTab === 'display' && <OperationDisplay />}
+          {activeTab === 'report' && <OperationReport />}
+          {activeTab === 'dashboard' && (
+            <Dashboard
+              data={data}
+              dashboard={dashboard}
+              runSchedule={runSchedule}
+              exportFull={() => exportTableToCsv(tables.full)}
+              print={() => window.print()}
+              copyGuide={() => copyText(guideText, '안내 문구를 복사했습니다.')}
+              guideText={guideText}
+              backup={() => downloadJsonBackup(data)}
+              importClick={() => fileRef.current?.click()}
+              saveTemplate={saveCurrentTemplate}
+              loadTemplate={loadTemplate}
+              copyTemplate={copyTemplate}
+              mode={mode}
+              validationMessages={validationMessages}
+            />
+          )}
+          {activeTab === 'settings' && <SettingsPanel data={data} setData={setData} settings={data.settings} setSettings={setSettings} />}
+          {activeTab === 'school-settings' && <SchoolSettingsPanel settings={schoolSettings} onSave={saveSchoolSettingsFromPanel} onReset={resetSchoolSettingsFromPanel} />}
+          {activeTab === 'locations' && <LocationsPanel data={data} setData={setData} mode={mode} />}
+          {activeTab === 'timetable' && <TimetablePanel data={data} setData={setData} resetExamples={resetExamples} />}
+          {activeTab === 'divisions' && <DivisionsPanel data={data} setData={setData} />}
+          {activeTab === 'operation' && <OperationPanel assignments={data.assignments} />}
+          {activeTab === 'results' && (
+            <ResultsPanel
+              data={data}
+              setData={setData}
+              manualRows={manualRows}
+              tables={tables}
+              guideText={guideText}
+              copyGuide={() => copyText(guideText, '안내 문구를 복사했습니다.')}
+              copyTeacher={() =>
+                copyText(
+                  data.settings.examType === 'tb'
+                    ? [
+                        guideText,
+                        '',
+                        ...tables.teacher.rows.map((row) => `${row[0]} / ${row[1]} / ${row[2]}`),
+                      ].join('\n')
+                    : tables.teacher.rows.map((row) => `${row[0]} ${row[1]} ${row[3]}`).join('\n'),
+                  '교사용 안내 문구를 복사했습니다.',
+                )
+              }
+              runSchedule={runSchedule}
+              openExamHelp={() => setActiveTab(data.settings.examType === 'urine' ? 'urine-help' : 'tb-help')}
+            />
+          )}
+        </div>
+
+        <MobileWorkspace
+          activeTab={activeTab}
+          data={data}
           activeSession={activeSession}
-          defaultCheckType={data.settings.healthCheckType}
-          defaultDate={data.settings.examDate}
-          defaultGrades={data.settings.targetGrades}
-          defaultLocation={data.settings.examVenue || schoolSettings.defaultLocation}
-          onCreate={createSession}
-          onSelect={selectSession}
-          onDelete={removeSession}
-          onStatusChange={changeSessionStatus}
+          operationStatus={data.operationStatus ?? createOperationStatus(data.settings.healthCheckType, data.assignments)}
+          onSelectTab={selectAppTab}
+          onOpenStatusDashboard={openStatusDashboard}
         />
-
-        {data.needsReschedule && (
-          <div className="reschedule-banner no-print">
-            <span>검사 조건 또는 시간표가 변경되었습니다. 최신 조건을 반영하려면 자동배정을 다시 실행해 주세요.</span>
-            <button className="primary" onClick={runSchedule}>
-              <Sparkles size={17} /> 다시 자동배정하기
-            </button>
-          </div>
-        )}
-
-        {activeTab === 'urine-help' && <UrineHelp />}
-        {activeTab === 'tb-help' && <TbHelp />}
-        {activeTab === 'operation-center' && <OperationCenter checkType={data.settings.healthCheckType} session={activeSession} status={data.operationStatus ?? createOperationStatus(data.settings.healthCheckType, data.assignments)} />}
-        {activeTab === 'teacher-dashboard' && <TeacherDashboard />}
-        {activeTab === 'admin-dashboard' && <AdminDashboard />}
-        {activeTab === 'display' && <OperationDisplay />}
-        {activeTab === 'report' && <OperationReport />}
-        {activeTab === 'dashboard' && (
-          <Dashboard
-            data={data}
-            dashboard={dashboard}
-            runSchedule={runSchedule}
-            exportFull={() => exportTableToCsv(tables.full)}
-            print={() => window.print()}
-            copyGuide={() => copyText(guideText, '안내 문구를 복사했습니다.')}
-            guideText={guideText}
-            backup={() => downloadJsonBackup(data)}
-            importClick={() => fileRef.current?.click()}
-            saveTemplate={saveCurrentTemplate}
-            loadTemplate={loadTemplate}
-            copyTemplate={copyTemplate}
-            mode={mode}
-            validationMessages={validationMessages}
-          />
-        )}
-        {activeTab === 'settings' && <SettingsPanel data={data} setData={setData} settings={data.settings} setSettings={setSettings} />}
-        {activeTab === 'school-settings' && <SchoolSettingsPanel settings={schoolSettings} onSave={saveSchoolSettingsFromPanel} onReset={resetSchoolSettingsFromPanel} />}
-        {activeTab === 'locations' && <LocationsPanel data={data} setData={setData} mode={mode} />}
-        {activeTab === 'timetable' && <TimetablePanel data={data} setData={setData} resetExamples={resetExamples} />}
-        {activeTab === 'divisions' && <DivisionsPanel data={data} setData={setData} />}
-        {activeTab === 'operation' && <OperationPanel assignments={data.assignments} />}
-        {activeTab === 'results' && (
-          <ResultsPanel
-            data={data}
-            setData={setData}
-            manualRows={manualRows}
-            tables={tables}
-            guideText={guideText}
-            copyGuide={() => copyText(guideText, '안내 문구를 복사했습니다.')}
-            copyTeacher={() =>
-              copyText(
-                data.settings.examType === 'tb'
-                  ? [
-                      guideText,
-                      '',
-                      ...tables.teacher.rows.map((row) => `${row[0]} / ${row[1]} / ${row[2]}`),
-                    ].join('\n')
-                  : tables.teacher.rows.map((row) => `${row[0]} ${row[1]} ${row[3]}`).join('\n'),
-                '교사용 안내 문구를 복사했습니다.',
-              )
-            }            runSchedule={runSchedule}
-            openExamHelp={() => setActiveTab(data.settings.examType === 'urine' ? 'urine-help' : 'tb-help')}
-          />
-        )}
 
         <AppFooter />
         <input ref={fileRef} type="file" accept="application/json" hidden onChange={(event) => importBackup(event.target.files?.[0])} />
       </main>
+      <MobileBottomNav activeTab={activeTab} onSelect={selectAppTab} />
       {showTypeConfirm && (
         <div className="modal-backdrop">
           <div className="modal">
@@ -1065,6 +1080,215 @@ function HomeSessionOverview({
       )}
     </section>
   );
+}
+
+function MobileWorkspace({
+  activeTab,
+  data,
+  activeSession,
+  operationStatus,
+  onSelectTab,
+  onOpenStatusDashboard,
+}: {
+  activeTab: string;
+  data: AppData;
+  activeSession?: HealthCheckSession;
+  operationStatus: HealthCheckOperationStatus;
+  onSelectTab: (tabId: string) => void;
+  onOpenStatusDashboard: (mode: 'portrait' | 'landscape') => void;
+}) {
+  const mobileTab = getMobileTab(activeTab);
+
+  return (
+    <section className="mobile-workspace" aria-label="모바일 조회 화면">
+      {mobileTab === 'status' && (
+        <MobileStatusPanel
+          data={data}
+          activeSession={activeSession}
+          operationStatus={operationStatus}
+          onSelectTab={onSelectTab}
+          onOpenStatusDashboard={onOpenStatusDashboard}
+        />
+      )}
+      {mobileTab === 'operation' && (
+        <MobileOperationPanel
+          data={data}
+          activeSession={activeSession}
+          operationStatus={operationStatus}
+          activeTab={activeTab}
+          onSelectTab={onSelectTab}
+        />
+      )}
+      {mobileTab === 'report' && (
+        <div className="mobile-panel-stack">
+          <section className="card mobile-summary-panel">
+            <p className="eyebrow">보고서</p>
+            <h2>운영 보고서 확인</h2>
+            <p className="table-description">모바일에서는 요약 확인 중심으로 보고, 인쇄와 PDF 저장은 PC에서 진행하는 것을 권장합니다.</p>
+          </section>
+          <OperationReport />
+        </div>
+      )}
+      {mobileTab === 'settings' && (
+        <MobileSettingsNotice data={data} activeSession={activeSession} onSelectTab={onSelectTab} />
+      )}
+    </section>
+  );
+}
+
+function MobileStatusPanel({
+  data,
+  activeSession,
+  operationStatus,
+  onSelectTab,
+  onOpenStatusDashboard,
+}: {
+  data: AppData;
+  activeSession?: HealthCheckSession;
+  operationStatus: HealthCheckOperationStatus;
+  onSelectTab: (tabId: string) => void;
+  onOpenStatusDashboard: (mode: 'portrait' | 'landscape') => void;
+}) {
+  const progressPercent = getOperationProgressPercent(operationStatus);
+  const currentClass = operationStatus.currentClass || '-';
+  const nextClass = operationStatus.nextClass || '-';
+
+  return (
+    <div className="mobile-panel-stack">
+      <section className="card mobile-summary-panel">
+        <p className="eyebrow">현황</p>
+        <h2>{activeSession?.title || getHealthCheckLabel(data.settings.healthCheckType)}</h2>
+        <p className="table-description">모바일에서는 진행 현황 확인과 운영 모니터링을 먼저 보여줍니다.</p>
+      </section>
+      <section className="mobile-status-grid" aria-label="모바일 운영 현황">
+        <MobileMetric label="현재 검사 학급" value={currentClass} tone="primary" />
+        <MobileMetric label="다음 학급" value={nextClass} />
+        <MobileMetric label="진행률" value={`${progressPercent}%`} tone="success" />
+        <MobileMetric label="예상 종료" value={operationStatus.expectedEndTime || '-'} />
+      </section>
+      <section className="card mobile-action-panel">
+        <h3>운영 현황판 바로가기</h3>
+        <div className="mobile-action-grid">
+          <button className="primary" onClick={() => onSelectTab('admin-dashboard')}>관리자 현황판</button>
+          <button onClick={() => onSelectTab('teacher-dashboard')}>교사용 현황판</button>
+          <button onClick={() => onOpenStatusDashboard('portrait')}>보건실 현황판</button>
+          <button onClick={() => onOpenStatusDashboard('landscape')}>교무실 현황판</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function MobileOperationPanel({
+  data,
+  activeSession,
+  operationStatus,
+  activeTab,
+  onSelectTab,
+}: {
+  data: AppData;
+  activeSession?: HealthCheckSession;
+  operationStatus: HealthCheckOperationStatus;
+  activeTab: string;
+  onSelectTab: (tabId: string) => void;
+}) {
+  return (
+    <div className="mobile-panel-stack">
+      <section className="card mobile-summary-panel">
+        <p className="eyebrow">운영</p>
+        <h2>검진 당일 운영</h2>
+        <p className="table-description">{activeSession?.title || getHealthCheckLabel(data.settings.healthCheckType)} 진행 상황을 확인하고, 현장 체크 화면으로 바로 이동합니다.</p>
+      </section>
+      <section className="mobile-status-grid" aria-label="모바일 운영 핵심 정보">
+        <MobileMetric label="현재 학급" value={operationStatus.currentClass || '-'} tone="primary" />
+        <MobileMetric label="다음 학급" value={operationStatus.nextClass || '-'} />
+        <MobileMetric label="진행률" value={`${getOperationProgressPercent(operationStatus)}%`} tone="success" />
+        <MobileMetric label="상태" value={getOperationStateLabel(operationStatus.state)} />
+      </section>
+      <section className="card mobile-action-panel">
+        <h3>운영 화면 바로가기</h3>
+        <div className="mobile-action-grid">
+          <button className={activeTab === 'operation-center' ? 'primary' : ''} onClick={() => onSelectTab('operation-center')}>실시간 검진 운영</button>
+          <button className={activeTab === 'operation' ? 'primary' : ''} onClick={() => onSelectTab('operation')}>현장 모드</button>
+        </div>
+      </section>
+      {activeTab === 'operation-center' && <OperationCenter checkType={data.settings.healthCheckType} session={activeSession} status={operationStatus} />}
+      {activeTab === 'operation' && <OperationPanel assignments={data.assignments} />}
+    </div>
+  );
+}
+
+function MobileSettingsNotice({ data, activeSession, onSelectTab }: { data: AppData; activeSession?: HealthCheckSession; onSelectTab: (tabId: string) => void }) {
+  return (
+    <div className="mobile-panel-stack">
+      <section className="card mobile-summary-panel mobile-settings-notice">
+        <p className="eyebrow">설정</p>
+        <h2>운영 준비는 PC에서 진행해 주세요</h2>
+        <p className="table-description">학교 설정, 검사 조건, 대상 학급 입력, 시간표 생성은 화면이 넓은 PC에서 확인하는 것을 권장합니다. 모바일은 검진 진행 현황 확인과 당일 운영 모니터링 중심으로 사용하세요.</p>
+      </section>
+      <section className="card mobile-action-panel">
+        <h3>현재 세션</h3>
+        <div className="mobile-session-info">
+          <span>{activeSession?.title || getHealthCheckLabel(data.settings.healthCheckType)}</span>
+          <strong>{activeSession?.date || data.settings.examDate || '-'}</strong>
+          <small>{activeSession?.location || data.settings.examVenue || '검사 장소 미입력'}</small>
+        </div>
+        <div className="mobile-action-grid">
+          <button onClick={() => onSelectTab('teacher-dashboard')}>현황 보기</button>
+          <button onClick={() => onSelectTab('report')}>보고서 확인</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function MobileMetric({ label, value, tone = 'normal' }: { label: string; value: string; tone?: 'normal' | 'primary' | 'success' }) {
+  return (
+    <article className={`mobile-metric-card ${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </article>
+  );
+}
+
+function MobileBottomNav({ activeTab, onSelect }: { activeTab: string; onSelect: (tabId: string) => void }) {
+  const current = getMobileTab(activeTab);
+  const tabs = [
+    { id: 'status', label: '현황', target: 'teacher-dashboard' },
+    { id: 'operation', label: '운영', target: 'operation-center' },
+    { id: 'report', label: '보고서', target: 'report' },
+    { id: 'settings', label: '설정', target: 'settings' },
+  ];
+
+  return (
+    <nav className="mobile-bottom-tabs" aria-label="모바일 주요 화면 이동">
+      {tabs.map((tab) => (
+        <button key={tab.id} className={current === tab.id ? 'active' : ''} onClick={() => onSelect(tab.target)}>
+          {tab.label}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function getMobileTab(activeTab: string) {
+  if (activeTab === 'operation' || activeTab === 'operation-center') return 'operation';
+  if (activeTab === 'report') return 'report';
+  if (['settings', 'school-settings', 'locations', 'timetable', 'divisions', 'urine-help', 'tb-help'].includes(activeTab)) return 'settings';
+  return 'status';
+}
+
+function getOperationProgressPercent(status: HealthCheckOperationStatus) {
+  const total = status.completedClasses.length + status.pendingClasses.length;
+  if (!total) return 0;
+  return Math.round((status.completedClasses.length / total) * 100);
+}
+
+function getOperationStateLabel(state: HealthCheckOperationStatus['state']) {
+  if (state === 'in_progress') return '진행 중';
+  if (state === 'completed') return '완료';
+  if (state === 'delayed') return '지연';
+  return '준비 중';
 }
 
 function SettingsPanel({

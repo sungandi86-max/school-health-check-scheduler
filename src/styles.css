@@ -7283,3 +7283,194 @@ h2,
     grid-template-columns: 1fr;
   }
 }
+
+.desktop-workspace {
+  display: contents;
+}
+
+.mobile-workspace,
+.mobile-bottom-tabs {
+  display: none;
+}
+
+.mobile-panel-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.mobile-summary-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.mobile-summary-panel h2 {
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.mobile-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mobile-metric-card {
+  min-height: 116px;
+  border: 1px solid #dbe8e6;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 16px;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  box-shadow: 0 10px 24px rgba(13, 42, 63, 0.06);
+}
+
+.mobile-metric-card span {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.mobile-metric-card strong {
+  color: #0d2a3f;
+  font-size: clamp(26px, 9vw, 38px);
+  line-height: 1.05;
+  word-break: keep-all;
+}
+
+.mobile-metric-card.primary {
+  border-color: #5eead4;
+  background: #ecfdf5;
+}
+
+.mobile-metric-card.success strong {
+  color: #0f766e;
+}
+
+.mobile-action-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.mobile-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mobile-action-grid button {
+  min-height: 52px;
+  white-space: normal;
+  line-height: 1.25;
+}
+
+.mobile-session-info {
+  border: 1px solid #dbe8e6;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 14px;
+  display: grid;
+  gap: 5px;
+}
+
+.mobile-session-info span,
+.mobile-session-info small {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.mobile-session-info strong {
+  color: #0d2a3f;
+  font-size: 20px;
+}
+
+.mobile-settings-notice {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+@media (max-width: 767px) {
+  body {
+    min-width: 0;
+  }
+
+  .app-shell {
+    display: block;
+    min-height: 100dvh;
+  }
+
+  .sidebar,
+  .desktop-session-selector,
+  .desktop-workspace,
+  .toolbar {
+    display: none !important;
+  }
+
+  main {
+    padding: 16px 14px 96px;
+  }
+
+  .topbar {
+    margin-bottom: 14px;
+  }
+
+  .topbar h1 {
+    font-size: 22px;
+  }
+
+  .topbar-subtitle {
+    font-size: 13px;
+  }
+
+  .mobile-workspace {
+    display: block;
+  }
+
+  .mobile-bottom-tabs {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, 0.96);
+    border-top: 1px solid #dbe8e6;
+    box-shadow: 0 -12px 28px rgba(13, 42, 63, 0.12);
+  }
+
+  .mobile-bottom-tabs button {
+    min-height: 52px;
+    border-radius: 12px;
+    justify-content: center;
+    color: #334155;
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    font-weight: 900;
+  }
+
+  .mobile-bottom-tabs button.active {
+    color: #ffffff;
+    background: #0f766e;
+    border-color: #0f766e;
+    box-shadow: none;
+  }
+
+  .mobile-status-grid,
+  .mobile-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mobile-metric-card {
+    min-height: 104px;
+  }
+
+  .mobile-panel-stack .operation-center,
+  .mobile-panel-stack .operation-page,
+  .mobile-panel-stack .operation-report-page {
+    margin-top: 2px;
+  }
+}
