@@ -693,7 +693,7 @@ export function App() {
           {activeTab === 'locations' && <LocationsPanel data={data} setData={setData} mode={mode} />}
           {activeTab === 'timetable' && <TimetablePanel data={data} setData={setData} resetExamples={resetExamples} />}
           {activeTab === 'divisions' && <DivisionsPanel data={data} setData={setData} />}
-          {activeTab === 'operation' && <OperationPanel assignments={data.assignments} />}
+          {activeTab === 'operation' && <OperationPanel assignments={data.assignments} session={activeSession} checkType={data.settings.healthCheckType} />}
           {activeTab === 'results' && (
             <ResultsPanel
               data={data}
@@ -1218,7 +1218,7 @@ function MobileOperationPanel({
         </div>
       </section>
       {activeTab === 'operation-center' && <OperationCenter checkType={data.settings.healthCheckType} session={activeSession} status={operationStatus} />}
-      {activeTab === 'operation' && <OperationPanel assignments={data.assignments} />}
+      {activeTab === 'operation' && <OperationPanel assignments={data.assignments} session={activeSession} checkType={data.settings.healthCheckType} />}
     </div>
   );
 }

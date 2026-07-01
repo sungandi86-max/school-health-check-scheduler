@@ -4,6 +4,8 @@ import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCopy, 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import type { ScheduleAssignment } from '../../types';
+import { getHealthCheckLabel } from '../../lib/healthCheck';
+import type { HealthCheckSession, HealthCheckType } from '../../types/healthCheck';
 
 type StudentStatus = 'pending' | 'completed' | 'absent' | 'earlyLeave' | 'late' | 'deferred';
 type ClassStatus = 'waiting' | 'running' | 'completed' | 'missing' | 'paused';
@@ -64,7 +66,7 @@ const emptyState: OperationState = {
   updatedAt: '',
 };
 
-export function OperationPanel({ assignments }: { assignments: ScheduleAssignment[] }) {
+export function OperationPanel({ assignments, session, checkType }: { assignments: ScheduleAssignment[]; session?: HealthCheckSession; checkType?: HealthCheckType }) {
   const [state, setState] = useState<OperationState>(() => loadOperationState());
   const [view, setView] = useState<'nurse' | 'teacher' | 'tablet' | 'big' | 'admin'>('nurse');
   const [selectedClass, setSelectedClass] = useState('');
@@ -310,6 +312,8 @@ export function OperationPanel({ assignments }: { assignments: ScheduleAssignmen
           currentSchedule={currentSchedule}
           nextSchedule={nextSchedule}
           nextAfterSchedule={scheduleClasses[currentClassIndex + 2]}
+          session={session}
+          checkType={checkType}
           completedCount={completedCount}
           targetCount={targetCount}
           progressPercent={progressPercent}
@@ -340,6 +344,8 @@ function TabletModePanel({
   currentSchedule,
   nextSchedule,
   nextAfterSchedule,
+  session,
+  checkType,
   completedCount,
   targetCount,
   progressPercent,
@@ -354,6 +360,8 @@ function TabletModePanel({
   currentSchedule?: ScheduleClass;
   nextSchedule?: ScheduleClass;
   nextAfterSchedule?: ScheduleClass;
+  session?: HealthCheckSession;
+  checkType?: HealthCheckType;
   completedCount: number;
   targetCount: number;
   progressPercent: number;
@@ -366,6 +374,8 @@ function TabletModePanel({
 }) {
   const currentOrder = currentSchedule ? `${currentSchedule.order}번` : '-';
   const progressText = targetCount ? `완료 ${completedCount}명 / 전체 ${targetCount}명` : '학급 순서 기준';
+  const sessionTitle = session?.title || '현재 세션 선택 전';
+  const checkTypeLabel = checkType ? getHealthCheckLabel(checkType) : session?.checkType ? getHealthCheckLabel(session.checkType) : '-';
 
   return (
     <section className="tablet-mode" aria-label="현장 모드 화면">
@@ -373,12 +383,23 @@ function TabletModePanel({
         <div>
           <p className="eyebrow">현장 모드</p>
           <h2>검진 현장 체크</h2>
-          <span>명렬표 체크용</span>
+          <span>명렬표 빠른 체크 화면</span>
+          <p className="field-mode-guidance">검진 현장에서 명렬표를 보며 학생별 상태를 빠르게 체크하는 화면입니다. 결핵검진은 검진 완료 여부를, 소변검사는 검체 제출 여부를 확인하는 용도로 사용할 수 있습니다.</p>
           <p className="field-mode-guidance">운영 준비와 시간표 생성은 PC에서 진행하고, 현장 모드는 검진 당일 체크용으로 사용하세요. 체크 결과는 운영센터와 현황판에 반영됩니다.</p>
         </div>
       </header>
 
       <div className="tablet-focus-grid">
+        <article className="tablet-focus-card">
+          <span>현재 세션</span>
+          <strong>{sessionTitle}</strong>
+          <small>{session?.date || '세션 정보 없음'}</small>
+        </article>
+        <article className="tablet-focus-card">
+          <span>검사 유형</span>
+          <strong>{checkTypeLabel}</strong>
+          <small>{session?.location || '검진 장소 확인'}</small>
+        </article>
         <article className="tablet-focus-card tablet-focus-current">
           <span>현재 검사 학급</span>
           <strong>{state.currentClass || '-'}</strong>
