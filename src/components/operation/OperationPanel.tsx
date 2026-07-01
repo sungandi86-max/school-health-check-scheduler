@@ -1,6 +1,6 @@
 // Deprecated: legacy operation panel kept for the existing scheduler tab.
 // New health check operation work should use OperationCenter and healthCheckDataService.
-import { ClipboardCopy, FileInput, MonitorSmartphone, RefreshCcw, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCopy, FileInput, MonitorSmartphone, RefreshCcw, ShieldCheck } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import type { ScheduleAssignment } from '../../types';
@@ -66,7 +66,7 @@ const emptyState: OperationState = {
 
 export function OperationPanel({ assignments }: { assignments: ScheduleAssignment[] }) {
   const [state, setState] = useState<OperationState>(() => loadOperationState());
-  const [view, setView] = useState<'nurse' | 'teacher' | 'big' | 'admin'>('nurse');
+  const [view, setView] = useState<'nurse' | 'teacher' | 'tablet' | 'big' | 'admin'>('nurse');
   const [selectedClass, setSelectedClass] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -79,6 +79,10 @@ export function OperationPanel({ assignments }: { assignments: ScheduleAssignmen
   const targetCount = state.students.length;
   const uncheckedStudents = state.students.filter((student) => student.status !== 'completed');
   const currentUnchecked = currentStudents.filter((student) => student.status !== 'completed');
+  const currentClassIndex = scheduleClasses.findIndex((item) => item.className === state.currentClass);
+  const progressPercent = targetCount
+    ? Math.round((completedCount / targetCount) * 100)
+    : getClassProgressPercent(scheduleClasses, state.currentClass);
 
   useEffect(() => {
     saveOperationState(state);
@@ -130,6 +134,16 @@ export function OperationPanel({ assignments }: { assignments: ScheduleAssignmen
       },
       `${className} 미도착 표시`,
     );
+  };
+
+  const moveToPreviousClass = () => {
+    if (currentClassIndex > 0) startClass(scheduleClasses[currentClassIndex - 1].className);
+  };
+
+  const moveToNextClass = () => {
+    if (state.nextClass) startClass(state.nextClass);
+    else if (currentClassIndex >= 0 && scheduleClasses[currentClassIndex + 1]) startClass(scheduleClasses[currentClassIndex + 1].className);
+    else if (!state.currentClass && scheduleClasses[0]) startClass(scheduleClasses[0].className);
   };
 
   const updateStudent = (studentId: string, patch: Partial<RosterStudent>) => {
@@ -189,6 +203,7 @@ export function OperationPanel({ assignments }: { assignments: ScheduleAssignmen
         <div className="operation-tabs no-print">
           <button className={view === 'nurse' ? 'primary' : ''} onClick={() => setView('nurse')}>보건교사용</button>
           <button className={view === 'teacher' ? 'primary' : ''} onClick={() => setView('teacher')}>교사용 모바일/PC</button>
+          <button className={view === 'tablet' ? 'primary' : ''} onClick={() => setView('tablet')}>태블릿</button>
           <button className={view === 'big' ? 'primary' : ''} onClick={() => setView('big')}>교무실 큰 화면</button>
           <button className={view === 'admin' ? 'primary' : ''} onClick={() => setView('admin')}>관리자 구상안</button>
         </div>
@@ -289,6 +304,22 @@ export function OperationPanel({ assignments }: { assignments: ScheduleAssignmen
       )}
 
       {view === 'teacher' && <TeacherDashboard state={state} currentSchedule={currentSchedule} nextSchedule={nextSchedule} uncheckedCount={uncheckedStudents.length} currentUnchecked={currentUnchecked} />}
+      {view === 'tablet' && (
+        <TabletModePanel
+          state={state}
+          currentSchedule={currentSchedule}
+          nextSchedule={nextSchedule}
+          completedCount={completedCount}
+          targetCount={targetCount}
+          progressPercent={progressPercent}
+          canMovePrevious={currentClassIndex > 0}
+          canMoveNext={Boolean(state.nextClass || scheduleClasses[currentClassIndex + 1] || (!state.currentClass && scheduleClasses[0]))}
+          onComplete={() => completeClass()}
+          onMissing={() => state.currentClass && markMissing(state.currentClass)}
+          onPrevious={moveToPreviousClass}
+          onNext={moveToNextClass}
+        />
+      )}
       {view === 'big' && <BigScreenDashboard state={state} completedCount={completedCount} targetCount={targetCount} scheduleClasses={scheduleClasses} />}
       {view === 'admin' && (
         <div className="card admin-plan">
@@ -299,6 +330,104 @@ export function OperationPanel({ assignments }: { assignments: ScheduleAssignmen
           <pre>{ADMIN_PLAN_TEXT}</pre>
         </div>
       )}
+    </section>
+  );
+}
+
+function TabletModePanel({
+  state,
+  currentSchedule,
+  nextSchedule,
+  completedCount,
+  targetCount,
+  progressPercent,
+  canMovePrevious,
+  canMoveNext,
+  onComplete,
+  onMissing,
+  onPrevious,
+  onNext,
+}: {
+  state: OperationState;
+  currentSchedule?: ScheduleClass;
+  nextSchedule?: ScheduleClass;
+  completedCount: number;
+  targetCount: number;
+  progressPercent: number;
+  canMovePrevious: boolean;
+  canMoveNext: boolean;
+  onComplete: () => void;
+  onMissing: () => void;
+  onPrevious: () => void;
+  onNext: () => void;
+}) {
+  const missingText = state.missingClasses.length ? state.missingClasses.join(', ') : '없음';
+
+  return (
+    <section className="tablet-mode" aria-label="태블릿 운영 화면">
+      <header className="tablet-mode-header">
+        <div>
+          <p className="eyebrow">Tablet Mode</p>
+          <h2>검진장 태블릿</h2>
+          <span>현재 세션 · 실시간 검진 운영</span>
+        </div>
+        <div className={`tablet-delay ${state.delayMinutes > 0 ? 'is-delayed' : ''}`}>
+          {state.delayMinutes > 0 ? `지연 ${state.delayMinutes}분` : '정상 진행'}
+        </div>
+      </header>
+
+      <div className="tablet-status-grid">
+        <article className="tablet-status-card tablet-current">
+          <span>현재 검사 학급</span>
+          <strong>{state.currentClass || '-'}</strong>
+          <small>{currentSchedule ? `${currentSchedule.startTime}~${currentSchedule.endTime}` : '선택된 학급 없음'}</small>
+        </article>
+        <article className="tablet-status-card">
+          <span>다음 검사 학급</span>
+          <strong>{state.nextClass || '-'}</strong>
+          <small>{nextSchedule ? `${nextSchedule.startTime}~${nextSchedule.endTime}` : '다음 학급 없음'}</small>
+        </article>
+      </div>
+
+      <section className="tablet-progress-card">
+        <div>
+          <span>진행률</span>
+          <strong>{progressPercent}%</strong>
+          <small>{targetCount ? `완료 ${completedCount}명 / 전체 ${targetCount}명` : '학급 순서 기준'}</small>
+        </div>
+        <div className="tablet-progress-track" aria-hidden="true">
+          <span style={{ width: `${progressPercent}%` }} />
+        </div>
+      </section>
+
+      <section className={`tablet-missing-card ${state.missingClasses.length ? 'has-missing' : ''}`}>
+        <AlertTriangle size={28} />
+        <div>
+          <span>미도착 학급</span>
+          <strong>{missingText}</strong>
+        </div>
+      </section>
+
+      <div className="tablet-action-grid" aria-label="태블릿 운영 버튼">
+        <button type="button" className="tablet-action secondary" disabled={!canMovePrevious} onClick={onPrevious}>
+          <ChevronLeft size={34} />
+          이전
+        </button>
+        <button type="button" className="tablet-action primary" disabled={!state.currentClass} onClick={onComplete}>
+          <CheckCircle2 size={36} />
+          완료
+        </button>
+        <button type="button" className="tablet-action warning" disabled={!state.currentClass} onClick={onMissing}>
+          <AlertTriangle size={34} />
+          미도착
+        </button>
+        <button type="button" className="tablet-action secondary" disabled={!canMoveNext} onClick={onNext}>
+          다음
+          <ChevronRight size={34} />
+        </button>
+      </div>
+
+      <p className="tablet-mode-notice">{state.publicNotice}</p>
     </section>
   );
 }
@@ -463,6 +592,13 @@ function dedupeStudents(students: RosterStudent[]) {
 
 function uniqueClasses(students: RosterStudent[]) {
   return [...new Set(students.map((student) => student.className))].sort((a, b) => a.localeCompare(b, 'ko', { numeric: true }));
+}
+
+function getClassProgressPercent(scheduleClasses: ScheduleClass[], currentClass: string) {
+  if (!scheduleClasses.length) return 0;
+  const currentIndex = scheduleClasses.findIndex((item) => item.className === currentClass);
+  if (currentIndex < 0) return 0;
+  return Math.round((currentIndex / scheduleClasses.length) * 100);
 }
 
 function statusText(status: ClassStatus) {

@@ -3781,6 +3781,213 @@ button.ghost {
   padding-bottom: 7px;
 }
 
+.tablet-mode {
+  min-height: 720px;
+  border-radius: 28px;
+  background: #0d2a3f;
+  color: #f8fafc;
+  padding: clamp(18px, 4vw, 34px);
+  display: grid;
+  gap: 18px;
+  align-content: start;
+  box-shadow: 0 22px 60px rgba(13, 42, 63, 0.22);
+}
+
+.tablet-mode-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.tablet-mode-header .eyebrow {
+  color: #7dd3fc;
+}
+
+.tablet-mode-header h2 {
+  margin: 3px 0;
+  color: #ffffff;
+  font-size: clamp(30px, 7vw, 56px);
+  line-height: 1.04;
+}
+
+.tablet-mode-header span {
+  color: #cbd5e1;
+  font-weight: 800;
+  font-size: clamp(15px, 3.8vw, 22px);
+}
+
+.tablet-delay {
+  min-width: 132px;
+  border-radius: 20px;
+  background: rgba(20, 184, 166, 0.18);
+  border: 1px solid rgba(94, 234, 212, 0.38);
+  color: #a7f3d0;
+  padding: 14px 18px;
+  text-align: center;
+  font-size: clamp(18px, 4vw, 26px);
+  font-weight: 900;
+}
+
+.tablet-delay.is-delayed {
+  background: #f59e0b;
+  border-color: #fbbf24;
+  color: #111827;
+}
+
+.tablet-status-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 14px;
+}
+
+.tablet-status-card,
+.tablet-progress-card,
+.tablet-missing-card,
+.tablet-mode-notice {
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: clamp(18px, 4vw, 28px);
+}
+
+.tablet-status-card {
+  display: grid;
+  gap: 8px;
+}
+
+.tablet-status-card span,
+.tablet-progress-card span,
+.tablet-missing-card span {
+  color: #a7f3d0;
+  font-size: clamp(15px, 3.6vw, 20px);
+  font-weight: 900;
+}
+
+.tablet-status-card strong {
+  color: #ffffff;
+  font-size: clamp(48px, 14vw, 94px);
+  line-height: 0.95;
+  word-break: keep-all;
+}
+
+.tablet-status-card small,
+.tablet-progress-card small {
+  color: #cbd5e1;
+  font-size: clamp(14px, 3.4vw, 20px);
+  font-weight: 800;
+}
+
+.tablet-current {
+  background: rgba(20, 184, 166, 0.2);
+  border-color: rgba(94, 234, 212, 0.42);
+}
+
+.tablet-progress-card {
+  display: grid;
+  gap: 16px;
+}
+
+.tablet-progress-card > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tablet-progress-card strong {
+  color: #ffffff;
+  font-size: clamp(40px, 12vw, 82px);
+  line-height: 0.95;
+}
+
+.tablet-progress-track {
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.tablet-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2dd4bf, #7dd3fc);
+}
+
+.tablet-missing-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tablet-missing-card strong {
+  display: block;
+  color: #ffffff;
+  font-size: clamp(26px, 7vw, 46px);
+  line-height: 1.1;
+}
+
+.tablet-missing-card.has-missing {
+  background: #f59e0b;
+  border-color: #fbbf24;
+  color: #111827;
+}
+
+.tablet-missing-card.has-missing span,
+.tablet-missing-card.has-missing strong {
+  color: #111827;
+}
+
+.tablet-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.tablet-action {
+  min-height: 96px;
+  border-radius: 22px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: clamp(26px, 7vw, 42px);
+  font-weight: 900;
+  touch-action: manipulation;
+}
+
+.tablet-action.primary {
+  background: #14b8a6;
+  border-color: #2dd4bf;
+  color: #ffffff;
+}
+
+.tablet-action.warning {
+  background: #f59e0b;
+  border-color: #fbbf24;
+  color: #111827;
+}
+
+.tablet-action.secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.tablet-action:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.tablet-mode-notice {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: clamp(18px, 4.2vw, 28px);
+  line-height: 1.5;
+}
+
 .big-screen {
   min-height: 640px;
   border-radius: 30px;
@@ -3874,6 +4081,7 @@ button.ghost {
 
   .operation-layout,
   .teacher-card-grid,
+  .tablet-status-grid,
   .big-grid {
     grid-template-columns: 1fr;
   }
@@ -3899,6 +4107,27 @@ button.ghost {
   .big-screen {
     min-height: 0;
     padding: 24px;
+  }
+
+  .tablet-mode {
+    min-height: 0;
+    border-radius: 20px;
+  }
+
+  .tablet-mode-header {
+    flex-direction: column;
+  }
+
+  .tablet-delay {
+    width: 100%;
+  }
+
+  .tablet-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tablet-action {
+    min-height: 88px;
   }
 }
 
