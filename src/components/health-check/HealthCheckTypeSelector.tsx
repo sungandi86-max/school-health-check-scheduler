@@ -28,7 +28,13 @@ const HOME_CARD_COPY: Record<HealthCheckType, { role: string; title: string; des
   },
 };
 
-export function HealthCheckTypeSelector({ onSelect }: { onSelect: (checkType: HealthCheckType) => void }) {
+export function HealthCheckTypeSelector({
+  onSelect,
+  onOpenStatusDashboard,
+}: {
+  onSelect: (checkType: HealthCheckType) => void;
+  onOpenStatusDashboard: () => void;
+}) {
   return (
     <section className="type-card-grid">
       {HEALTH_CHECK_TYPES.filter((item) => item.isEnabled).map((item) => {
@@ -38,7 +44,7 @@ export function HealthCheckTypeSelector({ onSelect }: { onSelect: (checkType: He
             <span className="mode-pill">{copy.role}</span>
             <h2>{copy.title}</h2>
             <p>{copy.description}</p>
-            <button className="primary" onClick={() => onSelect(item.id)}>
+            <button className="primary" onClick={() => (item.id === 'general' ? onOpenStatusDashboard() : onSelect(item.id))}>
               {copy.button}
             </button>
           </div>

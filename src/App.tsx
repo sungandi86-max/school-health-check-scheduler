@@ -474,6 +474,7 @@ export function App() {
       window.history.pushState({}, '', '/');
     }
   };
+  const openStatusDashboard = () => selectAppTab('admin-dashboard');
 
   const tables = {
     full: createFullTable(data.assignments, data.settings),
@@ -492,6 +493,10 @@ export function App() {
 
   if (activeTab === 'display') {
     return <OperationDisplay />;
+  }
+
+  if (!data.hasSelectedExamType && activeTab === 'admin-dashboard') {
+    return <AdminDashboard />;
   }
 
   const sidebarMenuGroups = [
@@ -539,6 +544,7 @@ export function App() {
     return (
       <ExamTypeSelect
         onSelect={selectExamType}
+        onOpenStatusDashboard={openStatusDashboard}
         onContinue={continueStoredWork}
         onReset={resetStoredData}
         hasStoredData={storedInfo.exists}
@@ -902,6 +908,7 @@ function Metric({ label, value }: { label: string; value: string | number }) {
 
 function ExamTypeSelect({
   onSelect,
+  onOpenStatusDashboard,
   onOpenHelp,
   onContinue,
   onReset,
@@ -913,6 +920,7 @@ function ExamTypeSelect({
   onDismissOnboarding,
 }: {
   onSelect: (checkType: HealthCheckType) => void;
+  onOpenStatusDashboard: () => void;
   onOpenHelp: () => void;
   onContinue: () => void;
   onReset: () => void;
@@ -949,7 +957,7 @@ function ExamTypeSelect({
           <button onClick={onOpenHelp}>사용 설명 보기</button>
         </section>
 
-        <HealthCheckTypeSelector onSelect={onSelect} />
+        <HealthCheckTypeSelector onSelect={onSelect} onOpenStatusDashboard={onOpenStatusDashboard} />
 
         {notice && <div className="entry-reset-notice">{notice}</div>}
         {hasStoredData && (
