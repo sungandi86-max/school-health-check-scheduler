@@ -13,12 +13,12 @@ export function ReportSessionInfo({ session }: { session?: HealthCheckSession })
   return (
     <section className="report-card report-session-info">
       <div>
-        <p className="eyebrow">검진 기본 정보</p>
+        <p className="eyebrow">보고서 기본 정보</p>
         <h2>{session?.title || '선택된 검진 세션이 없습니다'}</h2>
       </div>
       <dl>
         <div>
-          <dt>검사 종류</dt>
+          <dt>검사 유형</dt>
           <dd>{session ? getHealthCheckLabel(session.checkType) : '-'}</dd>
         </div>
         <div>

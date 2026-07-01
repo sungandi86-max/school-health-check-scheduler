@@ -6,7 +6,7 @@ export function ReportLogSummary({ logs }: { logs: HealthCheckOperationLog[] }) 
 
   return (
     <section className="report-card">
-      <p className="eyebrow">운영 로그 요약</p>
+      <p className="eyebrow">운영 기록</p>
       <h2>주요 운영 기록</h2>
       <div className="report-log-list">
         {importantLogs.length ? importantLogs.slice(0, 12).map((log) => (

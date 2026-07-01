@@ -71,6 +71,7 @@ export function OperationReport() {
   const schoolSettings = useMemo(() => loadSchoolSettings(), []);
   const recommendedPdfFileName = useMemo(() => buildRecommendedPdfFileName(summary), [summary]);
   const reportWrittenAt = useMemo(() => formatReportDate(new Date().toISOString()), []);
+  const progressPercent = summary.student.total ? Math.round((summary.student.completed / summary.student.total) * 100) : 0;
 
   const saveNotes = (notes: string) => {
     saveReportNotes(snapshot.sessionId, notes);
@@ -94,7 +95,8 @@ export function OperationReport() {
         <div>
           <div className="role-header-line"><RoleBadge role="viewer" /></div>
           <p className="eyebrow">운영 보고서</p>
-          <h1>학생건강검진 운영 보고서 요약</h1>
+          <h1>검진 운영 결과 보고서</h1>
+          <p className="report-header-lead">검진 종료 후 관리자 보고와 내부 기록에 활용할 수 있도록 전체 진행 현황과 확인 필요 사항을 정리합니다.</p>
         </div>
         <div className="report-actions no-print">
           <button type="button" onClick={refresh}>
@@ -113,15 +115,37 @@ export function OperationReport() {
       <AccessNotice role="viewer" />
       <section className="report-print-cover">
         <p className="eyebrow">{schoolSettings.schoolName}</p>
-        <h2>학생건강검진 운영 보고서</h2>
+        <h2>검진 운영 결과</h2>
         <dl>
           <div><dt>검진명</dt><dd>{summary.session?.title || '선택된 검진'}</dd></div>
           <div><dt>검진일</dt><dd>{summary.session?.date || '-'}</dd></div>
-          <div><dt>검사 종류</dt><dd>{summary.session ? getHealthCheckLabel(summary.session.checkType) : '-'}</dd></div>
+          <div><dt>검사 유형</dt><dd>{summary.session ? getHealthCheckLabel(summary.session.checkType) : '-'}</dd></div>
           <div><dt>대상 학년</dt><dd>{summary.session?.targetGrades.length ? `${summary.session.targetGrades.join(', ')}학년` : '-'}</dd></div>
           <div><dt>검진 장소</dt><dd>{summary.session?.location || schoolSettings.defaultLocation || '-'}</dd></div>
           <div><dt>작성일</dt><dd>{reportWrittenAt}</dd></div>
         </dl>
+        <div className="report-cover-kpi-grid">
+          <div className="report-cover-kpi primary">
+            <span>전체 진행률</span>
+            <strong>{progressPercent}%</strong>
+            <small>완료 학생 기준</small>
+          </div>
+          <div className="report-cover-kpi">
+            <span>완료 학생 수</span>
+            <strong>{summary.student.completed}명</strong>
+            <small>전체 {summary.student.total}명</small>
+          </div>
+          <div className={`report-cover-kpi ${summary.student.incomplete ? 'warn' : ''}`}>
+            <span>미검 학생 수</span>
+            <strong>{summary.student.incomplete}명</strong>
+            <small>확인 필요 학생</small>
+          </div>
+          <div className="report-cover-kpi">
+            <span>완료 학급 수</span>
+            <strong>{summary.class.completed}개</strong>
+            <small>전체 {summary.class.total}개 학급</small>
+          </div>
+        </div>
         <p className="report-file-name no-print">추천 PDF 파일명: <strong>{recommendedPdfFileName}</strong></p>
       </section>
       <ReportSessionInfo session={summary.session} />
