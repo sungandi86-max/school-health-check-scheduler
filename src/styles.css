@@ -5459,3 +5459,329 @@ button[aria-pressed='true'] {
     align-items: center;
   }
 }
+/* Common UI design system unification */
+:root {
+  --ui-color-navy: #0d2a3f;
+  --ui-color-text: #122334;
+  --ui-color-muted: #587084;
+  --ui-color-line: #d8e8e5;
+  --ui-color-line-strong: #cfe1df;
+  --ui-color-surface: #ffffff;
+  --ui-color-surface-soft: #f7fcfb;
+  --ui-color-primary: #0f766e;
+  --ui-color-primary-hover: #0b615a;
+  --ui-color-primary-soft: #e0f7f3;
+  --ui-color-warning: #92400e;
+  --ui-color-warning-soft: #fffbeb;
+  --ui-color-success: #047857;
+  --ui-color-success-soft: #ecfdf5;
+  --ui-color-danger: #991b1b;
+  --ui-color-danger-soft: #fee2e2;
+  --ui-radius-sm: 6px;
+  --ui-radius-md: 8px;
+  --ui-radius-pill: 999px;
+  --ui-shadow-card: 0 12px 28px rgba(13, 42, 63, 0.07);
+  --ui-space-card: 18px;
+  --ui-gap-section: 16px;
+  --ui-control-height: 40px;
+  --ui-control-padding-x: 14px;
+}
+
+.card,
+.metric-card,
+.report-card,
+.result-button-group,
+.session-selector,
+.school-settings-panel,
+.storage-option-card,
+.operation-class-selector-card,
+.teacher-session-info,
+.teacher-readonly-notice,
+.teacher-missing-alert,
+.teacher-main-card,
+.admin-session-info,
+.admin-flow-card,
+.operation-report-card,
+.report-print-cover,
+.status-card,
+.tablet-status-card,
+.display-status-card,
+.onboarding-panel,
+.start-guide-card,
+.type-card {
+  border: 1px solid var(--ui-color-line);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-card);
+  padding: var(--ui-space-card);
+}
+
+.card,
+.report-card,
+.operation-report-card,
+.start-guide-card,
+.onboarding-panel {
+  margin: 0;
+}
+
+.stack,
+.operation-layout,
+.operation-main-column,
+.operation-side-column,
+.teacher-dashboard-page,
+.admin-dashboard-page,
+.operation-report-page,
+.settings-grid,
+.result-button-groups {
+  gap: var(--ui-gap-section);
+}
+
+button,
+button.primary,
+button.secondary,
+button.ghost,
+button.outline,
+.teacher-refresh-button,
+.teacher-copy-button,
+.admin-refresh-button,
+.tablet-action,
+.share-link-card button,
+.share-message-box button,
+.teacher-notice-message button,
+.class-progress-actions button,
+.student-status-actions button {
+  min-height: var(--ui-control-height);
+  border-radius: var(--ui-radius-md);
+  padding: 9px var(--ui-control-padding-x);
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+button.primary,
+.primary {
+  border-color: var(--ui-color-primary);
+  background: var(--ui-color-primary);
+  color: #ffffff;
+}
+
+button.primary:hover,
+.primary:hover {
+  border-color: var(--ui-color-primary-hover);
+  background: var(--ui-color-primary-hover);
+}
+
+button.secondary,
+.secondary {
+  border-color: var(--ui-color-line-strong);
+  background: var(--ui-color-primary-soft);
+  color: var(--ui-color-primary-hover);
+}
+
+button.outline,
+button.ghost,
+.ghost {
+  border-color: var(--ui-color-line-strong);
+  background: var(--ui-color-surface);
+  color: var(--ui-color-navy);
+}
+
+button.outline:hover,
+button.ghost:hover,
+.ghost:hover,
+button.secondary:hover,
+.secondary:hover {
+  border-color: #59b8ad;
+  background: #f2fbfa;
+}
+
+input,
+select,
+textarea {
+  min-height: var(--ui-control-height);
+  border-color: var(--ui-color-line-strong);
+  border-radius: var(--ui-radius-md);
+  padding: 9px 12px;
+  line-height: 1.45;
+}
+
+textarea {
+  min-height: 96px;
+}
+
+h1,
+h2,
+.topbar h1,
+.type-hero h1,
+.admin-dashboard-header h1,
+.operation-report-header h1,
+.display-mode-header h1 {
+  color: var(--ui-color-navy);
+  letter-spacing: 0;
+  line-height: 1.18;
+}
+
+h1,
+.topbar h1,
+.admin-dashboard-header h1,
+.operation-report-header h1,
+.display-mode-header h1 {
+  font-size: clamp(26px, 3vw, 34px);
+}
+
+h2,
+.section-title h2,
+.section-title h3,
+.card-title-row h3,
+.teacher-main-card h2,
+.tablet-mode-header h2 {
+  color: var(--ui-color-navy);
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+
+.section-title,
+.card-title-row {
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.badge,
+.mode-pill,
+.role-badge,
+.student-status-counts span,
+.student-status-badge,
+.display-delay-badge,
+.session-badge em {
+  min-height: 26px;
+  border-radius: var(--ui-radius-pill);
+  border: 1px solid var(--ui-color-line-strong);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.badge.draft,
+.badge.초안,
+.student-status-badge.status-pending,
+.student-status-badge.status-draft {
+  border-color: var(--ui-color-line-strong);
+  background: var(--ui-color-surface-soft);
+  color: var(--ui-color-muted);
+}
+
+.badge.active,
+.badge.진행중,
+.student-status-badge.status-inProgress,
+.operation-status-card.status-active {
+  border-color: #59b8ad;
+  background: var(--ui-color-primary-soft);
+  color: var(--ui-color-primary-hover);
+}
+
+.badge.completed,
+.badge.완료,
+.student-status-badge.status-completed,
+.operation-status-card.status-done {
+  border-color: #99d8c9;
+  background: var(--ui-color-success-soft);
+  color: var(--ui-color-success);
+}
+
+.badge.missing,
+.badge.미도착,
+.badge.warning,
+.student-status-badge.status-absent,
+.student-status-badge.status-earlyLeave,
+.student-status-badge.status-late,
+.student-status-badge.status-deferred,
+.operation-status-card.status-warn,
+.status-card-warn {
+  border-color: #f6d58f;
+  background: var(--ui-color-warning-soft);
+  color: var(--ui-color-warning);
+}
+
+.empty,
+.keyword-empty,
+.empty-state {
+  border: 1px dashed var(--ui-color-line-strong);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface-soft);
+  color: var(--ui-color-muted);
+  padding: 24px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.status-card,
+.operation-status-card,
+.teacher-status-card,
+.teacher-status-card-primary,
+.tablet-status-card,
+.display-status-card,
+.admin-flow-card {
+  border-radius: var(--ui-radius-md);
+  padding: var(--ui-space-card);
+}
+
+.status-card span,
+.operation-status-card span,
+.teacher-status-card span,
+.tablet-status-card span,
+.display-status-card span,
+.admin-flow-card span {
+  color: var(--ui-color-muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.status-card strong,
+.operation-status-card strong,
+.teacher-status-card strong,
+.tablet-status-card strong,
+.display-status-card strong,
+.admin-flow-card strong {
+  color: var(--ui-color-navy);
+  letter-spacing: 0;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --ui-space-card: 14px;
+    --ui-gap-section: 12px;
+    --ui-control-height: 44px;
+  }
+
+  .card,
+  .metric-card,
+  .report-card,
+  .result-button-group,
+  .session-selector,
+  .school-settings-panel,
+  .storage-option-card,
+  .operation-class-selector-card,
+  .teacher-session-info,
+  .teacher-readonly-notice,
+  .teacher-missing-alert,
+  .teacher-main-card,
+  .admin-session-info,
+  .admin-flow-card,
+  .operation-report-card,
+  .report-print-cover,
+  .status-card,
+  .tablet-status-card,
+  .display-status-card,
+  .onboarding-panel,
+  .start-guide-card,
+  .type-card {
+    padding: var(--ui-space-card);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    min-height: var(--ui-control-height);
+  }
+}
