@@ -56,21 +56,26 @@ export function TeacherDashboard() {
       <header className="teacher-dashboard-header">
         <div>
           <div className="role-header-line"><RoleBadge role="teacher" /></div>
-          <p className="eyebrow">교사용 실시간 현황</p>
-          <h1>학생건강검진 안내 화면</h1>
+          <p className="eyebrow">교사용 확인 전용 현황판</p>
+          <h1>우리 반 검진 이동 확인</h1>
+          <p className="teacher-dashboard-lead">보건실에서 입력한 현재 검진 상황을 학급 단위로 확인하는 화면입니다.</p>
         </div>
-        <button type="button" aria-label="교사용 현황 새로고침" onClick={refresh}>
+        <button type="button" className="teacher-refresh-button" aria-label="교사용 현황 새로고침" onClick={refresh}>
           <RefreshCcw size={16} />
-          새로고침
+          현황 새로고침
         </button>
       </header>
 
       {snapshotError && <p className="table-description">{snapshotError}</p>}
-      <AccessNotice role="teacher" />
-      <TeacherRealtimeStatus updatedAt={snapshot.state.updatedAt} />
+      <TeacherSessionInfo session={snapshot.session} />
+      <section className="teacher-readonly-notice">
+        <strong>확인 전용</strong>
+        <span>이 화면에서는 입력하거나 상태를 변경하지 않습니다. 이동 안내와 현재 검사 학급만 빠르게 확인해 주세요.</span>
+      </section>
       <TeacherCurrentStatusCard state={snapshot.state} />
       <TeacherMissingClassAlert state={snapshot.state} />
-      <TeacherSessionInfo session={snapshot.session} />
+      <TeacherRealtimeStatus updatedAt={snapshot.state.updatedAt} />
+      <AccessNotice role="teacher" />
       <TeacherNoticeMessage message={notice} />
 
       {classStats.length > 0 && (
@@ -101,7 +106,7 @@ function TeacherRealtimeStatus({ updatedAt }: { updatedAt: string }) {
   return (
     <section className={`teacher-realtime-status ${realtimeReady ? 'connected' : 'local'}`}>
       <strong>{realtimeReady ? '실시간 연결됨' : '이 기기 기준 데이터'}</strong>
-      <span>{isSupabaseMode ? `마지막 업데이트: ${formatTime(updatedAt)}` : '다른 기기와 실시간 공유하려면 Supabase 설정이 필요합니다.'}</span>
+      <span>{isSupabaseMode ? `마지막 업데이트: ${formatTime(updatedAt)}` : `마지막 업데이트: ${formatTime(updatedAt)} · 학교 서버 연결 시 여러 기기에서 함께 확인할 수 있습니다.`}</span>
     </section>
   );
 }

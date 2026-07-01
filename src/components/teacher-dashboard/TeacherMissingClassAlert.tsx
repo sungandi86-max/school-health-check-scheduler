@@ -11,7 +11,7 @@ export function TeacherMissingClassAlert({ state }: { state: HealthCheckOperatio
       </div>
       <p>
         {hasMissing
-          ? `${state.missingClassIds.join(', ')} 학생이 수업 중인 경우 검진 장소로 이동할 수 있도록 안내 부탁드립니다.`
+          ? `${state.missingClassIds.join(', ')} 학급은 보건실 안내에 따라 검진 장소 이동 여부를 확인해 주세요.`
           : '현재 별도로 이동 안내가 필요한 미도착 학급은 없습니다.'}
       </p>
     </section>
