@@ -2844,7 +2844,7 @@ td select {
 .type-card-grid {
   width: min(100%, 1040px);
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
   margin: 0 auto;
 }
@@ -2857,8 +2857,8 @@ td select {
   box-shadow: 0 16px 34px rgba(13, 42, 63, 0.08);
   display: grid;
   gap: 14px;
-  align-content: start;
-  min-height: 220px;
+  grid-template-rows: auto auto 1fr auto;
+  min-height: 260px;
 }
 
 .type-card p {
@@ -2870,6 +2870,11 @@ td select {
 .type-card button {
   width: 100%;
   align-self: end;
+}
+
+.type-card-tuberculosis {
+  border-color: #b9dad5;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fcfb 100%);
 }
 
 .mode-pill {
@@ -3420,7 +3425,7 @@ button.ghost {
   border: 1px solid #d8e8e5;
   background: rgba(255, 255, 255, 0.78);
   border-radius: 10px;
-  padding: 13px 15px;
+  padding: 16px 18px;
   color: #496275;
 }
 
@@ -3431,6 +3436,11 @@ button.ghost {
 
 .entry-help-card strong {
   color: #29465a;
+}
+
+.entry-help-card span {
+  line-height: 1.6;
+  font-weight: 700;
 }
 
 .help-landing,
