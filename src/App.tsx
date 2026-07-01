@@ -511,7 +511,7 @@ export function App() {
             <span>{mode.sidebarDetail}</span>
           </div>
         </div>
-        <nav>
+        <nav className="sidebar-nav" aria-label="주요 화면 이동">
           {[
             [data.settings.examType === 'urine' ? 'urine-help' : 'tb-help', data.settings.examType === 'urine' ? '소변검사 사용 안내' : '결핵검진 사용 안내'],
             ['dashboard', '대시보드'],
@@ -533,12 +533,14 @@ export function App() {
             </button>
           ))}
         </nav>
-        <button className="primary full" onClick={runSchedule}>
-          <Sparkles size={18} /> 검사 시간표 자동배정하기
-        </button>
-        <button className="full" onClick={confirmReselectType}>검사 유형 다시 선택</button>
-        <button className="full" onClick={startNewSchedule}>새 시간표 만들기</button>
-        <button className="full" onClick={resetStoredData}>저장 데이터 초기화</button>
+        <div className="sidebar-actions">
+          <button className="primary full" onClick={runSchedule}>
+            <Sparkles size={18} /> 검사 시간표 자동배정하기
+          </button>
+          <button className="full" onClick={confirmReselectType}>검사 유형 다시 선택</button>
+          <button className="full" onClick={startNewSchedule}>새 시간표 만들기</button>
+          <button className="full" onClick={resetStoredData}>저장 데이터 초기화</button>
+        </div>
         <div className="sidebar-mascot">
           <OtterMascot variant="md" decorative />
           <span>검진·검사 시간표 자동배정 도우미</span>

@@ -164,6 +164,11 @@ nav button:hover {
   border-color: #2b6178;
 }
 
+.sidebar-actions {
+  display: grid;
+  gap: 8px;
+}
+
 .full {
   width: 100%;
 }
@@ -4947,5 +4952,352 @@ button[aria-pressed='true'] {
 
   .student-status-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1023px) {
+  body {
+    min-width: 0;
+  }
+
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    height: auto;
+    max-height: 46vh;
+    padding: 12px 14px;
+    gap: 12px;
+    overflow: auto;
+  }
+
+  .brand {
+    align-items: flex-start;
+  }
+
+  .brand strong {
+    font-size: 15px;
+    line-height: 1.25;
+  }
+
+  .brand span {
+    font-size: 12px;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scroll-snap-type: x proximity;
+  }
+
+  .sidebar-nav button {
+    flex: 0 0 auto;
+    min-height: 44px;
+    justify-content: center;
+    scroll-snap-align: start;
+  }
+
+  .sidebar-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .sidebar-actions button {
+    min-height: 44px;
+    white-space: normal;
+    line-height: 1.25;
+  }
+
+  .sidebar-mascot {
+    display: none;
+  }
+
+  main {
+    width: 100%;
+    min-width: 0;
+    padding: 18px;
+  }
+
+  .topbar {
+    display: grid;
+  }
+
+  .topbar h1 {
+    font-size: clamp(26px, 4.4vw, 38px);
+    line-height: 1.18;
+  }
+
+  .toolbar,
+  .actions,
+  .actions.wrap,
+  .report-actions,
+  .operation-tabs {
+    flex-wrap: wrap;
+  }
+
+  button {
+    min-height: 44px;
+  }
+
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+  }
+
+  .card,
+  .report-card,
+  .teacher-session-info,
+  .teacher-readonly-notice,
+  .teacher-missing-alert,
+  .teacher-notice-message,
+  .teacher-class-summary,
+  .teacher-dashboard-footer,
+  .admin-session-info,
+  .admin-readonly-notice,
+  .admin-notice-panel,
+  .admin-recent-logs,
+  .admin-dashboard-footer,
+  .admin-class-status-summary,
+  .admin-student-status-summary {
+    padding: 16px;
+  }
+
+  .metric-grid,
+  .session-overview,
+  .field-grid,
+  .compact-grid,
+  .operation-status-grid,
+  .operation-layout,
+  .operation-control-grid,
+  .operation-class-grid,
+  .teacher-priority-grid,
+  .admin-session-info dl,
+  .admin-current-flow,
+  .admin-dashboard-detail-grid,
+  .report-two-column,
+  .report-session-info dl {
+    grid-template-columns: 1fr;
+  }
+
+  .operation-right-panel {
+    position: static;
+  }
+
+  .class-progress-list,
+  .student-checklist {
+    max-height: none;
+  }
+
+  .operation-control-grid {
+    gap: 14px;
+  }
+
+  .display-mode-page {
+    min-height: 100dvh;
+    padding: clamp(18px, 5vw, 36px);
+  }
+
+  .display-mode-header,
+  .display-hero-grid,
+  .display-progress-panel > div:first-child,
+  .display-mode-footer {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .display-status-card {
+    min-height: 160px;
+  }
+
+  .display-status-card strong {
+    font-size: clamp(46px, 14vw, 96px);
+  }
+
+  .tablet-mode {
+    min-height: auto;
+  }
+
+  .operation-report-header,
+  .teacher-dashboard-header,
+  .admin-dashboard-header {
+    display: grid;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .sidebar {
+    max-height: 38vh;
+  }
+
+  .sidebar-actions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .operation-status-grid,
+  .teacher-priority-grid,
+  .admin-session-info dl,
+  .report-session-info dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-progress-grid,
+  .admin-current-flow,
+  .report-metric-grid,
+  .tablet-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-progress-card.primary,
+  .teacher-status-card-primary {
+    grid-column: span 2;
+  }
+
+  .tablet-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .sidebar {
+    max-height: 54vh;
+  }
+
+  .otter-mascot-sm {
+    width: 36px;
+    height: 36px;
+  }
+
+  .sidebar-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sidebar-actions .primary {
+    grid-column: 1 / -1;
+  }
+
+  main {
+    padding: 14px;
+  }
+
+  .topbar {
+    gap: 12px;
+  }
+
+  .toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .toolbar button,
+  .actions button,
+  .report-actions button,
+  .operation-tabs button {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .operation-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .class-progress-row,
+  .student-check-row {
+    grid-template-columns: 1fr;
+  }
+
+  .class-progress-actions,
+  .student-status-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .class-progress-actions button,
+  .student-status-actions button {
+    width: 100%;
+  }
+
+  .teacher-status-card,
+  .admin-progress-card,
+  .admin-flow-card,
+  .operation-status-card {
+    min-height: 108px;
+  }
+
+  .teacher-status-card strong,
+  .admin-progress-card strong,
+  .admin-flow-card strong,
+  .operation-status-card strong {
+    font-size: clamp(30px, 11vw, 48px);
+  }
+
+  .tablet-status-grid,
+  .tablet-action-grid,
+  .report-metric-grid,
+  .admin-progress-grid,
+  .admin-current-flow,
+  .admin-status-grid,
+  .admin-status-grid.student {
+    grid-template-columns: 1fr;
+  }
+
+  .tablet-action {
+    min-height: 84px;
+  }
+
+  .tablet-mode-notice,
+  .display-notice-panel p {
+    font-size: clamp(20px, 6vw, 32px);
+  }
+
+  .display-progress-panel strong {
+    font-size: clamp(52px, 18vw, 86px);
+  }
+
+  .report-session-info dd,
+  .report-metric strong {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 420px) {
+  .sidebar {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .brand span:last-child {
+    display: none;
+  }
+
+  .sidebar-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar,
+  .operation-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  main {
+    padding: 10px;
+  }
+
+  .card,
+  .report-card,
+  .tablet-mode,
+  .display-status-card,
+  .display-progress-panel,
+  .display-notice-panel {
+    border-radius: 12px;
   }
 }
