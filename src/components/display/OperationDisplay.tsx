@@ -69,10 +69,16 @@ export function OperationDisplay() {
     return (
       <main className="display-mode-page signage-mode-page display-portrait" aria-label="보건실 세로형 검진 사이니지">
         <header className="display-portrait-header">
-          <div className="display-logo-mark" aria-label="학교 로고">SH</div>
-          <div>
-            <p>{schoolName}</p>
-            <strong>{snapshot.session?.title || checkName}</strong>
+          <div className="display-portrait-brand">
+            <div className="display-logo-mark" aria-label="학교 로고">SH</div>
+            <div>
+              <p>{schoolName}</p>
+              <strong>{snapshot.session?.title || checkName}</strong>
+            </div>
+          </div>
+          <div className="display-portrait-clock" aria-label="현재 시간">
+            <span>{formatDate(currentTime)}</span>
+            <strong>{formatCurrentTime(currentTime)}</strong>
           </div>
         </header>
 
@@ -98,6 +104,7 @@ export function OperationDisplay() {
             <div>
               <span>전체 진행률</span>
               <strong>{progressPercent}%</strong>
+              <small>완료 {classProgress.completed} / 전체 {classProgress.total}학급</small>
             </div>
             <div className="display-progress-track" aria-hidden="true">
               <span style={{ width: `${progressPercent}%` }} />
@@ -152,9 +159,10 @@ export function OperationDisplay() {
           <span>남은 학급</span>
           <strong>{remainingClassCount}</strong>
         </article>
-        <article className="display-status-card">
+        <article className={`display-status-card ${snapshot.state.delayedMinutes > 0 ? 'warn' : ''}`}>
           <span>예상 종료 시간</span>
           <strong>{expectedEndLabel}</strong>
+          <small>{snapshot.state.delayedMinutes > 0 ? `${snapshot.state.delayedMinutes}분 지연 중` : '운영센터 기준'}</small>
         </article>
       </section>
 

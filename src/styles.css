@@ -2226,7 +2226,37 @@ td select {
 .display-portrait-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: clamp(22px, 4vw, 44px);
+}
+
+.display-portrait-brand {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: clamp(22px, 4vw, 44px);
+}
+
+.display-portrait-clock {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  border: 1px solid rgba(125, 211, 199, 0.34);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.09);
+  padding: clamp(16px, 2.8vw, 28px);
+}
+
+.display-portrait-clock span {
+  color: #9ee2d9;
+  font-size: clamp(22px, 3.2vw, 42px);
+  font-weight: 900;
+}
+
+.display-portrait-clock strong {
+  color: #ffffff;
+  font-size: clamp(46px, 7vw, 88px);
+  line-height: 1;
 }
 
 .display-portrait-header p {
@@ -2272,7 +2302,8 @@ td select {
 
 .display-portrait-card:first-child {
   border-color: #59b8ad;
-  background: rgba(15, 118, 110, 0.32);
+  background: rgba(15, 118, 110, 0.42);
+  box-shadow: 0 28px 82px rgba(0, 0, 0, 0.24), inset 0 0 0 3px rgba(125, 211, 199, 0.24);
 }
 
 .display-portrait-card span {
@@ -2302,8 +2333,20 @@ td select {
   padding: clamp(24px, 4vw, 54px);
 }
 
+.display-portrait .display-progress-panel > div:first-child {
+  grid-template-columns: auto 1fr;
+  align-items: end;
+}
+
 .display-portrait .display-progress-panel strong {
   font-size: clamp(82px, 11vw, 160px);
+}
+
+.display-portrait .display-progress-panel small {
+  justify-self: end;
+  color: #cce5e7;
+  font-size: clamp(24px, 3.2vw, 46px);
+  font-weight: 900;
 }
 
 .display-portrait .display-notice-panel p {
@@ -2313,6 +2356,8 @@ td select {
 
 .display-landscape {
   grid-template-rows: auto auto minmax(0, 0.72fr) minmax(0, 1fr) auto;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .display-landscape-summary {
@@ -2346,6 +2391,14 @@ td select {
   min-height: 0;
 }
 
+.display-landscape .display-notice-panel p {
+  font-size: clamp(28px, 3.2vw, 56px);
+}
+
+.display-landscape .display-progress-panel {
+  min-width: 0;
+}
+
 @media (max-width: 1180px) {
   .display-landscape-summary,
   .display-landscape-main {
@@ -2354,6 +2407,14 @@ td select {
 
   .display-portrait {
     overflow: auto;
+  }
+
+  .display-portrait-header {
+    display: grid;
+  }
+
+  .display-portrait-clock {
+    justify-items: start;
   }
 }
 
