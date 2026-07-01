@@ -8,7 +8,7 @@ describe('HealthCheckTypeSelector', () => {
 
     const buttons = screen.getAllByRole('button');
 
-    expect(buttons).toHaveLength(3);
+    expect(buttons).toHaveLength(4);
   });
 
   it('calls onSelect with the selected health check type', () => {
@@ -23,14 +23,16 @@ describe('HealthCheckTypeSelector', () => {
     expect(onSelect).toHaveBeenNthCalledWith(2, 'tuberculosis');
   });
 
-  it('opens the status dashboard without selecting general health check', () => {
+  it('opens the selected status dashboard without selecting general health check', () => {
     const onSelect = vi.fn();
     const onOpenStatusDashboard = vi.fn();
     render(<HealthCheckTypeSelector onSelect={onSelect} onOpenStatusDashboard={onOpenStatusDashboard} />);
 
-    fireEvent.click(screen.getByRole('button', { name: '운영 현황 보기' }));
+    fireEvent.click(screen.getByRole('button', { name: '보건실 현황판' }));
+    fireEvent.click(screen.getByRole('button', { name: '교무실 현황판' }));
 
-    expect(onOpenStatusDashboard).toHaveBeenCalledTimes(1);
+    expect(onOpenStatusDashboard).toHaveBeenNthCalledWith(1, 'portrait');
+    expect(onOpenStatusDashboard).toHaveBeenNthCalledWith(2, 'landscape');
     expect(onSelect).not.toHaveBeenCalledWith('general');
   });
 });

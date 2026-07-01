@@ -474,7 +474,10 @@ export function App() {
       window.history.pushState({}, '', '/');
     }
   };
-  const openStatusDashboard = () => selectAppTab('admin-dashboard');
+  const openStatusDashboard = (mode: 'portrait' | 'landscape') => {
+    setActiveTab('display');
+    window.history.pushState({}, '', `/display?mode=${mode}`);
+  };
 
   const tables = {
     full: createFullTable(data.assignments, data.settings),
@@ -920,7 +923,7 @@ function ExamTypeSelect({
   onDismissOnboarding,
 }: {
   onSelect: (checkType: HealthCheckType) => void;
-  onOpenStatusDashboard: () => void;
+  onOpenStatusDashboard: (mode: 'portrait' | 'landscape') => void;
   onOpenHelp: () => void;
   onContinue: () => void;
   onReset: () => void;

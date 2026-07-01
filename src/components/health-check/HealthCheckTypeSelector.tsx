@@ -33,7 +33,7 @@ export function HealthCheckTypeSelector({
   onOpenStatusDashboard,
 }: {
   onSelect: (checkType: HealthCheckType) => void;
-  onOpenStatusDashboard: () => void;
+  onOpenStatusDashboard: (mode: 'portrait' | 'landscape') => void;
 }) {
   return (
     <section className="type-card-grid">
@@ -44,9 +44,20 @@ export function HealthCheckTypeSelector({
             <span className="mode-pill">{copy.role}</span>
             <h2>{copy.title}</h2>
             <p>{copy.description}</p>
-            <button className="primary" onClick={() => (item.id === 'general' ? onOpenStatusDashboard() : onSelect(item.id))}>
-              {copy.button}
-            </button>
+            {item.id === 'general' ? (
+              <div className="type-card-actions">
+                <button className="primary" onClick={() => onOpenStatusDashboard('portrait')}>
+                  보건실 현황판
+                </button>
+                <button className="primary" onClick={() => onOpenStatusDashboard('landscape')}>
+                  교무실 현황판
+                </button>
+              </div>
+            ) : (
+              <button className="primary" onClick={() => onSelect(item.id)}>
+                {copy.button}
+              </button>
+            )}
           </div>
         );
       })}
