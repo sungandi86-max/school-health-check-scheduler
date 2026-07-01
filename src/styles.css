@@ -5826,3 +5826,290 @@ h2,
     min-height: var(--ui-control-height);
   }
 }
+
+/* Final responsive polish */
+@media (max-width: 1180px) {
+  *,
+  *::before,
+  *::after {
+    min-width: 0;
+  }
+
+  .type-select-content,
+  .operation-center,
+  .teacher-dashboard-page,
+  .admin-dashboard-page,
+  .display-mode-page,
+  .tablet-mode {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .card,
+  .report-card,
+  .type-card,
+  .operation-status-card,
+  .teacher-status-card,
+  .admin-progress-card,
+  .admin-flow-card,
+  .tablet-status-card,
+  .display-status-card {
+    overflow-wrap: anywhere;
+  }
+
+  .operation-layout,
+  .operation-control-grid,
+  .operation-class-grid,
+  .teacher-priority-grid,
+  .admin-dashboard-detail-grid,
+  .report-two-column,
+  .display-hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .class-progress-row,
+  .student-check-row {
+    grid-template-columns: 1fr;
+  }
+
+  .class-progress-actions,
+  .student-status-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .class-progress-actions button,
+  .student-status-actions button,
+  .tablet-action {
+    min-height: 52px;
+    white-space: normal;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1180px) {
+  .sidebar {
+    max-height: 30dvh;
+  }
+
+  .operation-status-grid,
+  .tablet-status-grid,
+  .tablet-action-grid,
+  .admin-progress-grid,
+  .admin-current-flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .operation-status-card:first-child,
+  .tablet-current,
+  .admin-progress-card.primary {
+    grid-column: span 2;
+  }
+
+  .tablet-mode {
+    min-height: auto;
+    gap: 14px;
+    padding: clamp(18px, 3vw, 28px);
+  }
+
+  .tablet-mode-header {
+    align-items: center;
+  }
+
+  .tablet-mode-header h2 {
+    font-size: clamp(34px, 5.2vw, 52px);
+  }
+
+  .tablet-action {
+    min-height: 88px;
+    font-size: clamp(24px, 4vw, 36px);
+  }
+
+  .display-mode-page {
+    padding: clamp(24px, 4vw, 44px);
+  }
+
+  .display-mode-header h1 {
+    font-size: clamp(42px, 6vw, 76px);
+  }
+
+  .display-status-card strong {
+    font-size: clamp(64px, 10vw, 118px);
+  }
+}
+
+@media (max-width: 767px) {
+  .sidebar {
+    max-height: 34dvh;
+    gap: 8px;
+  }
+
+  .brand {
+    gap: 8px;
+  }
+
+  .brand strong {
+    font-size: 14px;
+  }
+
+  .brand span {
+    font-size: 11px;
+  }
+
+  .sidebar-nav {
+    gap: 10px;
+  }
+
+  .sidebar-menu-group h2 {
+    font-size: 10px;
+  }
+
+  .sidebar-menu-items {
+    gap: 6px;
+  }
+
+  .sidebar-nav button,
+  .sidebar-actions button {
+    min-height: 40px;
+    padding: 8px 10px;
+  }
+
+  .type-select-screen {
+    padding: 18px 14px 24px;
+  }
+
+  .type-select-content {
+    gap: 12px;
+  }
+
+  .type-hero {
+    gap: 12px;
+  }
+
+  .type-hero h1 {
+    font-size: clamp(25px, 8vw, 32px);
+  }
+
+  .type-hero p:last-child,
+  .brand-line {
+    font-size: 13px;
+  }
+
+  .type-card-grid,
+  .operation-status-grid,
+  .teacher-priority-grid,
+  .admin-progress-grid,
+  .admin-current-flow,
+  .tablet-status-grid,
+  .tablet-action-grid,
+  .report-metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .type-card {
+    min-height: 0;
+    gap: 8px;
+  }
+
+  .type-card p {
+    min-height: 0;
+  }
+
+  .start-guide-card,
+  .entry-help-card,
+  .onboarding-panel {
+    padding: 12px;
+  }
+
+  .start-guide-header,
+  .entry-help-card,
+  .tablet-mode-header,
+  .display-mode-header,
+  .teacher-dashboard-header,
+  .admin-dashboard-header {
+    display: grid;
+  }
+
+  .start-guide-steps,
+  .onboarding-flow {
+    grid-template-columns: 1fr;
+  }
+
+  .start-guide-steps li {
+    min-height: 42px;
+  }
+
+  .onboarding-flow article {
+    min-height: 0;
+  }
+
+  .operation-center {
+    gap: 12px;
+  }
+
+  .operation-status-card,
+  .teacher-status-card,
+  .admin-progress-card,
+  .admin-flow-card {
+    min-height: 96px;
+  }
+
+  .class-progress-actions,
+  .student-status-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .tablet-mode {
+    min-height: auto;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .tablet-mode-header h2 {
+    font-size: clamp(28px, 10vw, 44px);
+  }
+
+  .tablet-status-card strong {
+    font-size: clamp(44px, 16vw, 72px);
+  }
+
+  .tablet-action {
+    min-height: 76px;
+    font-size: clamp(22px, 7vw, 34px);
+  }
+
+  .display-mode-page {
+    padding: 16px;
+  }
+
+  .display-status-card {
+    min-height: 128px;
+  }
+
+  .display-status-card strong {
+    font-size: clamp(42px, 15vw, 82px);
+  }
+}
+
+@media (max-width: 420px) {
+  .sidebar {
+    max-height: 36dvh;
+  }
+
+  .type-hero-mascot {
+    width: 68px;
+    height: 68px;
+  }
+
+  .toolbar,
+  .actions,
+  .report-actions,
+  .operation-tabs,
+  .sidebar-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .display-progress-panel strong {
+    font-size: clamp(44px, 16vw, 68px);
+  }
+}
