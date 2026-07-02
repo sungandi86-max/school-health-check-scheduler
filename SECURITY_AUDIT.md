@@ -1,5 +1,7 @@
 # Security Audit Checklist
 
+문서 시작점: [PROJECT.md](PROJECT.md)
+
 ## 목적
 
 School Health Hub 릴리즈 전 보안과 개인정보 노출 여부를 점검하기 위한 체크리스트입니다.

@@ -1,5 +1,7 @@
 # School Health Hub Database Schema
 
+문서 시작점: [../PROJECT.md](../PROJECT.md)
+
 이 문서는 School Health Hub의 localStorage 기반 데이터를 Supabase PostgreSQL로 이전하기 위한 초기 데이터베이스 설계입니다. 이번 Sprint에서는 앱 코드에서 실제 DB 읽기/쓰기를 하지 않으며, 기존 localStorage 동작을 유지합니다.
 
 ## 전체 데이터 구조

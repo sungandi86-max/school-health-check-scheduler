@@ -1,5 +1,7 @@
 # Security Policy
 
+문서 시작점: [PROJECT.md](PROJECT.md)
+
 ## 목적
 
 School Health Hub는

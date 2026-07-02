@@ -1,5 +1,7 @@
 ﻿# School Health Hub Product Roadmap
 
+문서 시작점: [../PROJECT.md](../PROJECT.md)
+
 이 문서는 School Health Hub를 장기 학교 보건 플랫폼으로 발전시키기 위한 제품 로드맵입니다.
 
 ## Milestone 1: v3.0 학생건강검진 플랫폼

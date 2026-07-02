@@ -1,5 +1,7 @@
 ﻿# Release Checklist
 
+문서 시작점: [../PROJECT.md](../PROJECT.md)
+
 School Health Hub를 안정적으로 배포하기 전에 확인하는 릴리스 체크리스트입니다.
 릴리스 담당자는 아래 항목을 순서대로 확인한 뒤 GitHub Release를 작성합니다.
 

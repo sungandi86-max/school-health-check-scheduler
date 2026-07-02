@@ -2,6 +2,8 @@
 
 **School Health Hub**의 v1.0 MVP인 학교 별도검사 운영 도우미는 보건교사가 결핵검진·소변검사 운영을 준비하고, 검진 당일 진행 상황을 공유하며, 종료 후 보고서까지 정리할 수 있도록 돕는 Vite + React + TypeScript 기반 Lite 웹앱입니다.
 
+이 README는 GitHub 방문자용 제품 소개 문서입니다. 개발자와 Codex 세션에서 프로젝트 방향을 빠르게 파악할 때는 [PROJECT.md](PROJECT.md)를 먼저 확인하세요.
+
 - 소변검사는 운영 계획과 학급별 시간표 자동배정을 중심으로 지원합니다.
 - 결핵검진은 검진 당일 실시간 운영, 교사용 안내, 관리자 현황 공유를 중심으로 지원합니다.
 - 학생 이름과 명렬표 정보는 운영센터 내부에서만 사용하며, 교사용·관리자용 공유 화면에는 학생 개인정보를 기본 노출하지 않습니다.
@@ -26,14 +28,14 @@
 - 교사용 현황판: 교직원 내부 공유용 보기 전용 현황 화면
 - 관리자 현황판: 전체 진행률, 미검 수, 미도착·지연 상태, 최근 로그 확인
 - Display Mode: 보건실 세로형, 교무실·관리자 가로형 사이니지 화면
-- Tablet Mode: 검진장 검사자가 사용할 수 있는 큰 버튼 중심 현장 화면
+- 현장 모드: 검진 현장에서 사용할 수 있는 큰 버튼 중심 체크 화면
 - 운영 보고서: 특이사항 기록, 관리자 보고 문구 복사, 인쇄/PDF 저장
 
 ## 메뉴 구조
 
 1. 운영 준비: 학교 설정, 검사 조건, 검진 대상 학급, 학급별 검진 순서 입력, 분반·혼합수업 참고자료
 2. 운영 계획: 대시보드, 학급별 검진 이동표
-3. 실시간 운영: 실시간 검진 운영, 교사용 현황판, 관리자 현황판, Display Mode, Tablet Mode
+3. 실시간 운영: 실시간 검진 운영, 현장 모드, 교사용 현황판, 관리자 현황판, Display Mode
 4. 운영 결과: 운영 보고서
 5. 기타: 검진 사용 안내
 
@@ -131,8 +133,13 @@ npm run build
 
 ## 프로젝트 문서
 
+- [Documentation Hub](PROJECT.md)
 - [Vision](docs/VISION.md)
 - [Product Roadmap](docs/PRODUCT_ROADMAP.md)
+- [Workspace Guide](WORKSPACE_GUIDE.md)
+- [Field Mode](FIELD_MODE.md)
+- [Security Policy](SECURITY.md)
+- [Security Audit Checklist](SECURITY_AUDIT.md)
 - [Project Board](docs/PROJECT_BOARD.md)
 - [Sprint Guide](docs/SPRINT_GUIDE.md)
 - [GitHub Workflow](docs/GITHUB_WORKFLOW.md)

@@ -1,5 +1,7 @@
 # School Health Hub 릴리스 계획
 
+문서 시작점: [../PROJECT.md](../PROJECT.md)
+
 이 문서는 `school-health-check-scheduler` 저장소를 School Health Hub 제품으로 확장하기 위한 GitHub 릴리스 버전 체계를 정리합니다.
 
 ## v1.0.0: 기존 학생건강검진 스케줄러

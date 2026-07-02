@@ -1,5 +1,7 @@
 ﻿# School Health Hub Vision
 
+문서 시작점: [../PROJECT.md](../PROJECT.md)
+
 ## 프로젝트 비전
 
 School Health Hub는 학교 보건 업무를 검진 일정표 작성 수준에서 멈추지 않고, 준비, 당일 운영, 교직원 협업, 기록 보관, 분석까지 이어지는 학교 보건 운영 플랫폼으로 발전시키는 것을 목표로 합니다.

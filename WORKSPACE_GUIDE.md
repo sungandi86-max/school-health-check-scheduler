@@ -1,5 +1,7 @@
 # Workspace Guide
 
+문서 시작점: [PROJECT.md](PROJECT.md)
+
 ## 목적
 
 Workspace는 School Health Hub 안에서

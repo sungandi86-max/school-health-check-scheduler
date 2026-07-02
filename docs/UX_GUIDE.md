@@ -1,5 +1,7 @@
 ﻿# UX Guide
 
+문서 시작점: [../PROJECT.md](../PROJECT.md)
+
 School Health Hub의 교사용, 보건교사용, 관리자용 화면을 설계하고 점검할 때 사용하는 UX 원칙입니다.
 
 ## 교사용 화면 UX 원칙
